@@ -26,6 +26,39 @@ r=cl(r+n,0,255)|0;g=cl(g+n,0,255)|0;b=cl(b+n,0,255)|0;return '#'+((1<<24)|(r<<16
 function tx(t,x,y,o={}){const s=o.size||16;ctx.font=(o.weight||'')+' '+s+'px Consolas,monospace';
 ctx.textAlign=o.align||'left';ctx.textBaseline=o.baseline||'alphabetic';ctx.fillStyle=o.color||'#e6e6f0';
 if(o.glow){ctx.shadowColor=o.glow;ctx.shadowBlur=o.glowBlur||12;}ctx.fillText(t,x,y);ctx.shadowBlur=0;}
+function txClip(t,x,y,maxW,o={}){
+  const s=o.size||16;
+  ctx.font=(o.weight||'')+' '+s+'px Consolas,monospace';
+  if(ctx.measureText(t).width<=maxW){tx(t,x,y,o);return;}
+  let lo=0,hi=t.length;
+  while(lo<hi){
+    const mid=(lo+hi+1)>>1;
+    if(ctx.measureText(t.slice(0,mid)+'…').width<=maxW)lo=mid;else hi=mid-1;
+  }
+  tx(t.slice(0,lo)+'…',x,y,o);
+}
+function txFit(t,x,y,maxW,o={},minSize=9){
+  let s=o.size||16;
+  ctx.font=(o.weight||'')+' '+s+'px Consolas,monospace';
+  while(s>minSize && ctx.measureText(t).width>maxW){
+    s--;
+    ctx.font=(o.weight||'')+' '+s+'px Consolas,monospace';
+  }
+  if(ctx.measureText(t).width>maxW) txClip(t,x,y,maxW,{...o,size:s});
+  else tx(t,x,y,{...o,size:s});
+}
+function wrapText(text,maxW,size,weight){
+  ctx.font=(weight||'')+' '+size+'px Consolas,monospace';
+  const words=text.split(' ');
+  const lines=[];let cur='';
+  for(const w of words){
+    const test=cur?cur+' '+w:w;
+    if(ctx.measureText(test).width>maxW && cur){lines.push(cur);cur=w;}
+    else cur=test;
+  }
+  if(cur)lines.push(cur);
+  return lines;
+}
 function bar(x,y,w,h,v,m,c,bg='#1a1a24'){ctx.fillStyle=bg;ctx.fillRect(x,y,w,h);
 const f=m>0?cl(v/m,0,1)*w:0;if(f>0){ctx.fillStyle=c;ctx.fillRect(x,y,f,h);}
 ctx.strokeStyle='#333348';ctx.lineWidth=1;ctx.strokeRect(x+.5,y+.5,w-1,h-1);}
@@ -43,6 +76,14 @@ ctx.beginPath();ctx.arc(s*.3,-s*.1,s*.5,0,7);ctx.fill();}
 else if(name==='skill'){ctx.beginPath();ctx.moveTo(0,-s);ctx.lineTo(s,0);ctx.lineTo(0,s);ctx.lineTo(-s,0);ctx.closePath();ctx.stroke();}
 else{ctx.beginPath();ctx.arc(0,0,s*.5,0,7);ctx.fill();}
 ctx.restore();}
+function castVis(g,p,c,n,r){
+  n=n||15;
+  for(let i=0;i<n;i++){
+    if(r){const a=i/n*6.283;
+      g.particles.push(new Part(p.x+Math.cos(a)*r,p.y+Math.sin(a)*r,c));}
+    else g.particles.push(new Part(p.x,p.y,c));
+  }
+}
 
 const SK='tensura_save_v5';
 const SV={d:{bw:0,bl:1,tk:0,tg:0,runs:0,ach:{}},load(){try{let r=localStorage.getItem(SK);if(r)Object.assign(this.d,JSON.parse(r));}catch(e){}},
@@ -86,7 +127,7 @@ const TM=[1,1.8,3.0,5.0,8.0];
 const TC=['#b0b0b0','#6fb8ff','#b48cff','#ff6b6b','#ffffff'];
 const TIER_SUP=3;
 const TIER_MARK=['',' I',' II',' ★',' ✦'];
-function skillDisplayName(key, tier){return key+(TIER_MARK[tier]||'');}
+function skillDisplayName(key,tier){return key+(TIER_MARK[tier]||'');}
 
 const RACES={
 slime:{n:'Слизень',c:'#50c8dc',sh:'circle',d:'Уникальная раса. Поглощает материю и магию.',
@@ -273,17 +314,32 @@ function predictAim(px,py,t,projSpeed){
 function xpForLevels(p,n){
   let total=0;
   let xpn=p.xpn;
-  for(let i=0;i<n;i++){total+=xpn;xpn=~~(xpn*1.35);}
+  for(let i=0;i<n;i++){total+=xpn;xpn=~~(xpn*1.25);}
   return total;
 }
 function scaleEnemyToWave(e,wave){
-  const hpMul=1+0.01*(wave-1);
-  const xpMul=1+0.10*(wave-1);
-  e.maxHp=~~(e.maxHp*hpMul);
-  e.hp=e.maxHp;
-  e.atk=~~(e.atk*hpMul);
-  e.xp=~~(e.xp*xpMul);
+  const hpMul = wave<=20 ? 1+0.01*(wave-1) : Math.pow(1.03,wave-20)*1.19;
+  const xpMul = wave<=20 ? 1+0.10*(wave-1) : Math.pow(1.08,wave-20)*2.90;
+  e.maxHp=~~(e.maxHp*hpMul);e.hp=e.maxHp;e.atk=~~(e.atk*hpMul);e.xp=~~(e.xp*xpMul);
   return e;
+}
+function makeChaosEnemy(e){
+  e.chaos=true;
+  e.maxHp=~~(e.maxHp*1.3);e.hp=e.maxHp;
+  e.atk=~~(e.atk*1.5);
+  e.spd=e.spd*1.2;
+  e.xp=~~(e.xp*1.5);
+  e.z=e.z*1.15;
+  e.c=sh(e.c,-25);
+  return e;
+}
+function fmtTime(s){
+  s=Math.floor(s);
+  const h=Math.floor(s/3600);
+  const m=Math.floor((s%3600)/60);
+  const sec=s%60;
+  if(h>0)return h+':'+String(m).padStart(2,'0')+':'+String(sec).padStart(2,'0');
+  return String(m).padStart(2,'0')+':'+String(sec).padStart(2,'0');
 }
 
 const SKILLS={
@@ -301,8 +357,7 @@ for(const e of g.enemies){
     AU.sfx('absorb');
     if(Math.random()<0.15){
       const avail=Object.keys(SKILLS).filter(s=>!p.skills[s]&&!Object.values(SKILL_EVO).some(ev=>ev.next===s)&&!SKILLS[s].ult);
-      if(avail.length){const ns=pick(avail);p.addSk(ns);
-        g.ftxt.push(new FTxt('НАВЫК: '+ns,e.x,e.y-30,'#a0c0ff',2,14));}
+      if(avail.length){const ns=pick(avail);p.addSk(ns);g.ftxt.push(new FTxt('НАВЫК: '+ns,e.x,e.y-30,'#a0c0ff',2,14));}
     }
   } else e.dmg(25*TM[t]);
 }
@@ -316,59 +371,116 @@ for(const e of g.enemies){
   if(!e.alive||d2(e.x,e.y,p.x,p.y)>=gR*gR)continue;
   if(e.hp<e.maxHp*0.5){
     e.alive=false;
-    p.hp=Math.min(p.maxHp,p.hp+e.maxHp*0.4);
-    p.mp=Math.min(p.maxMp,p.mp+e.maxHp*0.3);
+    p.hp=Math.min(p.maxHp,p.hp+e.maxHp*0.4);p.mp=Math.min(p.maxMp,p.mp+e.maxHp*0.3);
     g.ftxt.push(new FTxt('ПОГЛОЩЕНО!',e.x,e.y,'#80e0ff',1.5,16));
     AU.sfx('absorb');
     if(Math.random()<0.25){
       const avail=Object.keys(SKILLS).filter(s=>!p.skills[s]&&!Object.values(SKILL_EVO).some(ev=>ev.next===s)&&!SKILLS[s].ult);
-      if(avail.length){const ns=pick(avail);p.addSk(ns);
-        g.ftxt.push(new FTxt('НАВЫК: '+ns,e.x,e.y-30,'#a0c0ff',2,14));}
+      if(avail.length){const ns=pick(avail);p.addSk(ns);g.ftxt.push(new FTxt('НАВЫК: '+ns,e.x,e.y-30,'#a0c0ff',2,14));}
     }
   } else e.dmg(d);
 }
 for(const b of g.bosses)if(b.alive&&d2(b.x,b.y,p.x,p.y)<gR*gR)b.dmg(d,src(t));
 p.hp=Math.min(p.maxHp,p.hp+30+t*10);
 g.particles.push(...[...Array(25)].map(()=>new Part(p.x,p.y,'#80e0ff')));}},
-'Вельзевул':{desc:'Высший навык Чревоугодия.',cd:4,
-cast(g,p){const t=p.skills[this.n].tier;const d=80*TM[t]+p.mag*2;
-const oR=130*(p.aoeMult||1);
-for(const e of g.enemies)if(e.alive&&d2(e.x,e.y,p.x,p.y)<oR*oR)e.dmg(d,'supreme');
-for(const b of g.bosses)if(b.alive&&d2(b.x,b.y,p.x,p.y)<oR*oR)b.dmg(d,'supreme');
-p.hp=p.maxHp;p.mp=p.maxMp;
-g.particles.push(...[...Array(40)].map(()=>new Part(p.x,p.y,'#c080ff')));}},
-'Азатот':{ult:true,desc:'Божественный навык. Поглощает всё сущее.',cd:10,
-cast(g,p){const t=p.skills[this.n].tier;const d=150*TM[t];
-const bzR=150*(p.aoeMult||1);
-for(const e of g.enemies)if(e.alive&&d2(e.x,e.y,p.x,p.y)<bzR*bzR)e.dmg(d,'supreme');
-for(const b of g.bosses)if(b.alive&&d2(b.x,b.y,p.x,p.y)<bzR*bzR)b.dmg(d,'supreme');
-p.hp=p.maxHp;p.mp=p.maxMp;
-g.particles.push(...[...Array(50)].map(()=>new Part(p.x,p.y,'#c080ff')));}},
+'Вельзевул':{desc:'Высший навык Чревоугодия. Поглощает врагов с HP<50% (лечит 40%/30%). Шанс 25% выучить навык. Supreme-урон по площади.',cd:4,
+cast(g,p){
+  const t=p.skills[this.n].tier;
+  const d=80*TM[t]+p.mag*2;
+  const oR=130*(p.aoeMult||1);
+  for(const e of g.enemies){
+    if(!e.alive||d2(e.x,e.y,p.x,p.y)>=oR*oR)continue;
+    if(e.hp<e.maxHp*0.5){
+      e.alive=false;
+      p.hp=Math.min(p.maxHp,p.hp+e.maxHp*0.4);
+      p.mp=Math.min(p.maxMp,p.mp+e.maxHp*0.3);
+      g.ftxt.push(new FTxt('ПОГЛОЩЕНО!',e.x,e.y,'#c080ff',1.5,16));
+      AU.sfx('absorb');
+      for(let i=0;i<10;i++)g.particles.push(new Part(e.x,e.y,'#c080ff'));
+      if(Math.random()<0.25){
+        const avail=Object.keys(SKILLS).filter(s=>!p.skills[s]&&!Object.values(SKILL_EVO).some(ev=>ev.next===s)&&!SKILLS[s].ult);
+        if(avail.length){const ns=pick(avail);p.addSk(ns);g.ftxt.push(new FTxt('НАВЫК: '+ns,e.x,e.y-30,'#a0c0ff',2,14));}
+      }
+    } else e.dmg(d,'supreme');
+  }
+  for(const b of g.bosses)if(b.alive&&d2(b.x,b.y,p.x,p.y)<oR*oR)b.dmg(d,'supreme');
+  p.hp=p.maxHp;p.mp=p.maxMp;
+  g.particles.push(...[...Array(40)].map(()=>new Part(p.x,p.y,'#c080ff')));
+}},
+'Азатот':{ult:true,desc:'Божественный навык. Поглощает врагов с HP<50% (лечит 40%/30%, шанс 40% выучить навык). Supreme-урон по площади (радиус 400), полное HP/MP, +100% урона и неуязвимость на 5 сек.',cd:10,
+cast(g,p){
+  const t=p.skills[this.n].tier;
+  let dB=1+0.03*(p.resonanceCount||0);
+  if(p.buffs.insp>0)dB*=1.2;
+  if(p.buffs.res>0)dB*=1.5;
+  if(p.buffs.luck>0)dB*=1.3;
+  if(p.buffs.satanael>0)dB*=1.5;
+  if(p.buffs.azatot>0)dB*=2;
+  if(p.rid==='ogre'&&p.hp<p.maxHp*0.5)dB*=1.2;
+  const cr=Math.random()*100<p.crit;
+  const cm=cr?p.cdmg:1;
+  const d=(150*TM[t]+p.mag*2)*dB*cm;
+  const bzR=400*(p.aoeMult||1);
+  castVis(g,p,'#c080ff',48,bzR*0.95);
+  for(const e of g.enemies){
+    if(!e.alive||d2(e.x,e.y,p.x,p.y)>=bzR*bzR)continue;
+    if(e.hp<e.maxHp*0.5){
+      e.alive=false;
+      p.hp=Math.min(p.maxHp,p.hp+e.maxHp*0.4);
+      p.mp=Math.min(p.maxMp,p.mp+e.maxHp*0.3);
+      g.ftxt.push(new FTxt('ПОГЛОЩЕНО!',e.x,e.y,'#c080ff',1.5,16));
+      AU.sfx('absorb');
+      for(let i=0;i<10;i++)g.particles.push(new Part(e.x,e.y,'#c080ff'));
+      if(Math.random()<0.4){
+        const avail=Object.keys(SKILLS).filter(s=>!p.skills[s]&&!Object.values(SKILL_EVO).some(ev=>ev.next===s)&&!SKILLS[s].ult);
+        if(avail.length){const ns=pick(avail);p.addSk(ns);g.ftxt.push(new FTxt('НАВЫК: '+ns,e.x,e.y-30,'#a0c0ff',2,14));}
+      }
+    } else e.dmg(d,'supreme');
+  }
+  for(const b of g.bosses)if(b.alive&&d2(b.x,b.y,p.x,p.y)<bzR*bzR)b.dmg(d,'supreme');
+  p.hp=p.maxHp;p.mp=p.maxMp;
+  p.buffs.invuln=5;p.buffs.azatot=5;
+  castVis(g,p,'#c080ff',80,0);
+  castVis(g,p,'#ffffff',20,60);
+  g.ftxt.push(new FTxt('АЗАТОТ: ПОГЛОЩЕНИЕ ВСЕГО!',p.x,p.y-60,'#c080ff',3,22));
+  g.shake=15;AU.sfx('sec');
+}},
 'Великий Мудрец':{desc:'Ускорение мысли.',cd:8,
 cast(g,p){const t=p.skills[this.n].tier;const r=(60+t*20)*(p.aoeMult||1);
 for(const e of g.enemies)if(e.alive&&d2(e.x,e.y,p.x,p.y)<r*r)e.dmg(30*TM[t]);
 for(const b of g.bosses)if(b.alive&&d2(b.x,b.y,p.x,p.y)<r*r)b.dmg(30*TM[t],src(t));
-g.ftxt.push(new FTxt('Анализ!',p.x,p.y-40,'#a0c0ff'));}},
+g.ftxt.push(new FTxt('Анализ!',p.x,p.y-40,'#a0c0ff'));
+castVis(g,p,'#a0c0ff',25,r);}},
 'Рафаэль':{desc:'Король Мудрости.',cd:6,
 cast(g,p){const t=p.skills[this.n].tier;
 const rfR=150*(p.aoeMult||1);
 for(const e of g.enemies)if(e.alive&&d2(e.x,e.y,p.x,p.y)<rfR*rfR)e.dmg(60*TM[t]);
 for(const b of g.bosses)if(b.alive&&d2(b.x,b.y,p.x,p.y)<rfR*rfR)b.dmg(60*TM[t],src(t));
 p.buffs.haste=4;g.timeSlowTimer=2;AU.sfx('slow');
-g.ftxt.push(new FTxt('ЗАМЕДЛЕНИЕ!',p.x,p.y-40,'#a0c0ff',2,18));}},
+g.ftxt.push(new FTxt('ЗАМЕДЛЕНИЕ!',p.x,p.y-40,'#a0c0ff',2,18));
+castVis(g,p,'#a0c0ff',30,rfR);}},
 'Сиэль':{desc:'Божественный Разум.',cd:5,
 cast(g,p){const t=p.skills[this.n].tier;
 for(const e of g.enemies)if(e.alive)e.dmg(60*TM[t],'supreme');
 for(const b of g.bosses)if(b.alive)b.dmg(60*TM[t],'supreme');
 p.buffs.haste=6;p.buffs.stoic=4;g.timeSlowTimer=3.5;AU.sfx('slow');
 p.mp=Math.min(p.maxMp,p.mp+50);
-g.ftxt.push(new FTxt('СИЭЛЬ: ОПТИМИЗАЦИЯ!',p.x,p.y-40,'#ffffff',2.5,22));}},
+g.ftxt.push(new FTxt('СИЭЛЬ: ОПТИМИЗАЦИЯ!',p.x,p.y-40,'#ffffff',2.5,22));
+castVis(g,p,'#ffffff',60,120);}},
 'Универсальное Превращение':fan('Веер волн.',2.5,5,.15,25,'#f4f4ff',6,3),
 'Поглощение':burst('Удар по площади.',4,35,'#8cff8c',100),
-'Аура Повелителя':{desc:'+20% урона на 5 сек.',cd:8,cast(g,p){p.buffs.insp=5;}},
+'Аура Повелителя':{desc:'+20% урона на 5 сек.',cd:8,cast(g,p){
+  p.buffs.insp=5;
+  g.ftxt.push(new FTxt('АУРА ПОВЕЛИТЕЛЯ!',p.x,p.y-40,'#ffcc44',2,18));
+  castVis(g,p,'#ffcc44',15,0);castVis(g,p,'#ffcc44',24,80);
+}},
 'Сверхзвуковой Взрыв':shot('Пронзающая стрела.',3,30,'#ffdc78',5,800),
 'Пламя Ада':fan('Конус огня.',5,7,.12,30,'#ff6020',8,2,'fire'),
-'Стойкость':{desc:'-50% урона 4 сек.',cd:10,cast(g,p){p.buffs.stoic=4;}},
+'Стойкость':{desc:'-50% урона 4 сек.',cd:10,cast(g,p){
+  p.buffs.stoic=4;
+  g.ftxt.push(new FTxt('СТОЙКОСТЬ!',p.x,p.y-40,'#60a0ff',2,18));
+  castVis(g,p,'#60a0ff',20,60);
+}},
 'Водяная Струя':fan('Ледяные иглы.',3.5,3,.2,28,'#60a8ff',6,4,'ice'),
 'Тёмная Стрела':{desc:'10% HP → взрыв тьмы.',cd:8,
 cast(g,p){const t=p.skills[this.n].tier;const c=p.maxHp*.1;if(p.hp<=c+1)return;p.hp-=c;
@@ -376,12 +488,24 @@ const tsR=160*(p.aoeMult||1);
 for(const e of g.enemies)if(e.alive&&d2(e.x,e.y,p.x,p.y)<tsR*tsR)e.dmg(80*TM[t]+p.mag*2);
 for(const b of g.bosses)if(b.alive&&d2(b.x,b.y,p.x,p.y)<tsR*tsR)b.dmg(80*TM[t]+p.mag*2,src(t));
 g.particles.push(...[...Array(30)].map(()=>new Part(p.x,p.y,'#c860c0')));}},
-'Многослойный Барьер':{desc:'Барьер 5 сек.',cd:12,cast(g,p){p.buffs.shield=5;p.shield=100+p.lv*12;}},
+'Многослойный Барьер':{desc:'Барьер 5 сек.',cd:12,cast(g,p){
+  p.buffs.shield=5;p.shield=100+p.lv*12;
+  g.ftxt.push(new FTxt('МНОГОСЛОЙНЫЙ БАРЬЕР!',p.x,p.y-40,'#a0c0ff',2,18));
+  castVis(g,p,'#a0c0ff',24,70);
+}},
 'Гравитационная Сфера':burst('Взрыв вокруг.',5,50,'#ffcc44',140),
 'Режущий Ветер':shot('Стрела ветра.',2.5,22,'#7ad0a0',6,900),
-'Ускорение Мысли':{desc:'Ускорение 5 сек.',cd:10,cast(g,p){p.buffs.haste=5;}},
-'Клинок Бури':{desc:'Мощный удар.',cd:3,cast(g,p,t){if(!t)return;const tr=p.skills[this.n].tier;
-t.dmg(45*TM[tr]+p.atk*2,src(tr));}},
+'Ускорение Мысли':{desc:'Ускорение 5 сек.',cd:10,cast(g,p){
+  p.buffs.haste=5;
+  g.ftxt.push(new FTxt('УСКОРЕНИЕ МЫСЛИ!',p.x,p.y-40,'#80d0ff',2,18));
+  castVis(g,p,'#80d0ff',15,0);
+}},
+'Клинок Бури':{desc:'Мощный удар.',cd:3,cast(g,p,t){if(!t)return;
+  const tr=p.skills[this.n].tier;
+  t.dmg(45*TM[tr]+p.atk*2,src(tr));
+  g.ftxt.push(new FTxt('КЛИНОК БУРИ!',t.x,t.y-40,'#80d0ff',1.8,16));
+  castVis(g,p,'#80d0ff',10,0);
+  for(let i=0;i<8;i++)g.particles.push(new Part(t.x,t.y,'#80d0ff'));}},
 'Святой Луч':shot('Луч света.',3.5,40,'#f0e8b0',5,700,'light'),
 'Дыхание Дракона':fan('Дыхание дракона.',5,9,.1,55,'#ff6030',10,3,'fire'),
 'Громовой Удар':shot('Молния.',3,50,'#ffff80',3,950),
@@ -393,46 +517,79 @@ const crR=160*(p.aoeMult||1);
 for(const e of g.enemies)if(e.alive&&d2(e.x,e.y,p.x,p.y)<crR*crR)e.atk*=m;
 for(const b of g.bosses)if(b.alive&&d2(b.x,b.y,p.x,p.y)<crR*crR)b.atk*=m;
 g.ftxt.push(new FTxt('ПРОКЛЯТИЕ!',p.x,p.y-40,'#a040a0',2,16));}},
-'Священный Барьер':{desc:'Барьер 6 сек.',cd:10,cast(g,p){p.buffs.shield=6;p.shield=150+p.lv*15;}},
-'Пространственное Перемещение':{desc:'Телепорт к цели.',cd:7,cast(g,p,t){if(!t)return;const tr=p.skills[this.n].tier;
-t.dmg(40*TM[tr]+p.atk,src(tr));}},
+'Священный Барьер':{desc:'Барьер 6 сек.',cd:10,cast(g,p){
+  p.buffs.shield=6;p.shield=150+p.lv*15;
+  g.ftxt.push(new FTxt('СВЯЩЕННЫЙ БАРЬЕР!',p.x,p.y-40,'#fff8c0',2,18));
+  castVis(g,p,'#fff8c0',24,70);
+}},
+'Пространственное Перемещение':{desc:'Телепорт к цели.',cd:7,cast(g,p,t){if(!t)return;
+  const tr=p.skills[this.n].tier;
+  t.dmg(40*TM[tr]+p.atk,src(tr));
+  g.ftxt.push(new FTxt('ПЕРЕМЕЩЕНИЕ!',p.x,p.y-40,'#80d0ff',1.8,16));
+  castVis(g,p,'#80d0ff',15,0);
+  for(let i=0;i<10;i++)g.particles.push(new Part(t.x,t.y,'#80d0ff'));}},
 'Огненный Шторм':fan('Град огня.',6,10,6.283,35,'#ff6030',6,0,'fire'),
-'Вампиризм':{desc:'Вампиризм 8 сек.',cd:12,cast(g,p){p.buffs.vamp=8;}},
+'Вампиризм':{desc:'Вампиризм 8 сек.',cd:12,cast(g,p){
+  p.buffs.vamp=8;
+  g.ftxt.push(new FTxt('ВАМПИРИЗМ!',p.x,p.y-40,'#c04040',2,18));
+  castVis(g,p,'#c04040',20,0);
+}},
 'Песчаная Буря':burst('Ослепление.',8,20,'#d0a060',180),
 'Абсолютный Ноль':burst('Заморозка.',10,100,'#a0e0ff',180,'ice'),
 'Длань Бездны':burst('Удар тьмой.',9,120,'#6020a0',200),
-'Разлом':{desc:'Телепорт с уроном.',cd:8,cast(g,p){const t=p.skills[this.n].tier;
-p.x=cl(p.x+rnd(-400,400),50,WW-50);p.y=cl(p.y+rnd(-400,400),50,WH-50);
-const rlR=130*(p.aoeMult||1);
-for(const e of g.enemies)if(e.alive&&d2(e.x,e.y,p.x,p.y)<rlR*rlR)e.dmg(50*TM[t]);
-for(const b of g.bosses)if(b.alive&&d2(b.x,b.y,p.x,p.y)<rlR*rlR)b.dmg(50*TM[t],src(t));}},
-'Резонанс':{desc:'+50% урона на 5 сек.',cd:6,cast(g,p){p.buffs.res=5;}},
-'Разрушение':{desc:'Игнор защиты.',cd:10,cast(g,p,t){if(!t)return;const tr=p.skills[this.n].tier;
-t.dmg(90*TM[tr]+p.atk*3,src(tr));}},
-'Свет Творения':{desc:'Лечение и урон.',cd:12,cast(g,p){const t=p.skills[this.n].tier;
-p.hp=Math.min(p.maxHp,p.hp+100+t*50);
-const stR=160*(p.aoeMult||1);
-for(const e of g.enemies)if(e.alive&&d2(e.x,e.y,p.x,p.y)<stR*stR)e.dmg(60*TM[t]);
-for(const b of g.bosses)if(b.alive&&d2(b.x,b.y,p.x,p.y)<stR*stR)b.dmg(60*TM[t],src(t));}},
+'Разлом':{desc:'Телепорт с уроном.',cd:8,cast(g,p){
+  const t=p.skills[this.n].tier;
+  castVis(g,p,'#c080ff',15,0);
+  p.x=cl(p.x+rnd(-400,400),50,WW-50);p.y=cl(p.y+rnd(-400,400),50,WH-50);
+  const rlR=130*(p.aoeMult||1);
+  for(const e of g.enemies)if(e.alive&&d2(e.x,e.y,p.x,p.y)<rlR*rlR)e.dmg(50*TM[t]);
+  for(const b of g.bosses)if(b.alive&&d2(b.x,b.y,p.x,p.y)<rlR*rlR)b.dmg(50*TM[t],src(t));
+  g.ftxt.push(new FTxt('РАЗЛОМ!',p.x,p.y-40,'#c080ff',2,18));
+  castVis(g,p,'#c080ff',20,rlR);}},
+'Резонанс':{desc:'+50% урона на 5 сек.',cd:6,cast(g,p){
+  p.buffs.res=5;
+  g.ftxt.push(new FTxt('РЕЗОНАНС!',p.x,p.y-40,'#a0c0ff',2,18));
+  castVis(g,p,'#a0c0ff',20,90);
+}},
+'Разрушение':{desc:'Игнор защиты.',cd:10,cast(g,p,t){if(!t)return;
+  const tr=p.skills[this.n].tier;
+  t.dmg(90*TM[tr]+p.atk*3,src(tr));
+  g.ftxt.push(new FTxt('РАЗРУШЕНИЕ!',t.x,t.y-40,'#ff6060',2,18));
+  castVis(g,p,'#ff6060',12,0);
+  for(let i=0;i<15;i++)g.particles.push(new Part(t.x,t.y,'#ff6060'));}},
+'Свет Творения':{desc:'Лечение и урон.',cd:12,cast(g,p){
+  const t=p.skills[this.n].tier;
+  p.hp=Math.min(p.maxHp,p.hp+100+t*50);
+  const stR=160*(p.aoeMult||1);
+  for(const e of g.enemies)if(e.alive&&d2(e.x,e.y,p.x,p.y)<stR*stR)e.dmg(60*TM[t]);
+  for(const b of g.bosses)if(b.alive&&d2(b.x,b.y,p.x,p.y)<stR*stR)b.dmg(60*TM[t],src(t));
+  g.ftxt.push(new FTxt('СВЕТ ТВОРЕНИЯ!',p.x,p.y-40,'#fff8c0',2.2,20));
+  castVis(g,p,'#fff8c0',30,stR);}},
 'Бездна':burst('Поглощение.',15,200,'#200040',200),
 'Уриэль':{ult:true,desc:'Ультимативный навык Добродетели.',cd:12,
 cast(g,p){const t=p.skills[this.n].tier;
-p.hp=Math.min(p.maxHp,p.hp+200*TM[t]);p.buffs.shield=8;p.shield=300+p.lv*20;
-const urR=200*(p.aoeMult||1);
-for(const e of g.enemies)if(e.alive&&d2(e.x,e.y,p.x,p.y)<urR*urR)e.dmg(80*TM[t]);
-for(const b of g.bosses)if(b.alive&&d2(b.x,b.y,p.x,p.y)<urR*urR)b.dmg(80*TM[t],src(t));}},
-'Сатанаэль':{ult:true,desc:'Ультимативный навык Гнева.',cd:15,
-cast(g,p){p.buffs.regen=(p.buffs.regen||0)+10;
-g.ftxt.push(new FTxt('ГНЕВ САТАНАЭЛЯ!',p.x,p.y-40,'#ff4040',2,20));}},
+  p.hp=Math.min(p.maxHp,p.hp+200*TM[t]);p.buffs.shield=8;p.shield=300+p.lv*20;
+  const urR=200*(p.aoeMult||1);
+  for(const e of g.enemies)if(e.alive&&d2(e.x,e.y,p.x,p.y)<urR*urR)e.dmg(80*TM[t]);
+  for(const b of g.bosses)if(b.alive&&d2(b.x,b.y,p.x,p.y)<urR*urR)b.dmg(80*TM[t],src(t));
+  g.ftxt.push(new FTxt('УРИЭЛЬ: БЛАГОСЛОВЕНИЕ!',p.x,p.y-40,'#fff8c0',2.5,22));
+  castVis(g,p,'#fff8c0',40,urR);}},
+'Сатанаэль':{ult:true,desc:'Повелитель Гнева. На 8 сек: +50% урона, +30% скорости атаки, магия не тратит MP.',cd:20,
+cast(g,p){p.buffs.satanael=8;
+p.mp=p.maxMp;
+g.ftxt.push(new FTxt('РЕАКТОР МАГИКУЛ!',p.x,p.y-40,'#ff4040',2.5,22));
+for(let i=0;i<25;i++)g.particles.push(new Part(p.x,p.y,'#ff4040'));}},
 'Фауст':{ult:true,desc:'Ультимативный навык Вельдоры.',cd:8,
 cast(g,p){const t=p.skills[this.n].tier;
-const faR=250*(p.aoeMult||1);
-for(const e of g.enemies)if(e.alive&&d2(e.x,e.y,p.x,p.y)<faR*faR)e.atk*=0.5;
-for(const b of g.bosses)if(b.alive&&d2(b.x,b.y,p.x,p.y)<faR*faR)b.atk*=0.5;
-g.ftxt.push(new FTxt('АНАЛИЗ ФАУСТА!',p.x,p.y-40,'#50c8dc',2,18));}},
+  const faR=250*(p.aoeMult||1);
+  for(const e of g.enemies)if(e.alive&&d2(e.x,e.y,p.x,p.y)<faR*faR)e.atk*=0.5;
+  for(const b of g.bosses)if(b.alive&&d2(b.x,b.y,p.x,p.y)<faR*faR)b.atk*=0.5;
+  g.ftxt.push(new FTxt('АНАЛИЗ ФАУСТА!',p.x,p.y-40,'#50c8dc',2,18));
+  castVis(g,p,'#50c8dc',30,faR);}},
 'Искажение Времени':{desc:'Замедляет время.',cd:7,
 cast(g,p){p.buffs.haste=3;g.timeSlowTimer=Math.max(g.timeSlowTimer,1.5);
-g.ftxt.push(new FTxt('ВРЕМЯ ИСКАЖЕНО!',p.x,p.y-40,'#a0e0ff',2,18));}},
+  g.ftxt.push(new FTxt('ВРЕМЯ ИСКАЖЕНО!',p.x,p.y-40,'#a0e0ff',2,18));
+  castVis(g,p,'#a0e0ff',20,80);}},
 'Пространственный Сдвиг':{desc:'Телепорт с уроном.',cd:6,
 cast(g,p,t){if(!t)return;const tr=p.skills[this.n].tier;
 p.x=cl(p.x+rnd(-200,200),50,WW-50);p.y=cl(p.y+rnd(-200,200),50,WH-50);
@@ -440,108 +597,178 @@ t.dmg(30*TM[tr]+p.mag*.5,src(tr));
 g.particles.push(...[...Array(10)].map(()=>new Part(p.x,p.y,'#80d0ff')));}},
 'Хроно-Разлом':{desc:'Взрыв времени.',cd:9,
 cast(g,p){const tr=p.skills[this.n].tier;const d=60*TM[tr]+p.mag;
-const chR=180*(p.aoeMult||1);
-for(const e of g.enemies)if(e.alive&&d2(e.x,e.y,p.x,p.y)<chR*chR)e.dmg(d,'normal');
-for(const b of g.bosses)if(b.alive&&d2(b.x,b.y,p.x,p.y)<chR*chR)b.dmg(d,'normal');
-g.timeSlowTimer=Math.max(g.timeSlowTimer,2);
-g.particles.push(...[...Array(20)].map(()=>new Part(p.x,p.y,'#c080ff')));}},
-'Йог-Сотот':{ult:true,desc:'Лавкрафтовский навык. Владыка Времени.',cd:12,
+  const chR=180*(p.aoeMult||1);
+  for(const e of g.enemies)if(e.alive&&d2(e.x,e.y,p.x,p.y)<chR*chR)e.dmg(d,'normal');
+  for(const b of g.bosses)if(b.alive&&d2(b.x,b.y,p.x,p.y)<chR*chR)b.dmg(d,'normal');
+  g.timeSlowTimer=Math.max(g.timeSlowTimer,2);
+  g.ftxt.push(new FTxt('ХРОНО-РАЗЛОМ!',p.x,p.y-40,'#c080ff',2,18));
+  castVis(g,p,'#c080ff',30,chR);}},
+'Йог-Сотот':{ult:true,desc:'Лавкрафтовский навык.',cd:12,
 cast(g,p){const t=p.skills[this.n].tier;
-for(const e of g.enemies)if(e.alive)e.dmg(200*TM[t],'supreme');
-for(const b of g.bosses)if(b.alive)b.dmg(200*TM[t],'supreme');
-p.buffs.haste=8;g.timeSlowTimer=4;
-g.ftxt.push(new FTxt('ЙОГ-СОТОТ: ВНЕ ВРЕМЕНИ!',p.x,p.y-40,'#c080ff',2.5,24));}},
+  for(const e of g.enemies)if(e.alive)e.dmg(200*TM[t],'supreme');
+  for(const b of g.bosses)if(b.alive)b.dmg(200*TM[t],'supreme');
+  p.buffs.haste=8;g.timeSlowTimer=4;
+  g.ftxt.push(new FTxt('ЙОГ-СОТОТ: ВНЕ ВРЕМЕНИ!',p.x,p.y-40,'#c080ff',2.5,24));
+  castVis(g,p,'#c080ff',60,150);}},
 'Порыв Ветра':{desc:'Поток ветра.',cd:3,
 cast(g,p,t){if(!t)return;const d=15*TM[p.skills[this.n].tier]+p.mag*.3;
 t.dmg(d,'normal');g.particles.push(new Part(t.x,t.y,'#a0e0ff'));}},
 'Штормовое Крыло':{desc:'Удар штормовым ветром.',cd:4,
 cast(g,p,t){if(!t)return;const d=30*TM[p.skills[this.n].tier]+p.mag*.5;
 t.dmg(d,'normal');for(let i=0;i<5;i++)g.particles.push(new Part(t.x,t.y,'#80d0ff'));}},
-'Громовой Шторм':{desc:'Мощный раскат грома.',cd:5,
-cast(g,p){const d=60*TM[p.skills[this.n].tier]+p.mag;
-for(const e of g.enemies)if(e.alive&&d2(e.x,e.y,p.x,p.y)<200*200)e.dmg(d,'normal');
-for(const b of g.bosses)if(b.alive&&d2(b.x,b.y,p.x,p.y)<200*200)b.dmg(d,'normal');
-g.shake=6;}},
-'Каменная Кожа':{desc:'Укрепляет защиту.',cd:8,cast(g,p){p.buffs.stoic=3;}},
-'Железная Воля':{desc:'Стойкость к урону.',cd:10,cast(g,p){p.buffs.stoic=5;p.shield=50+p.lv*5;}},
-'Несокрушимая Стена':{desc:'Мощный барьер.',cd:12,cast(g,p){p.buffs.shield=8;p.shield=200+p.lv*15;}},
-'Кара':{desc:'Карающий свет.',cd:4,
-cast(g,p,t){if(!t)return;const d=25*TM[p.skills[this.n].tier]+p.mag*.4;
-t.dmg(d,'normal');}},
-'Божественная Кара':{desc:'Усиленный свет.',cd:6,
-cast(g,p){const d=50*TM[p.skills[this.n].tier]+p.mag*.8;
-for(const e of g.enemies)if(e.alive&&d2(e.x,e.y,p.x,p.y)<150*150)e.dmg(d,'normal');
-for(const b of g.bosses)if(b.alive&&d2(b.x,b.y,p.x,p.y)<150*150)b.dmg(d,'normal');}},
-'Небесный Суд':{desc:'Столб небесного огня.',cd:8,
-cast(g,p,t){if(!t)return;const d=80*TM[p.skills[this.n].tier]+p.mag*1.2;
-t.dmg(d,'supreme');g.flash=0.5;}},
-'Судный День':{ult:true,desc:'Требует Высший тир.',cd:20,cast(g,p){const t=p.skills[this.n].tier;
-if(t<TIER_SUP){g.ftxt.push(new FTxt('Нужен Высший!',p.x,p.y-30,'#ff4040',1.5));return;}
-for(const e of g.enemies)if(e.alive)e.dmg(500*TM[t]);
-for(const b of g.bosses)if(b.alive)b.dmg(500*TM[t],'supreme');g.shake=25;}},
-'Иллюзия':{desc:'Сбивает с толку.',cd:6,
-cast(g,p){for(const e of g.enemies)if(e.alive&&d2(e.x,e.y,p.x,p.y)<200*200)e.atk*=0.8;}},
-'Мираж':{desc:'Ложные цели.',cd:8,
-cast(g,p){for(const e of g.enemies)if(e.alive&&d2(e.x,e.y,p.x,p.y)<250*250){e.atk*=0.7;e.spd*=0.9;}}},
-'Лабиринт':{desc:'Запутывает врагов.',cd:10,
-cast(g,p){for(const e of g.enemies)if(e.alive&&d2(e.x,e.y,p.x,p.y)<300*300){e.atk*=0.5;e.spd*=0.7;}}},
-'Ньярлатотеп':{ult:true,desc:'Лавкрафтовский навык. Король Хаоса.',cd:10,
+'Громовой Шторм':{desc:'Мощный раскат грома.',cd:5,cast(g,p){
+  const d=60*TM[p.skills[this.n].tier]+p.mag;
+  for(const e of g.enemies)if(e.alive&&d2(e.x,e.y,p.x,p.y)<200*200)e.dmg(d,'normal');
+  for(const b of g.bosses)if(b.alive&&d2(b.x,b.y,p.x,p.y)<200*200)b.dmg(d,'normal');
+  g.shake=6;
+  g.ftxt.push(new FTxt('ГРОМОВОЙ ШТОРМ!',p.x,p.y-40,'#ffff80',2,18));
+  castVis(g,p,'#ffff80',25,200);}},
+'Каменная Кожа':{desc:'Укрепляет защиту.',cd:8,cast(g,p){
+  p.buffs.stoic=3;
+  g.ftxt.push(new FTxt('КАМЕННАЯ КОЖА!',p.x,p.y-40,'#b09060',2,18));
+  castVis(g,p,'#b09060',15,0);
+}},
+'Железная Воля':{desc:'Стойкость к урону.',cd:10,cast(g,p){
+  p.buffs.stoic=5;p.shield=50+p.lv*5;
+  g.ftxt.push(new FTxt('ЖЕЛЕЗНАЯ ВОЛЯ!',p.x,p.y-40,'#a0c0ff',2,18));
+  castVis(g,p,'#a0c0ff',20,70);
+}},
+'Несокрушимая Стена':{desc:'Мощный барьер.',cd:12,cast(g,p){
+  p.buffs.shield=8;p.shield=200+p.lv*15;
+  g.ftxt.push(new FTxt('НЕСОКРУШИМАЯ СТЕНА!',p.x,p.y-40,'#a0c0ff',2.2,20));
+  castVis(g,p,'#a0c0ff',32,90);
+}},
+'Кара':{desc:'Карающий свет.',cd:4,cast(g,p,t){if(!t)return;
+  const d=25*TM[p.skills[this.n].tier]+p.mag*.4;
+  t.dmg(d,'normal');
+  g.ftxt.push(new FTxt('КАРА!',t.x,t.y-40,'#fff8c0',1.8,16));
+  castVis(g,p,'#fff8c0',8,0);
+  for(let i=0;i<8;i++)g.particles.push(new Part(t.x,t.y,'#fff8c0'));}},
+'Божественная Кара':{desc:'Усиленный свет.',cd:6,cast(g,p){
+  const d=50*TM[p.skills[this.n].tier]+p.mag*.8;
+  for(const e of g.enemies)if(e.alive&&d2(e.x,e.y,p.x,p.y)<150*150)e.dmg(d,'normal');
+  for(const b of g.bosses)if(b.alive&&d2(b.x,b.y,p.x,p.y)<150*150)b.dmg(d,'normal');
+  g.ftxt.push(new FTxt('БОЖЕСТВЕННАЯ КАРА!',p.x,p.y-40,'#fff0c0',2,18));
+  castVis(g,p,'#fff0c0',20,150);}},
+'Небесный Суд':{desc:'Столб небесного огня.',cd:8,cast(g,p,t){if(!t)return;
+  const d=80*TM[p.skills[this.n].tier]+p.mag*1.2;
+  t.dmg(d,'supreme');g.flash=0.5;
+  g.ftxt.push(new FTxt('НЕБЕСНЫЙ СУД!',t.x,t.y-40,'#fff0c0',2.5,22));
+  castVis(g,p,'#fff0c0',20,0);
+  for(let i=0;i<20;i++)g.particles.push(new Part(t.x,t.y,'#fff0c0'));}},
+'Судный День':{ult:true,desc:'Требует Высший тир.',cd:20,cast(g,p){
+  const t=p.skills[this.n].tier;
+  if(t<TIER_SUP){g.ftxt.push(new FTxt('Нужен Высший!',p.x,p.y-30,'#ff4040',1.5));return;}
+  for(const e of g.enemies)if(e.alive)e.dmg(500*TM[t]);
+  for(const b of g.bosses)if(b.alive)b.dmg(500*TM[t],'supreme');
+  g.shake=25;g.flash=1;
+  g.ftxt.push(new FTxt('СУДНЫЙ ДЕНЬ!',p.x,p.y-60,'#ffffff',4,28));
+  castVis(g,p,'#ffffff',60,200);castVis(g,p,'#ffcc44',40,0);}},
+'Иллюзия':{desc:'Сбивает с толку.',cd:6,cast(g,p){
+  for(const e of g.enemies)if(e.alive&&d2(e.x,e.y,p.x,p.y)<200*200)e.atk*=0.8;
+  for(const b of g.bosses)if(b.alive&&d2(b.x,b.y,p.x,p.y)<200*200)b.atk*=0.8;
+  g.ftxt.push(new FTxt('ИЛЛЮЗИЯ!',p.x,p.y-40,'#c080ff',2,18));
+  castVis(g,p,'#c080ff',20,100);
+}},
+'Мираж':{desc:'Ложные цели.',cd:8,cast(g,p){
+  for(const e of g.enemies)if(e.alive&&d2(e.x,e.y,p.x,p.y)<250*250){e.atk*=0.7;e.spd*=0.9;}
+  for(const b of g.bosses)if(b.alive&&d2(b.x,b.y,p.x,p.y)<250*250){b.atk*=0.7;b.spd*=0.9;}
+  g.ftxt.push(new FTxt('МИРАЖ!',p.x,p.y-40,'#a040ff',2,18));
+  castVis(g,p,'#a040ff',25,120);
+}},
+'Лабиринт':{desc:'Запутывает врагов.',cd:10,cast(g,p){
+  for(const e of g.enemies)if(e.alive&&d2(e.x,e.y,p.x,p.y)<300*300){e.atk*=0.5;e.spd*=0.7;}
+  for(const b of g.bosses)if(b.alive&&d2(b.x,b.y,p.x,p.y)<300*300){b.atk*=0.5;b.spd*=0.7;}
+  g.ftxt.push(new FTxt('ЛАБИРИНТ!',p.x,p.y-40,'#a040ff',2.2,20));
+  castVis(g,p,'#a040ff',32,150);
+}},
+'Ньярлатотеп':{ult:true,desc:'Лавкрафтовский навык.',cd:10,
 cast(g,p){const t=p.skills[this.n].tier;
-const nyR=400*(p.aoeMult||1);
-for(const e of g.enemies)if(e.alive&&d2(e.x,e.y,p.x,p.y)<nyR*nyR){e.dmg(150*TM[t],'supreme');e.atk*=0.3;}
-for(const b of g.bosses)if(b.alive&&d2(b.x,b.y,p.x,p.y)<nyR*nyR){b.dmg(150*TM[t],'supreme');b.atk*=0.3;}
-g.ftxt.push(new FTxt('НЬЯРЛАТОТЕП: ХАОС!',p.x,p.y-40,'#ff40ff',2.5,24));}},
+  const nyR=400*(p.aoeMult||1);
+  for(const e of g.enemies)if(e.alive&&d2(e.x,e.y,p.x,p.y)<nyR*nyR){e.dmg(150*TM[t],'supreme');e.atk*=0.3;}
+  for(const b of g.bosses)if(b.alive&&d2(b.x,b.y,p.x,p.y)<nyR*nyR){b.dmg(150*TM[t],'supreme');b.atk*=0.3;}
+  g.ftxt.push(new FTxt('НЬЯРЛАТОТЕП: ХАОС!',p.x,p.y-40,'#ff40ff',2.5,24));
+  castVis(g,p,'#ff40ff',60,nyR);}},
 'Регенерация':{desc:'Восстанавливает здоровье.',cd:5,
-cast(g,p){p.hp=Math.min(p.maxHp,p.hp+30+15*p.skills[this.n].tier);}},
+cast(g,p){const heal=30+15*p.skills[this.n].tier;
+  p.hp=Math.min(p.maxHp,p.hp+heal);
+  g.ftxt.push(new FTxt('+'+~~heal+' HP',p.x,p.y-40,'#80ff80',1.5,14));
+  castVis(g,p,'#80ff80',10,0);}},
 'Живучесть':{desc:'Усиленная регенерация.',cd:6,
-cast(g,p){p.hp=Math.min(p.maxHp,p.hp+60+20*p.skills[this.n].tier);}},
+cast(g,p){const heal=60+20*p.skills[this.n].tier;
+  p.hp=Math.min(p.maxHp,p.hp+heal);
+  g.ftxt.push(new FTxt('+'+~~heal+' HP',p.x,p.y-40,'#60ff60',1.8,16));
+  castVis(g,p,'#60ff60',15,0);}},
 'Плодородие':{desc:'Массовое восстановление.',cd:8,
-cast(g,p){p.hp=Math.min(p.maxHp,p.hp+100+30*p.skills[this.n].tier);p.buffs.regen=5;}},
-'Шуб-Ниггурат':{ult:true,desc:'Лавкрафтовский навык. Владычица Изобилия.',cd:14,
+cast(g,p){const heal=100+30*p.skills[this.n].tier;
+  p.hp=Math.min(p.maxHp,p.hp+heal);p.buffs.regen=5;
+  g.ftxt.push(new FTxt('+'+~~heal+' HP · Реген!',p.x,p.y-40,'#80ff80',2,18));
+  castVis(g,p,'#80ff80',25,80);}},
+'Шуб-Ниггурат':{ult:true,desc:'Лавкрафтовский навык.',cd:14,
 cast(g,p){const t=p.skills[this.n].tier;
-p.hp=p.maxHp;p.mp=p.maxMp;
-p.buffs.shield=12;p.shield=500+p.lv*30;
-for(const e of g.enemies)if(e.alive)e.dmg(100*TM[t],'supreme');
-for(const b of g.bosses)if(b.alive)b.dmg(100*TM[t],'supreme');
-g.ftxt.push(new FTxt('ШУБ-НИГГУРАТ: ИЗОБИЛИЕ!',p.x,p.y-40,'#80ff80',2.5,24));}},
-'Математик':{desc:'Ускорение мысли и анализ.',cd:8,
+  p.hp=p.maxHp;p.mp=p.maxMp;p.buffs.shield=12;p.shield=500+p.lv*30;
+  for(const e of g.enemies)if(e.alive)e.dmg(100*TM[t],'supreme');
+  for(const b of g.bosses)if(b.alive)b.dmg(100*TM[t],'supreme');
+  g.ftxt.push(new FTxt('ШУБ-НИГГУРАТ: ИЗОБИЛИЕ!',p.x,p.y-40,'#80ff80',2.5,24));
+  castVis(g,p,'#80ff80',50,120);}},
+'Математик':{desc:'Ускорение мысли.',cd:8,
 cast(g,p){p.buffs.haste=4;p.crit=Math.min(100,p.crit+3);
-g.ftxt.push(new FTxt('МАТЕМАТИК: АНАЛИЗ!',p.x,p.y-40,'#a0c0ff',2,18));}},
+  g.ftxt.push(new FTxt('МАТЕМАТИК: АНАЛИЗ!',p.x,p.y-40,'#a0c0ff',2,18));
+  castVis(g,p,'#a0c0ff',15,60);}},
 'Король Фортуны':{desc:'Высший навык удачи.',cd:12,
 cast(g,p){p.buffs.luck=10;p.buffs.haste=5;
-for(const e of g.enemies)if(e.alive)e.dmg(150*TM[p.skills[this.n].tier],'supreme');
-for(const b of g.bosses)if(b.alive)b.dmg(150*TM[p.skills[this.n].tier],'supreme');
-g.ftxt.push(new FTxt('КОРОЛЬ ФОРТУНЫ!',p.x,p.y-40,'#ffd700',3,22));}},
+  for(const e of g.enemies)if(e.alive)e.dmg(150*TM[p.skills[this.n].tier],'supreme');
+  for(const b of g.bosses)if(b.alive)b.dmg(150*TM[p.skills[this.n].tier],'supreme');
+  g.ftxt.push(new FTxt('КОРОЛЬ ФОРТУНЫ!',p.x,p.y-40,'#ffd700',3,22));
+  castVis(g,p,'#ffd700',50,100);}},
 'Узурпатор':{desc:'Крадёт силы врагов.',cd:7,
 cast(g,p,t){if(!t)return;const tr=p.skills[this.n].tier;
-t.dmg(40*TM[tr]+p.atk*2,src(tr));
-if(t.atk)p.atk=~~(p.atk+Math.min(5,t.atk*0.05));
-g.ftxt.push(new FTxt('УЗУРПАТОР!',p.x,p.y-40,'#c080ff',2,16));}},
+  t.dmg(40*TM[tr]+p.atk*2,src(tr));
+  if(t.atk)p.atk=~~(p.atk+Math.min(5,t.atk*0.05));
+  g.ftxt.push(new FTxt('УЗУРПАТОР!',p.x,p.y-40,'#c080ff',2,16));
+  castVis(g,p,'#c080ff',15,0);
+  for(let i=0;i<10;i++)g.particles.push(new Part(t.x,t.y,'#c080ff'));}},
 'Избранный':{desc:'Пассивная удача.',cd:6,
 cast(g,p){p.buffs.luck=6;
-g.ftxt.push(new FTxt('ИЗБРАННЫЙ!',p.x,p.y-40,'#ffd700',2,18));}},
+  g.ftxt.push(new FTxt('ИЗБРАННЫЙ!',p.x,p.y-40,'#ffd700',2,18));
+  castVis(g,p,'#ffd700',15,0);}},
 'Путешественник во времени':{desc:'Замедляет время.',cd:10,
 cast(g,p){p.buffs.haste=3;g.timeSlowTimer=Math.max(g.timeSlowTimer,2);
-g.ftxt.push(new FTxt('ВРЕМЯ ОСТАНОВЛЕНО!',p.x,p.y-40,'#c080ff',2,18));}},
+  g.ftxt.push(new FTxt('ВРЕМЯ ОСТАНОВЛЕНО!',p.x,p.y-40,'#c080ff',2,18));
+  castVis(g,p,'#c080ff',20,80);}},
 'Разумное Существо':{desc:'Лечит и даёт щит.',cd:10,
-cast(g,p){const heal=80+p.lv*10;
-p.hp=Math.min(p.maxHp,p.hp+heal);
-p.mp=Math.min(p.maxMp,p.mp+heal*0.5);
-p.buffs.shield=6;p.shield=150+p.lv*12;p.buffs.insp=5;
-g.ftxt.push(new FTxt('РАЗУМНОЕ СУЩЕСТВО!',p.x,p.y-40,'#ff80c0',2,18));}},
-'Ярость Огра':{desc:'Прилив силы.',cd:9,
-cast(g,p){p.buffs.insp=6;p.buffs.haste=5;
-p.hp=Math.min(p.maxHp,p.hp+p.maxHp*0.15);
-g.ftxt.push(new FTxt('ЯРОСТЬ ОГРА!',p.x,p.y-40,'#ff6060',2,20));}},
+cast(g,p){const heal=80+p.lv*10;p.hp=Math.min(p.maxHp,p.hp+heal);
+  p.mp=Math.min(p.maxMp,p.mp+heal*0.5);
+  p.buffs.shield=6;p.shield=150+p.lv*12;p.buffs.insp=5;
+  g.ftxt.push(new FTxt('РАЗУМНОЕ СУЩЕСТВО!',p.x,p.y-40,'#ff80c0',2,18));
+  castVis(g,p,'#ff80c0',25,80);}},
+'Ярость Огра':{desc:'Прилив силы. AoE-урон вокруг.',cd:9,
+cast(g,p){const t=p.skills[this.n].tier;const d=(p.atk*1.5)*TM[t];
+  const R=150*(p.aoeMult||1);
+  for(const e of g.enemies)if(e.alive&&d2(e.x,e.y,p.x,p.y)<R*R)e.dmg(d,'normal');
+  for(const b of g.bosses)if(b.alive&&d2(b.x,b.y,p.x,p.y)<R*R)b.dmg(d,'normal');
+  p.buffs.insp=6;p.buffs.haste=5;
+  p.hp=Math.min(p.maxHp,p.hp+p.maxHp*0.15);
+  g.ftxt.push(new FTxt('ЯРОСТЬ ОГРА!',p.x,p.y-40,'#ff6060',2,20));
+  castVis(g,p,'#ff6060',25,R);}},
+'Гнев Демона':{ult:true,desc:'Прилив разрушительной ярости. Урон по площади + вампиризм.',cd:11,
+cast(g,p){const t=p.skills[this.n].tier;const d=(p.atk*2.5)*TM[t]+p.mag*.5;
+  const R=180*(p.aoeMult||1);
+  for(const e of g.enemies)if(e.alive&&d2(e.x,e.y,p.x,p.y)<R*R){e.dmg(d,'normal');p.hp=Math.min(p.maxHp,p.hp+d*0.08);}
+  for(const b of g.bosses)if(b.alive&&d2(b.x,b.y,p.x,p.y)<R*R){b.dmg(d,'normal');p.hp=Math.min(p.maxHp,p.hp+d*0.08);}
+  p.buffs.insp=5;p.buffs.haste=4;
+  g.ftxt.push(new FTxt('ГНЕВ ДЕМОНА!',p.x,p.y-40,'#ff2020',2.2,20));
+  for(let i=0;i<25;i++)g.particles.push(new Part(p.x,p.y,'#ff2020'));}},
 'Аналитик':{desc:'Снижает ATK врагов.',cd:8,
-cast(g,p){const t=p.skills[this.n].tier;
-for(const e of g.enemies)if(e.alive&&d2(e.x,e.y,p.x,p.y)<250*250)e.atk*=0.7;
-for(const b of g.bosses)if(b.alive&&d2(b.x,b.y,p.x,p.y)<250*250)b.atk*=0.7;
-p.buffs.insp=4;
-g.ftxt.push(new FTxt('АНАЛИТИК!',p.x,p.y-40,'#a0c0ff',2,18));}},
+cast(g,p){for(const e of g.enemies)if(e.alive&&d2(e.x,e.y,p.x,p.y)<250*250)e.atk*=0.7;
+  for(const b of g.bosses)if(b.alive&&d2(b.x,b.y,p.x,p.y)<250*250)b.atk*=0.7;
+  p.buffs.insp=4;
+  g.ftxt.push(new FTxt('АНАЛИТИК!',p.x,p.y-40,'#a0c0ff',2,18));
+  castVis(g,p,'#a0c0ff',25,250);}},
 'Наследник':{desc:'Ригур ведёт за собой.',cd:10,
 cast(g,p){p.buffs.haste=5;p.buffs.insp=3;
-g.ftxt.push(new FTxt('ВПЕРЁД!',p.x,p.y-40,'#80ff80',2,18));}},
+  g.ftxt.push(new FTxt('ВПЕРЁД!',p.x,p.y-40,'#80ff80',2,18));
+  castVis(g,p,'#80ff80',20,70);}},
 'Теневая Ниндзя':{desc:'Удар из тени.',cd:6,
 cast(g,p,t){if(!t)return;const tr=p.skills[this.n].tier;
 p.x=t.x-rnd(50,100);p.y=t.y-rnd(50,100);
@@ -549,16 +776,21 @@ t.dmg(60*TM[tr]+p.atk*1.5,src(tr));
 g.particles.push(...[...Array(12)].map(()=>new Part(p.x,p.y,'#404060')));}},
 'Героический Король':{desc:'Сила героя.',cd:9,
 cast(g,p,t){if(!t)return;const tr=p.skills[this.n].tier;
-t.dmg(100*TM[tr]+p.atk*3,src(tr));p.buffs.stoic=4;
-g.ftxt.push(new FTxt('УДАР КОРОЛЯ!',p.x,p.y-40,'#ffd700',2,20));}},
+  t.dmg(100*TM[tr]+p.atk*3,src(tr));p.buffs.stoic=4;
+  g.ftxt.push(new FTxt('УДАР КОРОЛЯ!',p.x,p.y-40,'#ffd700',2,20));
+  castVis(g,p,'#ffd700',20,0);
+  for(let i=0;i<20;i++)g.particles.push(new Part(t.x,t.y,'#ffd700'));}},
 'Щит Стража':{desc:'Прикрывает союзника.',cd:12,
 cast(g,p){p.buffs.shield=8;p.shield=200+p.lv*15;
-g.ftxt.push(new FTxt('ЗАЩИТА КАБАЛА!',p.x,p.y-40,'#a0c0ff',2,18));}},
-'Ярость Зверя':{desc:'Боевое безумие.',cd:10,
-cast(g,p){p.buffs.insp=6;p.buffs.haste=4;
-const d=(p.atk*1.8)*TM[p.skills[this.n].tier];
-for(const e of g.enemies)if(e.alive&&d2(e.x,e.y,p.x,p.y)<200*200)e.dmg(d,'normal');
-for(const b of g.bosses)if(b.alive&&d2(b.x,b.y,p.x,p.y)<200*200)b.dmg(d,'normal');}},
+  g.ftxt.push(new FTxt('ЗАЩИТА КАБАЛА!',p.x,p.y-40,'#a0c0ff',2,18));
+  castVis(g,p,'#a0c0ff',25,80);}},
+'Ярость Зверя':{desc:'Боевое безумие.',cd:10,cast(g,p){
+  p.buffs.insp=6;p.buffs.haste=4;
+  const d=(p.atk*1.8)*TM[p.skills[this.n].tier];
+  for(const e of g.enemies)if(e.alive&&d2(e.x,e.y,p.x,p.y)<200*200)e.dmg(d,'normal');
+  for(const b of g.bosses)if(b.alive&&d2(b.x,b.y,p.x,p.y)<200*200)b.dmg(d,'normal');
+  g.ftxt.push(new FTxt('ЯРОСТЬ ЗВЕРЯ!',p.x,p.y-40,'#ff8040',2,18));
+  castVis(g,p,'#ff8040',25,200);}},
 'Крылья Тьмы':{desc:'Тьма и клинок.',cd:7,
 cast(g,p,t){if(!t)return;const tr=p.skills[this.n].tier;
 t.dmg(70*TM[tr]+p.atk*2,src(tr));
@@ -674,30 +906,54 @@ const ET=[
 {n:'Древний дракон',h:1000,a:85,s:1.6,x:250,c:'#a04040',z:26,l:18,sh:'dragon'},
 {n:'Ужас Бездны',h:900,a:90,s:1.7,x:260,c:'#402080',z:24,l:19,sh:'demon'},
 {n:'Серафим-павший',h:1200,a:100,s:1.6,x:300,c:'#c08040',z:26,l:20,sh:'angel'},
-{n:'Тень Абсолюта',h:1500,a:120,s:1.8,x:400,c:'#200040',z:28,l:22,sh:'star'},
-{n:'Орк-Лорд',h:200,a:22,s:1.2,x:40,c:'#5a8040',z:20,l:7,sh:'circle',sp:'orclord'},
-{n:'Кабан-Лорд',h:150,a:18,s:2.8,x:28,c:'#8a5030',z:18,l:5,sh:'circle',sp:'charge'},
-{n:'Слизь-Хищник',h:120,a:14,s:1.8,x:22,c:'#50c8dc',z:16,l:4,sh:'circle',sp:'engulf'}
+{n:'Тень Абсолюта',h:1500,a:120,s:1.8,x:400,c:'#200040',z:28,l:22,sh:'star'}
 ];
 
+const ELITE=[
+  {n:'Слизь-Хищник',h:120,a:14,s:1.8,x:22,c:'#50c8dc',z:16,sh:'circle',sp:'engulf',unlock:{type:'wave',val:5}},
+  {n:'Кабан-Лорд',h:150,a:18,s:2.8,x:28,c:'#8a5030',z:18,sh:'circle',sp:'charge',unlock:{type:'wave',val:5}},
+  {n:'Орк-Лорд',h:200,a:22,s:1.2,x:40,c:'#5a8040',z:20,sh:'circle',sp:'orclord',unlock:{type:'wave',val:5}},
+  {n:'Гоблин-Шаман',h:160,a:16,s:2,x:30,c:'#80c060',z:16,sh:'star',sp:'summon',unlock:{type:'boss',key:'Гельд, Орк-лорд'}},
+  {n:'Теневой Волк',h:180,a:20,s:3.5,x:35,c:'#303050',z:16,sh:'wolf',sp:'blink',unlock:{type:'boss',key:'Хината Сакагучи'}},
+  {n:'Проклятый Скелет',h:220,a:18,s:1.8,x:40,c:'#706080',z:16,sh:'skull',sp:'curse',unlock:{type:'boss',key:'Клейман'}},
+  {n:'Огненный Элементаль',h:200,a:24,s:2,x:45,c:'#ff6020',z:18,sh:'star',sp:'explode',unlock:{type:'boss',key:'Милим Нава'}},
+  {n:'Стальной Голем',h:400,a:22,s:1,x:60,c:'#a0a0b0',z:22,sh:'circle',sp:'shield',unlock:{type:'boss',key:'Леон Кромвель'}},
+  {n:'Драконий Слуга',h:350,a:30,s:1.8,x:70,c:'#cc4040',z:20,sh:'dragon',sp:'breath',unlock:{type:'boss',key:'Вельдора_и_Вельгринд'}},
+  {n:'Ледяной Призрак',h:300,a:28,s:2.4,x:65,c:'#80d0ff',z:18,sh:'winged',sp:'freeze',unlock:{type:'boss',key:'Вельзард'}},
+  {n:'Павший Ангел',h:500,a:40,s:1.6,x:100,c:'#f0d060',z:22,sh:'angel',sp:'holyray',unlock:{type:'boss',key:'Михаэль_и_Фелдвей'}}
+];
+
+function availableElites(g){
+  return ELITE.filter(e=>{
+    if(e.unlock.type==='wave') return g.wave>=e.unlock.val;
+    if(e.unlock.type==='boss'){
+      if(!g.bsSpawned.has(e.unlock.key)) return false;
+      const t=BT[e.unlock.key];
+      if(t&&t.pair){
+        return !g.bosses.some(b=>t.pair.includes(b.bn));
+      }
+      return !g.bosses.some(b=>b.bn===e.unlock.key);
+    }
+    return false;
+  });
+}
+
 const BT={
-'Гельд, Орк-лорд':{h:900,a:26,s:1.6,x:250,c:'#906030',z:30,p2:'#ffa040',w:12,at:['sl','r'],sh:'circle',fr:3,sup:0},
-'Хината Сакагучи':{h:1100,a:28,s:1.6,x:280,c:'#e0e0ff',z:30,p2:'#ffffff',w:15,at:['r','sl'],sh:'diamond',fr:3,sup:0},
-'Клейман':{h:1200,a:32,s:1.7,x:320,c:'#a040c0',z:28,p2:'#ff40ff',w:18,at:['pb','tp'],sh:'demon',fr:3,sup:0},
-'Фрей':{h:1700,a:38,s:1.5,x:450,c:'#c0e0ff',z:32,p2:'#ffffff',w:20,at:['fb','fs'],sh:'angel',fr:4,sup:0},
-'Ламирис':{h:2400,a:46,s:1.7,x:700,c:'#ff40a0',z:34,p2:'#ffffff',w:25,at:['pb','tp','df'],sh:'star',fr:4,sup:0},
-'Ги Кримзон':{h:2000,a:44,s:1.8,x:550,c:'#c03030',z:32,p2:'#ff4040',w:26,at:['sw','ch'],sh:'demon',fr:4,sup:0},
-'Дагриэль':{h:2800,a:54,s:1.5,x:900,c:'#a06040',z:36,p2:'#ffa040',w:28,at:['hn','mt'],sh:'circle',fr:4,sup:0},
-'Леон Кромвель':{h:3200,a:60,s:1.8,x:1000,c:'#ffcc44',z:36,p2:'#ffffff',w:29,at:['df','fs','pb'],sh:'diamond',fr:5,sup:0},
-'Милим Нава':{h:2200,a:48,s:1.9,x:650,c:'#ff80c0',z:34,p2:'#ffffff',w:30,at:['df','mt'],sh:'star',fr:4,sup:0},
-'Веладора':{h:2600,a:52,s:1.7,x:800,c:'#50c8dc',z:36,p2:'#80e0ff',w:32,at:['fb','sl'],sh:'dragon',fr:4,sup:1},
-'Вельгринд':{h:3000,a:58,s:1.8,x:950,c:'#ff6020',z:36,p2:'#ffa040',w:34,at:['fb','fs'],sh:'dragon',fr:4,sup:1},
-'Вельзард':{h:3400,a:62,s:1.7,x:1100,c:'#80c0ff',z:36,p2:'#ffffff',w:36,at:['ts','hn'],sh:'dragon',fr:4,sup:1},
-'Михаэль':{h:4000,a:50,s:1.5,x:1200,c:'#f0d060',z:34,p2:'#ffa040',w:40,at:['fs','hn','ts'],sh:'angel',fr:3,sup:1},
-'Фелдвей':{h:5500,a:60,s:1.8,x:1600,c:'#a040e0',z:36,p2:'#ff40ff',w:42,at:['tp','pb','vw'],sh:'demon',fr:3,sup:1},
-'Иварадж':{h:7000,a:65,s:1.7,x:2000,c:'#ff40a0',z:34,p2:'#ff80c0',w:44,at:['fs','pb','mt'],sh:'star',fr:5,sup:1,sec:'ivarage'},
-'Веланава':{h:9000,a:75,s:1.6,x:2500,c:'#f0e090',z:38,p2:'#ffffff',w:46,at:['hn','fs','tp'],sh:'dragon',fr:5,sup:1,sec:'velanava'},
-'Лувельгер':{h:15000,a:100,s:2,x:8000,c:'#c0c0ff',z:42,p2:'#ffffff',w:48,at:['df','mt','pb','hn'],sh:'winged',fr:10,sup:1,sec:'luvellger'}
+'Гельд, Орк-лорд':{h:2200,a:28,s:1.6,x:250,c:'#906030',z:30,p2:'#ffa040',w:10,at:['sl','r'],sh:'circle',fr:3,sup:0},
+'Хината Сакагучи':{h:2800,a:30,s:1.6,x:280,c:'#e0e0ff',z:30,p2:'#ffffff',w:15,at:['r','sl'],sh:'diamond',fr:3,sup:0},
+'Клейман':{h:3200,a:34,s:1.7,x:320,c:'#a040c0',z:28,p2:'#ff40ff',w:20,at:['pb','tp'],sh:'demon',fr:3,sup:0},
+'Милим Нава':{h:5600,a:50,s:1.9,x:650,c:'#ff80c0',z:34,p2:'#ffffff',w:25,at:['df','mt'],sh:'star',fr:4,sup:0},
+'Леон Кромвель':{h:8000,a:64,s:1.8,x:1000,c:'#ffcc44',z:36,p2:'#ffffff',w:30,at:['df','fs','pb'],sh:'diamond',fr:5,sup:0},
+'Веладора':{h:5200,a:52,s:1.7,x:800,c:'#50c8dc',z:36,p2:'#80e0ff',w:35,at:['fb','sl'],sh:'dragon',fr:4,sup:1,sec:true},
+'Вельгринд':{h:6000,a:58,s:1.8,x:950,c:'#ff6020',z:36,p2:'#ffa040',at:['fb','fs'],sh:'dragon',fr:4,sup:1,sec:true},
+'Михаэль':{h:8000,a:50,s:1.5,x:1200,c:'#f0d060',z:34,p2:'#ffa040',at:['fs','hn','ts'],sh:'angel',fr:3,sup:1,sec:true},
+'Фелдвей':{h:11000,a:60,s:1.8,x:1600,c:'#a040e0',z:36,p2:'#ff40ff',at:['tp','pb','vw'],sh:'demon',fr:3,sup:1,sec:true},
+'Вельдора_и_Вельгринд':{h:14000,a:65,s:1.7,x:1200,c:'#ff6020',z:38,p2:'#ffa040',w:35,at:['fb','fs','sl'],sh:'dragon',fr:5,sup:1,pair:['Веладора','Вельгринд']},
+'Вельзард':{h:8500,a:68,s:1.7,x:1100,c:'#80c0ff',z:36,p2:'#ffffff',w:40,at:['ts','hn'],sh:'dragon',fr:4,sup:1},
+'Михаэль_и_Фелдвей':{h:24000,a:60,s:1.7,x:1800,c:'#f0d060',z:38,p2:'#ff40ff',w:45,at:['fs','hn','ts','tp','pb','vw'],sh:'angel',fr:4,sup:1,pair:['Михаэль','Фелдвей']},
+'Иварадж':{h:16000,a:65,s:1.7,x:2000,c:'#ff40a0',z:34,p2:'#ff80c0',w:50,at:['fs','pb','mt'],sh:'star',fr:5,sup:1,sec:'ivarage'},
+'Веланава':{h:32000,a:75,s:1.6,x:2500,c:'#f0e090',z:38,p2:'#ffffff',w:50,at:['hn','fs','tp'],sh:'dragon',fr:5,sup:1,sec:'velanava'},
+'Лувельгер':{h:55000,a:100,s:2,x:8000,c:'#c0c0ff',z:42,p2:'#ffffff',w:50,at:['df','mt','pb','hn'],sh:'winged',fr:10,sup:1,sec:'luvellger'}
 };
 
 const LOCS=[
@@ -725,34 +981,32 @@ const CHR={
 'Расы':Object.values(RACES).map(r=>r.n+': '+r.d+' Пассив: '+r.p).join('\n\n'),
 'Эволюции':Object.values(RACES).map(r=>r.n+':\n'+r.evo.map(e=>'  • '+e.n+' ур.'+e.lv).join('\n')).join('\n\n'),
 'Навыки':Object.entries(SKILLS).map(([n,s])=>n+': '+s.desc+' (КД '+s.cd+'с)').join('\n\n')+'\n\nТиры: '+TI.join(' → ')+'\n\nУсиление на Высший — 4 осколка. На Божественный — 7 осколков. Переходы Обычный → Экстра → Уникальный — бесплатно. То же правило для эволюций.',
-'Магия':SPELLS.map(s=>s.n+' ('+s.d+' урона, '+s.mp+' MP)').join('\n')+'\n\nРеген маны: 3 + 0.25×Lv + 1% макс. MP в секунду. При мане >70% маг использует самое мощное заклинание, при <30% — самое дешёвое.',
+'Магия':SPELLS.map(s=>s.n+' ('+s.d+' урона, '+s.mp+' MP)').join('\n')+'\n\nРеген маны: 3 + 0.25×Lv + 1% макс. MP в секунду.',
 'Оружие':WEAPONS.map(w=>w.n+': ATK+'+w.a+' MAG+'+w.m+'. '+w.d).join('\n'),
 'Артефакты':ARTS.map(a=>a.n+': '+a.d).join('\n'),
 'Резонанс':`Навыки, не поместившиеся в слоты Q/E/R, образуют «Резонанс».
-Каждый навык в резонансе даёт +3% урона (автоатака, магия, fan, shot, burst).
+Каждый навык в резонансе даёт +3% урона.
 Раз в 1.5 сек автоматически применяется случайный готовый навык из резонанса (КД ×4).`,
-'Враги':ET.map(e=>e.n+' — HP '+e.h+', ATK '+e.a+', lvl '+e.l).join('\n')+'\n\nКаждая волна делает обычных врагов на 1% сильнее (HP/ATK), но даёт на 10% больше опыта.\nШанс выпадения осколка с обычного врага: 0.5%.',
-'Боссы':Object.entries(BT).map(([n,b])=>n+' (волна '+b.w+'): HP '+b.h+', ATK '+b.a+(b.sup?' [★ ВЫСШИЙ]':'')+(b.sec?' [СЕКРЕТ]':'')).join('\n\n'),
+'Враги':ET.map(e=>e.n+' — HP '+e.h+', ATK '+e.a+', lvl '+e.l).join('\n')+'\n\nЭЛИТА:\n'+ELITE.map(e=>'  ★ '+e.n+' ('+(e.unlock.type==='wave'?'волна '+e.unlock.val:'после '+e.unlock.key)+')').join('\n')+'\n\nЭлитные враги (золотая аура): HP ×1.4, ATK ×1.25, XP ×2, шанс осколка 1.5%. Шанс спавна = 5% + 2.5% за каждого убитого босса (макс 25%).\n\nВолны 1–20: HP/ATK +1% за волну, опыт +10% за волну (линейно).\nВолны 21+: HP/ATK ×1.03 за волну, опыт ×1.08 за волну (экспонента).\nАпокрифический разлом: 25% врагов — ХАОС-версии (фиолетовая аура): HP ×1.3, ATK ×1.5, SPD ×1.2, XP ×1.5, шанс осколка 1%.',
+'Боссы':Object.entries(BT).filter(([n,b])=>!b.sec).map(([n,b])=>n+' (волна '+b.w+'): HP '+b.h+', ATK '+b.a+(b.sup?' [★]':'')+(b.pair?' [ПАРА]':'')).join('\n\n')+'\n\nБоссы приходят каждые 5 волн с 10-й. Парные — Вельдора + Вельгринд (35), Михаэль + Фелдвей (45). Гнев при убийстве <20 сек: HP=1, ATK ×2→×4, SPD ×1.5→×2.3 за 20 сек. Веланава не умирает после гнева.',
 'Локации':LOCS.map(l=>l.n+': '+l.d).join('\n\n'),
 'Истинные Драконы':`Веланава — Звездный Король-Дракон, бог-создатель.
-Веладора — Штормовой Дракон, брат Веланавы.
-Вельгринд — Пламенный Дракон, сестра.
-Вельзард — Ледяной Дракон, сестра.
+Веладора — Штормовой Дракон.
+Вельгринд — Пламенный Дракон.
+Вельзард — Ледяной Дракон.
 Милим Нава — дочь Веланавы.`,
-'Секрет: Иварадж и Лувельгер':`Иварадж — Уничтожающий Дракон.
-Веланава — создатель мира. Когда Иварадж поглощает Веланаву,
-рождается Лувельгер — гибрид дракона, человека и волка.
-Только Высший навык и истинное мужество способны его остановить.`,
 'Хронология':`Пещера → Лес Джура → Деревня гоблинов → Озеро Шинсу → Дваргон → Орк-лорд →
-Хината → Клейман → Фрей → Ламирис → Ги Кримзон → Дагриэль → Леон → Милим Нава →
-Веладора → Вельгринд → Вельзард → Михаэль → Фелдвей → Иварадж → Веланава → Лувельгер`
+Хината → Клейман → Милим → Леон → Вельдора+Вельгринд → Вельзард → Михаэль+Фелдвей → Финал`
 };
 
 class FTxt{constructor(t,x,y,c,l,sz){this.t=t;this.x=x;this.y=y;this.c=c||'#fff';
 this.l=l||1.2;this.ml=this.l;this.sz=sz||16;this.vy=-40;}
 update(dt){this.y+=this.vy*dt;this.l-=dt;}
 draw(){const a=cl(this.l/this.ml,0,1);ctx.globalAlpha=a;
-tx(this.t,this.x,this.y,{color:this.c,size:this.sz,align:'center'});ctx.globalAlpha=1;}}
+const edge=Math.min(WW-this.x,this.x)*2-40;
+const maxW=Math.max(120,Math.min(680,edge));
+txFit(this.t,this.x,this.y,maxW,{color:this.c,size:this.sz,align:'center'},10);
+ctx.globalAlpha=1;}}
 class Part{constructor(x,y,c){this.x=x;this.y=y;this.c=c;
 const a=rnd(0,6.28),s=rnd(80,320);this.vx=Math.cos(a)*s;this.vy=Math.sin(a)*s;
 this.l=rnd(.3,.8);this.ml=this.l;this.z=rnd(2,5);}
@@ -777,11 +1031,11 @@ class Enemy{constructor(x,y,t,m){this.x=x;this.y=y;this.t=t;
 this.maxHp=t.h*(m.eh||1);this.hp=this.maxHp;this.atk=t.a*(m.ea||1);
 this.spd=t.s*(m.es||1);this.xp=t.x;this.c=t.c;this.z=t.z;this.sh=t.sh||'circle';
 this.alive=true;this.acd=0;this.hf=0;this.def=0;
-this.sp=t.sp||null;this.spcd=rnd(2,4);this.charging=0;}
+this.sp=t.sp||null;this.spcd=rnd(2,4);this.charging=0;
+this.elite=false;this.chaos=false;this.shield=0;this._exploded=false;}
 update(dt,p,g){
   if(this.sp==='charge'&&this.charging>0){
-    this.x+=Math.cos(this.chargeA)*650*dt;
-    this.y+=Math.sin(this.chargeA)*650*dt;
+    this.x+=Math.cos(this.chargeA)*650*dt;this.y+=Math.sin(this.chargeA)*650*dt;
     this.charging-=dt;
     if(d2(this.x,this.y,p.x,p.y)<(this.z+p.z)**2)p.hurt(this.atk*1.5);
     this.hf=Math.max(0,this.hf-dt);return;
@@ -802,54 +1056,401 @@ update(dt,p,g){
         }
       }
     } else if(this.sp==='charge'&&this.spcd<=0&&d<400){
-      this.spcd=4;this.charging=.7;
-      this.chargeA=Math.atan2(p.y-this.y,p.x-this.x);
+      this.spcd=4;this.charging=.7;this.chargeA=Math.atan2(p.y-this.y,p.x-this.x);
     } else if(this.sp==='engulf'&&d<this.z+p.z+8&&this.spcd<=0){
-      this.spcd=2.5;
-      p.hurt(this.atk*1.8);
+      this.spcd=2.5;p.hurt(this.atk*1.8);
       const a=Math.atan2(p.y-this.y,p.x-this.x);
       p.x+=Math.cos(a)*80;p.y+=Math.sin(a)*80;
       if(g){for(let i=0;i<8;i++)g.particles.push(new Part(p.x,p.y,'#50c8dc'));}
+    } else if(this.sp==='summon'&&this.spcd<=0&&g){
+      this.spcd=8;
+      if(g.enemies.length<100){
+        for(let i=0;i<2;i++){
+          const aa=Math.random()*6.283;
+          const mx=this.x+Math.cos(aa)*60,my=this.y+Math.sin(aa)*60;
+          const me=new Enemy(mx,my,ET[1],g.loc.m);
+          scaleEnemyToWave(me,g.wave);g.enemies.push(me);
+        }
+        g.ftxt.push(new FTxt('ПРИЗЫВ!',this.x,this.y-40,'#80c060',1.5,14));
+      }
+    } else if(this.sp==='blink'&&this.spcd<=0&&d<500){
+      this.spcd=6;
+      const aa=Math.random()*6.283;
+      this.x=cl(p.x+Math.cos(aa)*(80+p.z),30,WW-30);
+      this.y=cl(p.y+Math.sin(aa)*(80+p.z),30,WH-30);
+      if(g){for(let i=0;i<8;i++)g.particles.push(new Part(this.x,this.y,'#303050'));}
+    } else if(this.sp==='curse'&&d<this.z+p.z+8&&this.spcd<=0){
+      this.spcd=4;p.slow=Math.max(p.slow||0,2);
+      if(g){g.ftxt.push(new FTxt('ПРОКЛЯТИЕ!',p.x,p.y-30,'#a060c0',1.5,14));
+        for(let i=0;i<10;i++)g.particles.push(new Part(p.x,p.y,'#a060c0'));}
+    } else if(this.sp==='shield'&&this.spcd<=0){
+      this.spcd=8;this.shield=80+this.maxHp*0.1;
+      if(g){g.ftxt.push(new FTxt('ЩИТ!',this.x,this.y-40,'#a0c0ff',1.5,14));}
+    } else if(this.sp==='breath'&&this.spcd<=0&&d<600&&g){
+      this.spcd=5;
+      const a=Math.atan2(p.y-this.y,p.x-this.x);
+      for(let i=-2;i<=2;i++){const aa=a+i*0.18;
+        g.proj.push(new Proj(this.x,this.y,Math.cos(aa)*420,Math.sin(aa)*420,this.atk*0.8,'#ff6020',8,false,1));
+      }
+    } else if(this.sp==='freeze'&&d<this.z+p.z+8&&this.spcd<=0){
+      this.spcd=4;p.slow=Math.max(p.slow||0,3);
+      if(g){g.ftxt.push(new FTxt('ЗАМОРОЖЕН!',p.x,p.y-30,'#80d0ff',1.5,14));
+        for(let i=0;i<10;i++)g.particles.push(new Part(p.x,p.y,'#80d0ff'));}
+    } else if(this.sp==='holyray'&&this.spcd<=0&&d<400&&g){
+      this.spcd=6;
+      const dmg=this.atk*1.5;
+      if(p.inv<=0&&p.dodg<=0){
+        let reduced=Math.max(1,dmg-p.def*0.25);
+        if(p.buffs.stoic>0)reduced*=0.5;
+        if(p.shield>0){const ab=Math.min(p.shield,reduced);p.shield-=ab;reduced-=ab;
+          if(p.shield<=0)p.buffs.shield=0;}
+        reduced=~~reduced;
+        p.hp-=reduced;if(p.hp<0)p.hp=0;p.inv=0.35;
+        g.ftxt.push(new FTxt('СВЯТОЙ ЛУЧ!',p.x,p.y-30,'#fff8c0',1.8,16));
+      }
+      for(let i=0;i<15;i++){const t=i/15;
+        g.particles.push(new Part(this.x+(p.x-this.x)*t,this.y+(p.y-this.y)*t,'#fff8c0'));
+      }
     }
   }
 }
-dmg(v,src){this.hp-=v;this.hf=.1;if(this.hp<=0)this.alive=false;return true;}
-draw(){ctx.globalAlpha=.3;ctx.fillStyle='#000';ctx.beginPath();
-ctx.ellipse(this.x,this.y+this.z*.7,this.z*.8,this.z*.3,0,0,7);ctx.fill();ctx.globalAlpha=1;
-const s=1+Math.sin(performance.now()/300)*.05;shape(this.sh,this.x,this.y,this.z*s,this.c,this.hf>0);
-bar(this.x-this.z,this.y-this.z-8,this.z*2,4,this.hp,this.maxHp,'#e04040');}}
+dmg(v,src){
+  if(this.shield>0){const ab=Math.min(this.shield,v);this.shield-=ab;v-=ab;}
+  this.hp-=v;this.hf=.1;
+  if(this.hp<=0)this.alive=false;
+  return true;
+}
+draw(){
+  ctx.globalAlpha=.3;ctx.fillStyle='#000';ctx.beginPath();
+  ctx.ellipse(this.x,this.y+this.z*.7,this.z*.8,this.z*.3,0,0,7);ctx.fill();
+  ctx.globalAlpha=1;
+  if(this.elite){
+    const pulse=0.5+Math.sin(performance.now()/200+this.x*0.02)*0.35;
+    ctx.strokeStyle='rgba(255,200,0,'+pulse+')';ctx.lineWidth=2.5;
+    ctx.beginPath();ctx.arc(this.x,this.y,this.z*1.35,0,7);ctx.stroke();
+  }
+  if(this.chaos){
+    const pulse=0.4+Math.sin(performance.now()/250+this.x*0.01)*0.35;
+    ctx.strokeStyle='rgba(180,20,255,'+pulse+')';ctx.lineWidth=2;
+    ctx.beginPath();ctx.arc(this.x,this.y,this.z*1.4,0,7);ctx.stroke();
+  }
+  if(this.shield>0){
+    ctx.strokeStyle='rgba(120,200,255,.7)';ctx.lineWidth=2;
+    ctx.beginPath();ctx.arc(this.x,this.y,this.z+6,0,7);ctx.stroke();
+  }
+  const s=1+Math.sin(performance.now()/300)*.05;
+  shape(this.sh,this.x,this.y,this.z*s,this.c,this.hf>0);
+  if(this.elite){
+    tx(this.t.n,this.x,this.y-this.z-14,{size:9,color:'#ffcc44',align:'center'});
+    bar(this.x-this.z,this.y-this.z-4,this.z*2,4,this.hp,this.maxHp,'#e04040');
+  } else {
+    bar(this.x-this.z,this.y-this.z-8,this.z*2,4,this.hp,this.maxHp,'#e04040');
+  }
+}}
 
 class Boss extends Enemy{constructor(x,y,t,m){super(x,y,t,m);this.bn=t.n;this.ph=1;
-this.at=1.5;this.st=2;this.td=t;this.isBoss=true;this.sup=t.sup||false;this.hsf=0;}
-update(dt,p,g){const dx=p.x-this.x,dy=p.y-this.y,d=Math.sqrt(dx*dx+dy*dy)||1;
+this.at=1.5;this.st=2;this.td=t;this.isBoss=true;this.sup=t.sup||false;this.hsf=0;
+this.spCd=0;this.spCd2=0;this.spTimer=0;this.spPhase=0;this.spData=null;this.spCharge=0;
+this.baseColor=t.c;this.spawnAt=performance.now();this.spawnWave=0;
+this.enraged=false;this.enrageUsed=false;this.enrageTimer=0;this._enrageShown=false;this.game=null;
+this.baseAtk=this.atk;this.baseSpd=this.spd;this.baseSt=this.st;this.baseAt=this.at;}
+update(dt,p,g){this.game=g;
+if(this.enraged){
+  this.enrageTimer-=dt;
+  if(!this._enrageShown){
+    this._enrageShown=true;
+    g.ftxt.push(new FTxt('Гнев побеждённого,',this.x,this.y-160,'#8b0000',3,28));
+    g.ftxt.push(new FTxt('неудовлетворённого битвой',this.x,this.y-130,'#8b0000',3,28));
+    g.shake=25;AU.sfx('boss');
+  }
+  const prog=1-Math.max(0,this.enrageTimer)/20;
+  this.atk=~~(this.baseAtk*(2+prog*2));
+  this.spd=this.baseSpd*(1.5+prog*0.8);
+  this.st=Math.max(0.3,this.baseSt*(0.5-prog*0.3));
+  this.at=Math.max(0.4,this.baseAt*(0.6-prog*0.3));
+  this.c=sh(this.baseColor,-80-~~(prog*60));
+  if(this.enrageTimer<=0){
+    if(this.bn==='Веланава'){
+      this.enraged=false;
+      this.hp=1;
+      g.ftxt.push(new FTxt('Веланава истощена...',this.x,this.y-60,'#f0e090',2,18));
+    } else {
+      this.alive=false;
+      g.ftxt.push(new FTxt('Босс пал от истощения',this.x,this.y-60,'#ff6060',2,18));
+    }
+    return;
+  }
+}
+const dx=p.x-this.x,dy=p.y-this.y,d=Math.sqrt(dx*dx+dy*dy)||1;
 const sp=this.ph===1?70:100;
 if(d>1){this.x+=dx/d*sp*dt;this.y+=dy/d*sp*dt;}
-this.at-=dt;if(d<this.z+p.z+10&&this.at<=0){p.hurt(this.atk);this.at=1.2;}
+this.at-=dt;
+if(d<this.z+p.z+10&&this.at<=0){
+  p.hurt(this.atk);
+  if(this.bn==='Гельд, Орк-лорд')this.hp=Math.min(this.maxHp,this.hp+this.atk*0.15);
+  this.at=1.2;
+}
 this.st-=dt;if(this.st<=0){this.cast(p,g);this.st=this.ph===1?3.5:2.2;}
+if(this.spCd>0)this.spCd-=dt;
+if(this.spCd2>0)this.spCd2-=dt;
+this.specialUpdate(dt,p,g);
 if(this.ph===1&&this.hp<this.maxHp*.5){this.ph=2;this.c=this.td.p2||this.c;
 g.ftxt.push(new FTxt('Фаза 2!',this.x,this.y-40,'#ff4040',2,20));}
 this.hf=Math.max(0,this.hf-dt);this.hsf=Math.max(0,this.hsf-dt);}
 dmg(v,src){
   if(this.sup&&src!=='supreme'){this.hsf=.5;return false;}
+  if(this.enraged){this.hf=.1;return true;}
   this.hp-=v;this.hf=.1;
   if(this.bn==='Веланава'&&this.hp<1)this.hp=1;
-  if(this.hp<=0)this.alive=false;return true;}
+  const elapsed=this.game?(this.game.runTime-this.spawnWave):((performance.now()-this.spawnAt)/1000);
+  const enrageThreshold=this.bn==='Веланава'?2:0;
+  if(this.hp<=enrageThreshold){
+    if(!this.enrageUsed && elapsed<20){
+      this.baseAtk=this.atk;
+      this.baseSpd=this.spd;
+      this.baseSt=this.st;
+      this.baseAt=this.at;
+      this.enrageUsed=true;
+      this.enraged=true;
+      this.enrageTimer=20;
+      this._enrageShown=false;
+      this.hp=Math.max(1,this.hp);
+      return true;
+    }
+    if(this.bn!=='Веланава')this.alive=false;
+  }
+  return true;}
+specialUpdate(dt,p,g){
+  const a=Math.atan2(p.y-this.y,p.x-this.x);
+  if(this.bn==='Гельд, Орк-лорд'){
+    if(this.spCd<=0){
+      this.spCd=8;
+      g.ftxt.push(new FTxt('ЗЕМЛЕТРЯС!',this.x,this.y-60,'#ffa040',2,18));
+      this.spData={type:'quake',timer:0.6,radius:220};g.shake=12;
+    }
+    if(this.spData&&this.spData.type==='quake'){
+      this.spData.timer-=dt;
+      if(this.spData.timer<=0){
+        const R=this.spData.radius;
+        if(d2(this.x,this.y,p.x,p.y)<R*R){p.hurt(this.atk*0.8);p.slow=Math.max(p.slow||0,2);
+          g.ftxt.push(new FTxt('ЗАМЕДЛЕН!',p.x,p.y-30,'#ffa040',1.5,14));}
+        for(let i=0;i<20;i++){const aa=i/20*6.283;g.particles.push(new Part(this.x+Math.cos(aa)*R*.8,this.y+Math.sin(aa)*R*.8,'#ffa040'));}
+        this.spData=null;
+      }
+    }
+  }
+  if(this.bn==='Хината Сакагучи'){
+    if(this.spCd<=0){
+      this.spCd=7;
+      g.ftxt.push(new FTxt('MELT SLASH!',this.x,this.y-60,'#e0e0ff',2,18));
+      this.spData={type:'dash',timer:0.4,target:{x:p.x,y:p.y}};
+    }
+    if(this.spData&&this.spData.type==='dash'){
+      this.spData.timer-=dt;
+      const ddx=this.spData.target.x-this.x, ddy=this.spData.target.y-this.y;
+      const dd=Math.sqrt(ddx*ddx+ddy*ddy)||1;
+      this.x+=ddx/dd*900*dt; this.y+=ddy/dd*900*dt;
+      if(this.spData.timer<=0){
+        if(d2(this.x,this.y,p.x,p.y)<(this.z+p.z+30)**2){
+          if(p.inv<=0&&p.dodg<=0){
+            const raw=this.atk*1.8;
+            const reduced=Math.max(raw*0.5, raw-p.def*0.25);
+            p.hp-=reduced;if(p.hp<0)p.hp=0;p.inv=0.35;
+            g.ftxt.push(new FTxt('ПРОБИТИЕ!',p.x,p.y-30,'#ffffff',1.8,16));
+          }
+        }
+        this.spData=null;
+      }
+    }
+  }
+  if(this.bn==='Клейман'){
+    if(this.spCd<=0){
+      this.spCd=10;
+      g.ftxt.push(new FTxt('МАРИОНЕТКИ!',this.x,this.y-60,'#c040ff',2,16));
+      for(let i=0;i<2;i++){
+        const aa=Math.random()*6.283;
+        const mx=this.x+Math.cos(aa)*100, my=this.y+Math.sin(aa)*100;
+        const me=new Enemy(mx,my,{n:'Марионетка',h:180,a:12,s:1.8,x:10,c:'#a040c0',z:14,l:5,sh:'star'},g.loc.m);
+        scaleEnemyToWave(me,g.wave);g.enemies.push(me);
+      }
+    }
+    if(this.spCd2<=0){
+      this.spCd2=6;
+      if(d2(this.x,this.y,p.x,p.y)<350*350){
+        if(p.inv<=0&&p.dodg<=0){
+          const dmg=this.atk*0.6;
+          p.hp-=dmg;if(p.hp<0)p.hp=0;p.inv=0.35;
+          g.ftxt.push(new FTxt('ПСИ-УДАР!',p.x,p.y-30,'#ff40ff',1.8,16));
+          for(let i=0;i<12;i++)g.particles.push(new Part(p.x,p.y,'#ff40ff'));
+        }
+      }
+    }
+  }
+  if(this.bn==='Милим Нава'&&!this.enraged){
+    const rage=1+(1-this.hp/this.maxHp)*0.6;
+    this.atk=this.td.a*g.loc.m.ea*rage;
+    if(this.spCd<=0 && !this.spData){
+      this.spCd=11;
+      g.ftxt.push(new FTxt('DRAGO NOVA...',this.x,this.y-60,'#ff80c0',2,18));
+      this.spData={type:'nova',timer:1.5,angle:a};
+    }
+    if(this.spData&&this.spData.type==='nova'){
+      this.spData.timer-=dt;
+      if(this.spData.timer<=0){
+        const aa=this.spData.angle;
+        for(let i=-3;i<=3;i++){
+          const aaa=aa+i*0.05;
+          g.proj.push(new Proj(this.x,this.y,Math.cos(aaa)*700,Math.sin(aaa)*700,this.atk*1.8,'#ff80c0',14,false,5));
+        }
+        g.shake=20; this.spData=null;
+      }
+    }
+  }
+  if(this.bn==='Леон Кромвель'){
+    if(this.spCd<=0){
+      this.spCd=12;
+      let removed=false;
+      for(const b in p.buffs){ if(p.buffs[b]>0){ p.buffs[b]=0; removed=true; } }
+      if(p.shield>0){ p.shield=0; removed=true; }
+      if(removed){g.ftxt.push(new FTxt('РАЗВЕЯНО!',p.x,p.y-40,'#ffffff',2,20));AU.sfx('slow');}
+    }
+    if(this.spCd2<=0){
+      this.spCd2=7;
+      for(let i=0;i<3;i++){
+        setTimeout(()=>{
+          if(this.alive && g.state==='playing' && d2(this.x,this.y,p.x,p.y)<(this.z+p.z+40)**2){
+            p.hurt(this.atk*0.7);
+          }
+        }, i*150);
+      }
+      g.ftxt.push(new FTxt('ТРОЙНОЙ УДАР!',this.x,this.y-50,'#ffcc44',1.8,16));
+    }
+  }
+  const isVeldoraPair=(this.bn==='Веладора'||this.bn==='Вельгринд');
+  if(isVeldoraPair){
+    const otherAlive=g.bosses.some(b=>b.alive && b!==this && (b.bn==='Веладора'||b.bn==='Вельгринд'));
+    if(!otherAlive&&!this.enraged){
+      this.atk=this.td.a*g.loc.m.ea*1.5;
+      if(this.hsf<=0)this.hsf=0.3;
+    }
+  }
+  if(this.bn==='Вельзард'){
+    if(this.spCd<=0){
+      this.spCd=14;
+      g.ftxt.push(new FTxt('ЛЕДЯНАЯ СТЕНА!',this.x,this.y-60,'#80c0ff',2,18));
+      const wall={x:p.x+Math.cos(a)*300, y:p.y+Math.sin(a)*300, r:100, timer:3};
+      g.proj=g.proj.filter(pr=>!pr.fr || d2(pr.x,pr.y,wall.x,wall.y)>wall.r*wall.r);
+      for(let i=0;i<30;i++){
+        const aa=i/30*6.283;
+        g.particles.push(new Part(wall.x+Math.cos(aa)*wall.r, wall.y+Math.sin(aa)*wall.r, '#80c0ff'));
+      }
+      this.spData={type:'wall',wall,pulseAcc:0};
+    }
+    if(this.spData&&this.spData.type==='wall'){
+      this.spData.wall.timer-=dt;
+      this.spData.pulseAcc=(this.spData.pulseAcc||0)+dt;
+      if(this.spData.pulseAcc>0.3){
+        this.spData.pulseAcc=0;
+        const w=this.spData.wall;
+        for(let i=0;i<15;i++){
+          const aa=Math.random()*6.283;
+          g.particles.push(new Part(w.x+Math.cos(aa)*w.r, w.y+Math.sin(aa)*w.r, '#80c0ff'));
+        }
+      }
+      if(this.spData.wall.timer<=0)this.spData=null;
+    }
+  }
+  const isMichaelPair=(this.bn==='Михаэль'||this.bn==='Фелдвей');
+  if(isMichaelPair){
+    const other=g.bosses.find(b=>b!==this && (b.bn==='Михаэль'||b.bn==='Фелдвей'));
+    if(other&&other.alive&&!this.enraged){
+      if(this.bn==='Фелдвей'){
+        this.atk=this.td.a*g.loc.m.ea*1.3;
+        this.st=Math.min(this.st, this.ph===1?2.5:1.6);
+      } else {
+        this.atk=this.td.a*g.loc.m.ea;
+        this.st=Math.min(this.st, this.ph===1?2.5:1.6);
+      }
+    }
+    if(this.bn==='Михаэль'&&this.spCd<=0){
+      this.spCd=9;
+      let buffCount=0;
+      for(const b in p.buffs)if(p.buffs[b]>0)buffCount++;
+      if(buffCount>0){
+        const dmg=this.atk*0.5*buffCount;
+        p.hurt(dmg);
+        g.ftxt.push(new FTxt('КАРА ('+buffCount+')',p.x,p.y-30,'#f0d060',1.8,16));
+      }
+    }
+  }
+
+  if(this.bn==='Иварадж'&&this.spCd<=0){
+    this.spCd=6;
+    g.ftxt.push(new FTxt('АУРА УНИЧТОЖЕНИЯ!',this.x,this.y-60,'#ff40a0',2,18));
+    const R=220;
+    for(const e of g.enemies)if(e.alive&&d2(e.x,e.y,this.x,this.y)<R*R)e.dmg(this.atk*0.6,'normal');
+    if(d2(this.x,this.y,p.x,p.y)<R*R)p.hurt(this.atk*0.8);
+    for(let i=0;i<20;i++){const aa=i/20*6.283;
+      g.particles.push(new Part(this.x+Math.cos(aa)*R*.8,this.y+Math.sin(aa)*R*.8,'#ff40a0'));}
+    g.shake=8;
+  }
+  if(this.bn==='Веланава'){
+    if(this.spCd<=0){
+      this.spCd=14;
+      g.ftxt.push(new FTxt('СОЗДАНИЕ МИРА!',this.x,this.y-70,'#f0e090',2.5,20));
+      for(let i=0;i<2;i++){
+        const aa=Math.random()*6.283;
+        const mx=this.x+Math.cos(aa)*130,my=this.y+Math.sin(aa)*130;
+        const me=new Enemy(mx,my,{n:'Созданный',h:900,a:40,s:1.5,x:80,c:'#f0e090',z:20,l:15,sh:'angel'},g.loc.m);
+        scaleEnemyToWave(me,g.wave);
+        g.enemies.push(me);
+      }
+    }
+    if(this.spCd2<=0&&!this.spData){
+      this.spCd2=9;
+      g.ftxt.push(new FTxt('БОЖЕСТВЕННЫЙ ЛУЧ...',this.x,this.y-60,'#fff8c0',2,18));
+      this.spData={type:'holylaser',timer:1.5,angle:a};
+    }
+    if(this.spData&&this.spData.type==='holylaser'){
+      this.spData.timer-=dt;
+      if(this.spData.timer<=0){
+        const aa=this.spData.angle;
+        for(let i=-4;i<=4;i++){const aaa=aa+i*0.04;
+          g.proj.push(new Proj(this.x,this.y,Math.cos(aaa)*800,Math.sin(aaa)*800,this.atk*1.5,'#fff8c0',12,false,10));}
+        g.shake=15;this.spData=null;
+      }
+    }
+  }
+  if(this.bn==='Лувельгер'&&this.ph===2&&this.spCd<=0){
+    this.spCd=8;
+    g.ftxt.push(new FTxt('ВОЛНА ПУСТОТЫ!',this.x,this.y-60,'#c0c0ff',2.5,20));
+    for(let i=0;i<40;i++){const aa=i/40*6.283;
+      g.proj.push(new Proj(this.x,this.y,Math.cos(aa)*380,Math.sin(aa)*380,this.atk*0.7,'#c0c0ff',10,false,2));}
+    g.shake=20;
+  }
+  if((this.bn==='Веладора'||this.bn==='Вельгринд')&&this.spCd<=0){
+    const other=g.bosses.find(b=>b!==this && b.alive && (b.bn==='Веладора'||b.bn==='Вельгринд'));
+    if(other){
+      this.spCd=9;
+      const aa=Math.atan2(p.y-this.y,p.x-this.x);
+      for(let i=-3;i<=3;i++){const aaa=aa+i*0.15;
+        g.proj.push(new Proj(this.x,this.y,Math.cos(aaa)*450,Math.sin(aaa)*450,this.atk*0.6,'#ff6020',9,false,2));}
+      g.ftxt.push(new FTxt('ДВОЙНОЕ ДЫХАНИЕ!',this.x,this.y-60,'#ffa040',1.8,16));
+    }
+  }
+}
 cast(p,g){
   const a=Math.atan2(p.y-this.y,p.x-this.x);
   if(this.bn==='Веладора'&&Math.random()<0.4){
-    for(let i=0;i<6;i++){
-      const aa=a+rnd(-0.4,0.4);
-      g.proj.push(new Proj(this.x,this.y,Math.cos(aa)*700,Math.sin(aa)*700,this.atk*.7,'#50c8dc',5,false,2));
-    }
+    for(let i=0;i<6;i++){const aa=a+rnd(-0.4,0.4);
+      g.proj.push(new Proj(this.x,this.y,Math.cos(aa)*700,Math.sin(aa)*700,this.atk*.7,'#50c8dc',5,false,2));}
     return;
   }
   if(this.bn==='Вельзард'){
     for(let i=-5;i<=5;i++){const aa=a+i*.14;
       g.proj.push(new Proj(this.x,this.y,Math.cos(aa)*400,Math.sin(aa)*400,this.atk*.6,'#80c0ff',9,false));}
-    if(d2(this.x,this.y,p.x,p.y)<450*450){
-      p.slow=Math.max(p.slow||0,3);
-      g.ftxt.push(new FTxt('ЗАМОРОЖЕН!',p.x,p.y-30,'#80c0ff',1.5,16));
-    }
+    if(d2(this.x,this.y,p.x,p.y)<450*450){p.slow=Math.max(p.slow||0,3);
+      g.ftxt.push(new FTxt('ЗАМОРОЖЕН!',p.x,p.y-30,'#80c0ff',1.5,16));}
     return;
   }
   if(this.bn==='Вельгринд'){
@@ -862,8 +1463,7 @@ cast(p,g){
       const aa=Math.random()*6.283;
       const mx=this.x+Math.cos(aa)*80,my=this.y+Math.sin(aa)*80;
       const me=new Enemy(mx,my,ET[Math.min(30,ET.length-1)],g.loc.m);
-      scaleEnemyToWave(me,g.wave);
-      g.enemies.push(me);
+      scaleEnemyToWave(me,g.wave);g.enemies.push(me);
     }
     g.ftxt.push(new FTxt('СОЗДАНИЕ!',this.x,this.y-50,'#f0e090',2,18));
     return;
@@ -872,8 +1472,7 @@ cast(p,g){
     this.x=rnd(200,WW-200);this.y=rnd(150,WH-150);
     for(let i=0;i<24;i++){const aa=Math.random()*6.283;
       g.proj.push(new Proj(this.x,this.y,Math.cos(aa)*rnd(200,550),Math.sin(aa)*rnd(200,550),this.atk*.55,'#ff40a0',9,false));}
-    g.shake=8;
-    return;
+    g.shake=8;return;
   }
   if(this.bn==='Лувельгер'){
     for(let i=g.proj.length-1;i>=0;i--)if(g.proj[i].fr)g.proj.splice(i,1);
@@ -902,18 +1501,33 @@ g.proj.push(new Proj(this.x,this.y,Math.cos(aa)*500,Math.sin(aa)*500,this.atk*.8
 else if(at==='ts'){for(let i=0;i<4;i++)setTimeout(()=>{if(p.alive!==false&&g.state==='playing')g.proj.push(new Proj(p.x,p.y,0,0,this.atk*1.5,'#f0d060',25,false,99));},i*200);}
 else if(at==='sw'){for(let i=0;i<3;i++){const aa=rnd(0,6.28);
   const me=new Enemy(this.x+Math.cos(aa)*60,this.y+Math.sin(aa)*60,ET[0],g.loc.m);
-  scaleEnemyToWave(me,g.wave);
-  g.enemies.push(me);}}
+  scaleEnemyToWave(me,g.wave);g.enemies.push(me);}}
 else{for(let i=-2;i<=2;i++){const aa=a+i*.25;
 g.proj.push(new Proj(this.x,this.y,Math.cos(aa)*300,Math.sin(aa)*300,this.atk*.7,this.c,10,false));}}}
 draw(){const t=performance.now()/400;const au=1+Math.sin(t)*.1;
+if(this.enraged){
+  const et=performance.now()/150;
+  const pulse=0.5+Math.sin(et)*0.4;
+  const er=this.z*2.4+Math.sin(et)*8;
+  ctx.fillStyle='rgba(120,0,0,'+(pulse*0.25)+')';
+  ctx.beginPath();ctx.arc(this.x,this.y,er,0,7);ctx.fill();
+  ctx.strokeStyle='rgba(180,0,0,'+pulse+')';ctx.lineWidth=4;
+  ctx.beginPath();ctx.arc(this.x,this.y,er,0,7);ctx.stroke();
+  ctx.strokeStyle='rgba(80,0,0,'+(pulse*0.6)+')';ctx.lineWidth=2;
+  ctx.beginPath();ctx.arc(this.x,this.y,er*0.6,0,7);ctx.stroke();
+}
 if(this.sup&&this.hsf>0){ctx.strokeStyle='rgba(255,100,100,.5)';ctx.lineWidth=4;ctx.beginPath();
 ctx.arc(this.x,this.y,this.z+15,0,7);ctx.stroke();}
-ctx.fillStyle=sh(this.c,20);ctx.globalAlpha=.15;
+ctx.fillStyle=sh(this.c,20);ctx.globalAlpha=this.enraged?0.3:0.15;
 ctx.beginPath();ctx.arc(this.x,this.y,this.z*au*1.8,0,7);ctx.fill();ctx.globalAlpha=1;
 shape(this.sh,this.x,this.y,this.z*au,this.c,this.hf>0);
-bar(this.x-60,this.y-this.z-22,120,8,this.hp,this.maxHp,'#ff4040');
-tx(this.bn+(this.sup?' ★':'')+' Ф'+this.ph,this.x,this.y-this.z-30,{color:'#ffcc44',size:13,align:'center'});}}
+bar(this.x-60,this.y-this.z-22,120,8,this.hp,this.maxHp,this.enraged?'#8b0000':'#ff4040');
+const label=(this.bn+(this.sup?' ★':'')+' Ф'+this.ph);
+tx(label,this.x,this.y-this.z-30,{color:this.enraged?'#ff3030':'#ffcc44',size:13,align:'center',glow:this.enraged?'#8b0000':null,glowBlur:15});
+if(this.enraged){
+  const prog=1-Math.max(0,this.enrageTimer)/20;
+  tx('ГНЕВ: '+this.enrageTimer.toFixed(1)+'с  |  ATK ×'+(2+prog*2).toFixed(1),this.x,this.y-this.z-50,{color:'#ff3030',size:14,weight:'bold',align:'center',glow:'#ff0000',glowBlur:20});
+}}}
 
 class Player{constructor(rid,ch,loc){
 const r=RACES[rid];this.rid=rid;this.rn=r.n;this.cn=ch.n;this.c=r.c;this.sh=r.sh||'circle';
@@ -932,10 +1546,11 @@ this.spells=[{def:SPELLS[0],cd:0}];
 this.skills={};this.slots=[null,null,null];
 this.es=0;this.loc=loc;
 this.mpR=3;this.hpR=0;this.mres=0;this.apen=0;this.imp=0;
+this.hpRegenPct=0.01;
 this.tear=false;this.tearCd=0;
 this.inv=0;this.acd=0;this.mcd=0;this.dcd=0;this.dodg=0;
 this.dvx=0;this.dvy=0;
-this.buffs={insp:0,stoic:0,haste:0,shield:0,vamp:0,res:0,regen:0,luck:0};
+this.buffs={insp:0,stoic:0,haste:0,shield:0,vamp:0,res:0,regen:0,luck:0,satanael:0,invuln:0,azatot:0};
 this.shield=0;this.regen=0;this.vamp=0;this.dod=0;this.fm=1;this.im=1;
 this.slow=0;this.autoPotion=true;this.apcd=0;
 this.pierceBonus=0;this.aoeMult=1;this.cdr=0;
@@ -960,7 +1575,7 @@ addSk(n){if(this.skills[n]||!SKILLS[n])return false;this.skills[n]={tier:0,cd:0,
 for(let i=0;i<3;i++)if(!this.slots[i]){this.slots[i]=n;return true;}return true;}
 hasSup(){for(const s in this.skills)if(this.skills[s].tier>=TIER_SUP)return true;return false;}
 hasSage(){return !!(this.skills['Великий Мудрец']||this.skills['Рафаэль']||this.skills['Сиэль']);}
-hurt(v){if(this.inv>0||this.dodg>0)return;
+hurt(v){if(this.inv>0||this.dodg>0||this.buffs.invuln>0)return;
 if(this.dod>0&&Math.random()*100<this.dod)return;
 let d=Math.max(1,v-this.def*.5);
 if(this.buffs.stoic>0)d*=.5;
@@ -971,7 +1586,7 @@ if(this.hp<=0){if(this.tear&&this.tearCd<=0){this.hp=this.maxHp*.5;this.tearCd=M
 else this.hp=0;}}
 heal(a){this.hp=Math.min(this.maxHp,this.hp+a);}
 gainXp(a){a*=this.xpM;this.xp+=a;let lvls=0;
-while(this.xp>=this.xpn){this.xp-=this.xpn;this.lv++;this.xpn=~~(this.xpn*1.35);
+while(this.xp>=this.xpn){this.xp-=this.xpn;this.lv++;this.xpn=~~(this.xpn*1.25);
 this.maxHp+=15;this.hp=this.maxHp;this.maxMp+=8;this.mp=this.maxMp;this.atk+=2;lvls++;}
 return lvls;}
 near(en,bs){let best=null,bd=900*900;
@@ -989,6 +1604,8 @@ let dmgBonus=1+0.03*this.resonanceCount;
 if(this.buffs.insp>0)dmgBonus*=1.2;
 if(this.buffs.res>0)dmgBonus*=1.5;
 if(this.buffs.luck>0)dmgBonus*=1.3;
+if(this.buffs.satanael>0)dmgBonus*=1.5;
+if(this.buffs.azatot>0)dmgBonus*=2;
 if(this.rid==='ogre'&&this.hp<this.maxHp*0.5)dmgBonus*=1.2;
 let dx=0,dy=0;
 if(k['w']||k['arrowup'])dy--;
@@ -1023,7 +1640,8 @@ if(t&&this.acd<=0){
   g.proj.push(new Proj(this.x,this.y,Math.cos(a)*600,Math.sin(a)*600,dm,this.c,5,true,this.pierceBonus||0,src));
   if(cr)g.ftxt.push(new FTxt('КРИТ!',this.x,this.y-25,'#ffdd44',.7,12));
   const baseAcd=(this.rid==='beastman')?0.4:0.5;
-  const rawAcd=this.buffs.haste>0?baseAcd*0.7:baseAcd;
+  let rawAcd=this.buffs.haste>0?baseAcd*0.7:baseAcd;
+  if(this.buffs.satanael>0)rawAcd*=0.7;
   this.acd=Math.max(0.15,rawAcd*(1-this.cdr));
 }
 if(this.spells.length){
@@ -1034,7 +1652,8 @@ if(this.spells.length){
     if(frac<0.3){sp=ready.reduce((a,b)=>a.def.mp<=b.def.mp?a:b);}
     else if(frac>0.7){sp=ready.reduce((a,b)=>a.def.mp>=b.def.mp?a:b);}
     else{sp=pick(ready);}
-    this.mp-=sp.def.mp;sp.cd=sp.def.cd*(1-this.cdr);
+    if(this.buffs.satanael<=0)this.mp-=sp.def.mp;
+    sp.cd=sp.def.cd*(1-this.cdr);
     const pa=predictAim(this.x,this.y,t,sp.def.sp);
     const a=pa!==null?pa:Math.atan2(t.y-this.y,t.x-this.x);
     const elm=sp.def.el==='fire'?(this.fm||1):sp.def.el==='ice'?(this.im||1):1;
@@ -1050,7 +1669,7 @@ this.regen+=dt;
 if(this.regen>=1){this.regen-=1;
 const effMpR=this.mpR+(this.lv*0.25)+(this.maxMp*0.01);
 this.mp=Math.min(this.maxMp,this.mp+effMpR+(this.loc.m.mp||0)+bonusRegen);
-this.hp=Math.min(this.maxHp,this.hp+this.hpR+bonusRegen);}
+this.hp=Math.min(this.maxHp, this.hp + this.hpR + this.maxHp*this.hpRegenPct + bonusRegen);}
 if(this.resonanceCount>0){
   for(const rk of resSkills){
     const rsk=this.skills[rk];
@@ -1067,7 +1686,6 @@ if(this.resonanceCount>0){
       if(ready.length>0){
         const safe=ready.filter(rk=>{
           if(rk==='Тёмная Стрела'&&this.hp<this.maxHp*0.5)return false;
-          if(rk==='Разлом'&&this.hp>this.maxHp*0.4)return false;
           if(rk==='Судный День'&&this.skills[rk].tier<TIER_SUP)return false;
           return true;
         });
@@ -1104,7 +1722,19 @@ ctx.arc(this.x,this.y,this.z+4,0,7);ctx.stroke();}
 if(this.shield>0){ctx.strokeStyle='#a0c0ff';ctx.lineWidth=2;ctx.beginPath();
 ctx.arc(this.x,this.y,this.z+8,0,7);ctx.stroke();}
 if(this.slow>0){ctx.strokeStyle='#80c0ff';ctx.lineWidth=2;ctx.beginPath();
-ctx.arc(this.x,this.y,this.z+12,0,7);ctx.stroke();}}}
+ctx.arc(this.x,this.y,this.z+12,0,7);ctx.stroke();}
+if(this.buffs.invuln>0){
+  ctx.strokeStyle='#ffffff';ctx.lineWidth=3;ctx.beginPath();
+  ctx.arc(this.x,this.y,this.z+15,0,7);ctx.stroke();
+  const w=0.6+Math.sin(performance.now()/100)*0.4;
+  ctx.strokeStyle='rgba(255,255,255,'+w+')';ctx.lineWidth=2;ctx.beginPath();
+  ctx.arc(this.x,this.y,this.z+20,0,7);ctx.stroke();
+}
+if(this.buffs.azatot>0){
+  const w=0.5+Math.sin(performance.now()/150)*0.3;
+  ctx.strokeStyle='rgba(192,128,255,'+w+')';ctx.lineWidth=2;ctx.beginPath();
+  ctx.arc(this.x,this.y,this.z+22,0,7);ctx.stroke();
+}}}
 
 const SKILL_EVO={
 'Пожиратель':{next:'Гурман',startTier:2,color:'#80e0ff',desc:'Эволюция: поглощение HP<50%.'},
@@ -1131,7 +1761,10 @@ const SKILL_EVO={
 'Живучесть':{next:'Плодородие',startTier:2,color:'#60ff60',desc:'Эволюция живучести.'},
 'Плодородие':{next:'Шуб-Ниггурат',startTier:4,color:'#80ff80',desc:'Эволюция в Шуб-Ниггурат.'},
 'Математик':{next:'Король Фортуны',startTier:3,color:'#ffd700',desc:'Эволюция анализа.'},
-'Путешественник во времени':{next:'Хроно-Разлом',startTier:2,color:'#80d0ff',desc:'Эволюция времени.'}
+'Путешественник во времени':{next:'Хроно-Разлом',startTier:2,color:'#80d0ff',desc:'Эволюция времени.'},
+'Ярость Зверя':{next:'Ярость Огра',startTier:2,color:'#ff8040',desc:'Эволюция ярости.'},
+'Ярость Огра':{next:'Гнев Демона',startTier:3,color:'#ff4040',desc:'Эволюция гнева.'},
+'Гнев Демона':{next:'Сатанаэль',startTier:4,color:'#ff2020',desc:'Эволюция в Повелителя Гнева.'}
 };
 
 function evoFragCost(sk){
@@ -1171,165 +1804,344 @@ function shape(sp,x,y,r,c,fl){
   ctx.fill();ctx.strokeStyle=fl?'#fff':sh(c,-40);ctx.lineWidth=2;ctx.stroke();
 }
 
-/* Класс Game объявлен до прототипов, чтобы не было ReferenceError */
-class Game{constructor(){this.state='menu';this.keys={};this.mx=0;this.my=0;
-this.srid=null;this.sch=null;this.sloc=null;this.cnm='';
-this.chrS=0;this.chrScrl=0;this.lvc=[];this.evoShow=null;this.retTo=null;
-this.enemies=[];this.bosses=[];this.proj=[];this.particles=[];this.ftxt=[];
-this.player=null;this.loc=null;
-this.wave=1;this.wt=0;this.st=0;this.bsSpawned=new Set();this.shake=0;
-this.waveEnemiesToSpawn=0;this.waveEnemiesSpawned=0;
-this.chain={iv:false,ve:false,lu:false};
-this.historyMode=false;this.historyStep=0;
-this.timeSlowTimer=0;this.flash=0;
-this.pendingLv=0;
-this.camX=0;this.camY=0;
-this.last=performance.now();
-this.bind();requestAnimationFrame(t=>this.loop(t));}
-bind(){addEventListener('keydown',e=>this.kd(e));
-addEventListener('keyup',e=>{this.keys[e.key.toLowerCase()]=false;});
-cv.addEventListener('mousemove',e=>{const r=cv.getBoundingClientRect();
-this.mx=(e.clientX-r.left)/r.width*W;this.my=(e.clientY-r.top)/r.height*H;});
-cv.addEventListener('mousedown',e=>{AU.i();AU.music(this.state==='playing'?'combat':'menu');
-this.md(e.button);e.preventDefault();});
-cv.addEventListener('wheel',e=>{this.onWheel(e.deltaY);e.preventDefault();},{passive:false});
-cv.addEventListener('contextmenu',e=>e.preventDefault());}
-onWheel(d){if(this.state==='chronicles')this.chrScrl=Math.max(0,this.chrScrl+d*.5);}
-startHistory(){
-  this.historyMode=true;
-  this.srid='slime';
-  this.sch=RACES.slime.ch[0];
-  this.sloc=LOCS[0];
-  this.startRun();
+/* ============================================================
+   КЛАСС GAME
+   ============================================================ */
+class Game{
+  constructor(){this.state='menu';this.keys={};this.mx=0;this.my=0;
+    this.srid=null;this.sch=null;this.sloc=null;this.cnm='';
+    this.chrS=0;this.chrScrl=0;this.lvc=[];this.evoShow=null;this.retTo=null;
+    this.enemies=[];this.bosses=[];this.proj=[];this.particles=[];this.ftxt=[];
+    this.player=null;this.loc=null;
+    this.wave=1;this.wt=0;this.st=0;this.bsSpawned=new Set();this.shake=0;
+    this.runTime=0;
+    this.waveEnemiesToSpawn=0;this.waveEnemiesSpawned=0;
+    this.chain={iv:false,ve:false,lu:false};
+    this.historyMode=false;this.historyStep=0;
+    this.timeSlowTimer=0;this.flash=0;
+    this.pendingLv=0;
+    this.tutStep=0;this.tutData=null;
+    this.finalWave=false;this.finalChainStep=0;this.finalDelay=0;this.victory=false;
+    this.cutsceneTimer=0;this.cutsceneData=null;
+    this.camX=0;this.camY=0;
+    this.last=performance.now();
+    this.bind();requestAnimationFrame(t=>this.loop(t));}
+  bind(){addEventListener('keydown',e=>this.kd(e));
+    addEventListener('keyup',e=>{this.keys[e.key.toLowerCase()]=false;});
+    cv.addEventListener('mousemove',e=>{const r=cv.getBoundingClientRect();
+      this.mx=(e.clientX-r.left)/r.width*W;this.my=(e.clientY-r.top)/r.height*H;});
+    cv.addEventListener('mousedown',e=>{AU.i();AU.music(this.state==='playing'?'combat':'menu');
+      this.md(e.button);e.preventDefault();});
+    cv.addEventListener('wheel',e=>{this.onWheel(e.deltaY);e.preventDefault();},{passive:false});
+    cv.addEventListener('contextmenu',e=>e.preventDefault());}
+  onWheel(d){if(this.state==='chronicles')this.chrScrl=Math.max(0,this.chrScrl+d*.5);}
+  startHistory(){
+    this.historyMode=true;
+    this.srid='slime';
+    this.sch=RACES.slime.ch[0];
+    this.sloc=LOCS[0];
+    this.startRun();
+    AU.sfx('sel');
+  }
+  md(b){const mx=this.mx,my=this.my;
+    if(this.state==='menu'){
+      if(my>=220&&my<=280){this.startTutorial();AU.sfx('sel');return;}
+      if(my>=305&&my<=355){this.state='race_select';this.historyMode=false;AU.sfx('sel');return;}
+      if(my>=355&&my<=405){this.startHistory();return;}
+      if(my>=405&&my<=455){this.state='chronicles';this.chrS=0;this.chrScrl=0;this.retTo='menu';AU.sfx('sel');return;}
+    }
+    else if(this.state==='race_select'){
+      const ids=Object.keys(RACES);
+      for(let i=0;i<ids.length;i++){const col=i%2,row=~~(i/2);
+        const x=60+col*620,y=70+row*90;
+        if(mx>=x&&mx<=x+580&&my>=y&&my<=y+85){this.srid=ids[i];this.state='character_select';AU.sfx('sel');return;}}
+    }
+    else if(this.state==='character_select'){
+      const r=RACES[this.srid];
+      for(let i=0;i<r.ch.length;i++){const x=80+i*380,y=135;
+        if(mx>=x&&mx<=x+350&&my>=y&&my<=y+195){this.sch=r.ch[i];this.state='location_select';AU.sfx('sel');return;}}
+      if(mx>=80&&mx<=W-80&&my>=360&&my<=460){this.state='custom_name';this.cnm='';AU.sfx('sel');return;}
+    }
+    else if(this.state==='custom_name'){
+      if(mx>=W/2-100&&mx<=W/2+100&&my>=400&&my<=445){
+        if(this.cnm.trim()){this.sch={n:this.cnm.trim(),b:{},sk:'Универсальное Превращение',d:'Свой.'};
+          this.state='location_select';AU.sfx('sel');}}
+    }
+    else if(this.state==='location_select'){
+      for(let i=0;i<LOCS.length;i++){const col=i%2,row=~~(i/2);
+        const x=60+col*620,y=110+row*125;
+        if(mx>=x&&mx<=x+580&&my>=y&&my<=y+110){this.sloc=LOCS[i];this.startRun();AU.sfx('sel');return;}}
+    }
+    else if(this.state==='level_up'){
+      for(let i=0;i<this.lvc.length;i++){const y=150+i*125;
+        if(mx>=W/2-360&&mx<=W/2+360&&my>=y&&my<=y+110){this.pick(i);AU.sfx('sel');return;}}
+    }
+    else if(this.state==='playing'){
+      if(this.canSkipWave() && mx>=W-345 && mx<=W-5 && my>=250 && my<=295){
+        this.skipWave();
+        return;
+      }
+    }
+    else if(this.state==='paused'){
+      if(my>=310&&my<=350){this.state='playing';AU.sfx('sel');}
+      else if(my>=360&&my<=400){this.state='chronicles';this.chrS=0;this.chrScrl=0;this.retTo='paused';AU.sfx('sel');}
+      else if(my>=410&&my<=450){this.state='menu';this.player=null;AU.stop();AU.music('menu');}
+    }
+    else if(this.state==='evolution'){
+      this.state='playing';
+      if(this.pendingLv>0)this.pendingLv--;
+      if(this.pendingLv>0)this.triggerLv();
+      AU.sfx('sel');
+    }
+    else if(this.state==='cutscene'){
+      if(this.cutsceneTimer<=3.5){
+        const btnX=W-220,btnY=H-70,btnW=200,btnH=50;
+        if(mx>=btnX&&mx<=btnX+btnW&&my>=btnY&&my<=btnY+btnH){
+          this.state='victory';AU.sfx('sel');}
+      }
+    }
+    else if(this.state==='victory'){
+      this.state='menu';this.player=null;AU.stop();AU.music('menu');
+    }
+    else if(this.state==='tutorial'){
+      if(this.tutStep===9){SV.d.tutDone=1;SV.save();this.state='menu';AU.stop();AU.music('menu');}
+      else if(this.tutStep===1||this.tutStep===2||this.tutStep===3){
+        if(this.tutData&&this.tutData.timer>8){this.tutStep++;this.tutData.timer=0;}
+      } else {this.tutStep++;if(this.tutData)this.tutData.timer=0;}
+    }
+    else if(this.state==='game_over'){
+      if(my>=440&&my<=490&&mx>=W/2-150&&mx<=W/2){this.startRun();AU.sfx('sel');}
+      else if(my>=440&&my<=490&&mx>=W/2&&mx<=W/2+150){this.state='menu';this.player=null;AU.stop();AU.music('menu');}
+    }
+    else if(this.state==='chronicles'){
+      const ss=Object.keys(CHR);
+      for(let i=0;i<ss.length;i++){const y=80+i*28;
+        if(my>=y-14&&my<=y+6&&mx>=20&&mx<=240){this.chrS=i;this.chrScrl=0;AU.sfx('sel');return;}}
+    }}
+  kd(e){const k=e.key.toLowerCase();this.keys[k]=true;
+    if(e.repeat&&this.state!=='custom_name')return;
+    if(this.state==='menu'){
+      if(k==='1'){this.state='race_select';this.historyMode=false;AU.sfx('sel');}
+      else if(k==='2'){this.startHistory();}
+      else if(k==='3'){this.state='chronicles';this.chrS=0;this.chrScrl=0;this.retTo='menu';}
+      else if(k==='4'||k==='t'){this.startTutorial();}
+    }
+    else if(this.state==='race_select'){
+      const ids=Object.keys(RACES);let idx=-1;
+      if(k.length===1){
+        const n=parseInt(k);
+        if(!isNaN(n))idx=n===0?9:n-1;
+        else if(k==='q')idx=10;
+        else if(k==='w')idx=11;
+        else if(k==='e')idx=12;
+      }
+      if(idx>=0&&idx<ids.length){this.srid=ids[idx];this.state='character_select';}
+      else if(k==='escape')this.state='menu';
+    }
+    else if(this.state==='character_select'){
+      const r=RACES[this.srid];const n=parseInt(k);
+      if(!isNaN(n)&&n>=1&&n<=r.ch.length){this.sch=r.ch[n-1];this.state='location_select';}
+      else if(k==='c'){this.state='custom_name';this.cnm='';}
+      else if(k==='escape')this.state='race_select';
+    }
+    else if(this.state==='custom_name'){
+      if(k==='enter'){if(this.cnm.trim()){this.sch={n:this.cnm.trim(),b:{},sk:'Универсальное Превращение',d:'Свой.'};
+        this.state='location_select';}}
+      else if(k==='backspace')this.cnm=this.cnm.slice(0,-1);
+      else if(k==='escape')this.state='character_select';
+      else if(e.key.length===1&&this.cnm.length<20&&/[a-zA-Zа-яА-Я0-9 ]/.test(e.key))this.cnm+=e.key;
+    }
+    else if(this.state==='location_select'){
+      const n=parseInt(k);
+      if(!isNaN(n)&&n>=1&&n<=LOCS.length){this.sloc=LOCS[n-1];this.startRun();}
+      else if(k==='escape')this.state='character_select';
+    }
+    else if(this.state==='playing'){
+      if(k==='escape')this.state='paused';
+      else if(k==='q')this.useSk(0);
+      else if(k==='e')this.useSk(1);
+      else if(k==='r')this.useSk(2);
+      else if(k==='v'&&this.player){this.player.autoPotion=!this.player.autoPotion;
+        this.ftxt.push(new FTxt('Авто-зелье: '+(this.player.autoPotion?'ВКЛ':'ВЫКЛ'),
+        this.player.x,this.player.y-40,this.player.autoPotion?'#a0ffa0':'#ff8080',1.5,14));}
+      else if(k===' '){if(this.player.dodge()){AU.sfx('dodge');
+        this.particles.push(...[...Array(8)].map(()=>new Part(this.player.x,this.player.y,'#80ffff')));}}
+    }
+    else if(this.state==='paused'){
+      if(k==='escape'||k==='1')this.state='playing';
+      else if(k==='2'){this.state='chronicles';this.chrS=0;this.chrScrl=0;this.retTo='paused';}
+      else if(k==='3'){this.state='menu';this.player=null;AU.stop();AU.music('menu');}
+    }
+    else if(this.state==='level_up'){
+      const n=parseInt(k);
+      if(!isNaN(n)&&n>=1&&n<=this.lvc.length)this.pick(n-1);
+    }
+    else if(this.state==='evolution'){
+      if(k==='enter'||k===' '||k==='escape'){
+        this.state='playing';
+        if(this.pendingLv>0)this.pendingLv--;
+        if(this.pendingLv>0)this.triggerLv();
+      }
+    }
+    else if(this.state==='cutscene'){/* Пропуск только через кнопку — клавиши игнорируются */}
+    else if(this.state==='victory'){
+      this.state='menu';this.player=null;AU.stop();AU.music('menu');
+    }
+    else if(this.state==='tutorial'){
+      if(k==='escape'){this.state='menu';AU.stop();AU.music('menu');}
+      else if(k===' '){
+        if(this.tutStep===9){SV.d.tutDone=1;SV.save();this.state='menu';AU.stop();AU.music('menu');}
+        else if(this.tutStep===1||this.tutStep===2||this.tutStep===3){
+          if(this.tutData&&this.tutData.timer>8){this.tutStep++;this.tutData.timer=0;}
+        } else {this.tutStep++;if(this.tutData)this.tutData.timer=0;}
+      }
+      else if(k==='q')this.useSk(0);
+      else if(k==='e')this.useSk(1);
+      else if(k==='r')this.useSk(2);
+      else if(k==='v'&&this.player){this.player.autoPotion=!this.player.autoPotion;
+        this.ftxt.push(new FTxt('Авто-зелье: '+(this.player.autoPotion?'ВКЛ':'ВЫКЛ'),
+        this.player.x,this.player.y-40,this.player.autoPotion?'#a0ffa0':'#ff8080',1.5,14));}
+    }
+    else if(this.state==='chronicles'){
+      const ss=Object.keys(CHR);
+      if(k==='escape'){if(this.retTo==='paused'){this.state='paused';this.retTo=null;}
+        else{this.state='menu';this.retTo=null;}}
+      else if(k==='arrowright')this.chrS=(this.chrS+1)%ss.length;
+      else if(k==='arrowleft')this.chrS=(this.chrS-1+ss.length)%ss.length;
+      else if(k==='arrowdown')this.chrScrl+=40;
+      else if(k==='arrowup')this.chrScrl=Math.max(0,this.chrScrl-40);
+    }
+    else if(this.state==='game_over'){
+      if(k==='r')this.startRun();
+      else if(k==='m'){this.state='menu';this.player=null;AU.stop();AU.music('menu');}
+    }}
+  useSk(i){const p=this.player;if(!p)return;const n=p.slots[i];if(!n)return;
+    const sk=p.skills[n];if(!sk||sk.cd>0)return;sk.cd=Math.max(1.0,SKILLS[n].cd*(1-p.cdr));
+    const t=p.near(this.enemies,this.bosses);
+    SKILLS[n].n=n;SKILLS[n].cast(this,p,t);}
+  startRun(){this.player=new Player(this.srid,this.sch,this.sloc);
+    this.loc=this.sloc;this.enemies=[];this.bosses=[];this.proj=[];this.particles=[];this.ftxt=[];
+    this.wave=1;this.wt=0;this.st=0;this.bsSpawned=new Set();this.shake=0;
+    this.runTime=0;
+    this.waveEnemiesToSpawn=5+this.wave*2;
+    this.waveEnemiesSpawned=0;
+    this.chain={iv:false,ve:false,lu:false};
+    this.historyStep=0;
+    this.timeSlowTimer=0;this.flash=0;
+    this.pendingLv=0;
+    this.finalWave=false;this.finalChainStep=0;this.finalDelay=0;this.victory=false;
+    this.cutsceneTimer=0;this.cutsceneData=null;
+    this.camX=cl(this.player.x-W/2,0,WW-W);
+    this.camY=cl(this.player.y-H/2,0,WH-H);
+    this.state='playing';AU.stop();AU.music('combat');}
+}
+/* КОНЕЦ КЛАССА GAME */
+
+const TUT_VERSION='1.1';
+const TUT_CHANGELOG=[
+  '1.0 — резонанс, артефакты, CDR, неэволюционирующие 4/7 осколков',
+  '1.1 — гнев босса, элитные враги, хаос-мобы'
+];
+
+Game.prototype.canSkipWave=function(){
+  if(this.state!=='playing')return false;
+  if(this.finalWave)return false;
+  if(this.bosses.length>0)return false;
+  const nw=this.wave+1;
+  if(nw>=50)return false;
+  if(nw%5===0&&nw>=10)return false;
+  return true;
+};
+
+Game.prototype.skipWave=function(){
+  const oldWave=this.wave;
+  this.wave++;
+  const add=5+this.wave*2;
+  this.waveEnemiesToSpawn+=add;
+  this.ftxt.push(new FTxt('▶ Волна '+this.wave+' (пропуск '+oldWave+')',this.player.x,this.player.y-120,'#80ff80',2.5,22));
   AU.sfx('sel');
-}
-md(b){const mx=this.mx,my=this.my;
-if(this.state==='menu'){
-if(my>=300&&my<=340){this.state='race_select';this.historyMode=false;AU.sfx('sel');return;}
-if(my>=350&&my<=390){this.startHistory();return;}
-if(my>=400&&my<=440){this.state='chronicles';this.chrS=0;this.chrScrl=0;this.retTo='menu';AU.sfx('sel');return;}}
-else if(this.state==='race_select'){
-const ids=Object.keys(RACES);
-for(let i=0;i<ids.length;i++){const col=i%2,row=~~(i/2);
-const x=60+col*620,y=70+row*90;
-if(mx>=x&&mx<=x+580&&my>=y&&my<=y+85){this.srid=ids[i];this.state='character_select';AU.sfx('sel');return;}}}
-else if(this.state==='character_select'){
-const r=RACES[this.srid];
-for(let i=0;i<r.ch.length;i++){const x=80+i*380,y=135;
-if(mx>=x&&mx<=x+350&&my>=y&&my<=y+195){
-this.sch=r.ch[i];this.state='location_select';AU.sfx('sel');return;}}
-if(mx>=80&&mx<=W-80&&my>=360&&my<=460){this.state='custom_name';this.cnm='';AU.sfx('sel');return;}}
-else if(this.state==='custom_name'){
-if(mx>=W/2-100&&mx<=W/2+100&&my>=400&&my<=445){
-if(this.cnm.trim()){this.sch={n:this.cnm.trim(),b:{},sk:'Универсальное Превращение',d:'Свой.'};
-this.state='location_select';AU.sfx('sel');}}}
-else if(this.state==='location_select'){
-for(let i=0;i<LOCS.length;i++){const col=i%2,row=~~(i/2);
-const x=60+col*620,y=110+row*125;
-if(mx>=x&&mx<=x+580&&my>=y&&my<=y+110){
-this.sloc=LOCS[i];this.startRun();AU.sfx('sel');return;}}}
-else if(this.state==='level_up'){
-for(let i=0;i<this.lvc.length;i++){const y=150+i*125;
-if(mx>=W/2-360&&mx<=W/2+360&&my>=y&&my<=y+110){
-this.pick(i);AU.sfx('sel');return;}}}
-else if(this.state==='paused'){
-if(my>=310&&my<=350){this.state='playing';AU.sfx('sel');}
-else if(my>=360&&my<=400){this.state='chronicles';this.chrS=0;this.chrScrl=0;this.retTo='paused';AU.sfx('sel');}
-else if(my>=410&&my<=450){this.state='menu';this.player=null;AU.stop();AU.music('menu');}}
-else if(this.state==='evolution'){this.state='playing';
-  if(this.pendingLv>0)this.pendingLv--;
-  if(this.pendingLv>0)this.triggerLv();
-  AU.sfx('sel');}
-else if(this.state==='game_over'){
-if(my>=440&&my<=490&&mx>=W/2-150&&mx<=W/2){this.startRun();AU.sfx('sel');}
-else if(my>=440&&my<=490&&mx>=W/2&&mx<=W/2+150){this.state='menu';this.player=null;AU.stop();AU.music('menu');}}
-else if(this.state==='chronicles'){
-const ss=Object.keys(CHR);
-for(let i=0;i<ss.length;i++){const y=80+i*28;
-if(my>=y-14&&my<=y+6&&mx>=20&&mx<=240){
-this.chrS=i;this.chrScrl=0;AU.sfx('sel');return;}}}}
-kd(e){const k=e.key.toLowerCase();this.keys[k]=true;
-if(e.repeat&&this.state!=='custom_name')return;
-if(this.state==='menu'){
-if(k==='1'){this.state='race_select';this.historyMode=false;AU.sfx('sel');}
-else if(k==='2'){this.startHistory();}
-else if(k==='3'){this.state='chronicles';this.chrS=0;this.chrScrl=0;this.retTo='menu';}}
-else if(this.state==='race_select'){
-const ids=Object.keys(RACES);let idx=-1;
-if(k.length===1){
-  const n=parseInt(k);
-  if(!isNaN(n))idx=n===0?9:n-1;
-  else if(k==='q')idx=10;
-  else if(k==='w')idx=11;
-  else if(k==='e')idx=12;
-}
-if(idx>=0&&idx<ids.length){this.srid=ids[idx];this.state='character_select';}
-else if(k==='escape')this.state='menu';}
-else if(this.state==='character_select'){
-const r=RACES[this.srid];const n=parseInt(k);
-if(!isNaN(n)&&n>=1&&n<=r.ch.length){this.sch=r.ch[n-1];this.state='location_select';}
-else if(k==='c'){this.state='custom_name';this.cnm='';}
-else if(k==='escape')this.state='race_select';}
-else if(this.state==='custom_name'){
-if(k==='enter'){if(this.cnm.trim()){this.sch={n:this.cnm.trim(),b:{},sk:'Универсальное Превращение',d:'Свой.'};
-this.state='location_select';}}
-else if(k==='backspace')this.cnm=this.cnm.slice(0,-1);
-else if(k==='escape')this.state='character_select';
-else if(e.key.length===1&&this.cnm.length<20&&/[a-zA-Zа-яА-Я0-9 ]/.test(e.key))this.cnm+=e.key;}
-else if(this.state==='location_select'){
-const n=parseInt(k);
-if(!isNaN(n)&&n>=1&&n<=LOCS.length){this.sloc=LOCS[n-1];this.startRun();}
-else if(k==='escape')this.state='character_select';}
-else if(this.state==='playing'){
-if(k==='escape')this.state='paused';
-else if(k==='q')this.useSk(0);
-else if(k==='e')this.useSk(1);
-else if(k==='r')this.useSk(2);
-else if(k==='v'&&this.player){this.player.autoPotion=!this.player.autoPotion;
-this.ftxt.push(new FTxt('Авто-зелье: '+(this.player.autoPotion?'ВКЛ':'ВЫКЛ'),
-this.player.x,this.player.y-40,this.player.autoPotion?'#a0ffa0':'#ff8080',1.5,14));}
-else if(k===' '){if(this.player.dodge()){AU.sfx('dodge');
-this.particles.push(...[...Array(8)].map(()=>new Part(this.player.x,this.player.y,'#80ffff')));}}}
-else if(this.state==='paused'){
-if(k==='escape'||k==='1')this.state='playing';
-else if(k==='2'){this.state='chronicles';this.chrS=0;this.chrScrl=0;this.retTo='paused';}
-else if(k==='3'){this.state='menu';this.player=null;AU.stop();AU.music('menu');}}
-else if(this.state==='level_up'){
-const n=parseInt(k);
-if(!isNaN(n)&&n>=1&&n<=this.lvc.length)this.pick(n-1);}
-else if(this.state==='evolution'){
-  if(k==='enter'||k===' '||k==='escape'){
-    this.state='playing';
-    if(this.pendingLv>0)this.pendingLv--;
-    if(this.pendingLv>0)this.triggerLv();
-  }}
-else if(this.state==='chronicles'){
-const ss=Object.keys(CHR);
-if(k==='escape'){if(this.retTo==='paused'){this.state='paused';this.retTo=null;}
-else{this.state='menu';this.retTo=null;}}
-else if(k==='arrowright')this.chrS=(this.chrS+1)%ss.length;
-else if(k==='arrowleft')this.chrS=(this.chrS-1+ss.length)%ss.length;
-else if(k==='arrowdown')this.chrScrl+=40;
-else if(k==='arrowup')this.chrScrl=Math.max(0,this.chrScrl-40);}
-else if(this.state==='game_over'){
-if(k==='r')this.startRun();
-else if(k==='m'){this.state='menu';this.player=null;AU.stop();AU.music('menu');}}}
-useSk(i){const p=this.player;if(!p)return;const n=p.slots[i];if(!n)return;
-const sk=p.skills[n];if(!sk||sk.cd>0)return;sk.cd=Math.max(1.0,SKILLS[n].cd*(1-p.cdr));
-const t=p.near(this.enemies,this.bosses);
-SKILLS[n].n=n;SKILLS[n].cast(this,p,t);}
-startRun(){this.player=new Player(this.srid,this.sch,this.sloc);
-this.loc=this.sloc;this.enemies=[];this.bosses=[];this.proj=[];this.particles=[];this.ftxt=[];
-this.wave=1;this.wt=0;this.st=0;this.bsSpawned=new Set();this.shake=0;
-this.waveEnemiesToSpawn=5+this.wave*2;
-this.waveEnemiesSpawned=0;
-this.chain={iv:false,ve:false,lu:false};
-this.historyStep=0;
-this.timeSlowTimer=0;this.flash=0;
-this.pendingLv=0;
-this.camX=cl(this.player.x-W/2,0,WW-W);
-this.camY=cl(this.player.y-H/2,0,WH-H);
-this.state='playing';AU.stop();AU.music('combat');}}
+  this.shake=5;
+};
+
+Game.prototype.startTutorial=function(){
+  this.srid='slime';
+  this.sch={n:'Ученик',b:{},sk:'Универсальное Превращение',d:'Тренировочный персонаж'};
+  this.sloc=LOCS[0];
+  this.player=new Player('slime',this.sch,this.sloc);
+  this.loc=this.sloc;
+  this.enemies=[];this.bosses=[];this.proj=[];this.particles=[];this.ftxt=[];
+  this.wave=1;this.wt=0;this.st=999;this.shake=0;
+  this.waveEnemiesToSpawn=0;this.waveEnemiesSpawned=0;
+  this.bsSpawned=new Set();this.chain={iv:false,ve:false,lu:false};
+  this.timeSlowTimer=0;this.flash=0;this.pendingLv=0;
+  this.finalWave=false;this.finalChainStep=0;this.finalDelay=0;this.victory=false;
+  this.cutsceneTimer=0;this.cutsceneData=null;
+  this.runTime=0;
+  this.camX=cl(this.player.x-W/2,0,WW-W);
+  this.camY=cl(this.player.y-H/2,0,WH-H);
+  this.tutStep=0;
+  this.tutData={startX:this.player.x,startY:this.player.y,dummy:null,dummySpawned:false,timer:0};
+  this.state='tutorial';
+  AU.stop();AU.music('menu');
+};
+
+Game.prototype.updTutorial=function(dt){
+  if(!this.tutData)return;
+  const p=this.player;if(!p)return;
+  this.camX=cl(p.x-W/2,0,WW-W);
+  this.camY=cl(p.y-H/2,0,WH-H);
+  this.tutData.timer+=dt;
+  p.update(dt,this.keys,this);
+  if(p.hp<=0)p.hp=p.maxHp;
+  for(const e of this.enemies)e.update(dt,p,this);
+  for(let i=this.proj.length-1;i>=0;i--){
+    const pr=this.proj[i];pr.update(dt);
+    if(!pr.alive){this.proj.splice(i,1);continue;}
+    if(pr.fr){
+      let cn=false;
+      for(const e of this.enemies){
+        if(!e.alive)continue;
+        if(d2(pr.x,pr.y,e.x,e.y)<(pr.r+e.z)**2){
+          e.dmg(pr.dmg,pr.src);
+          for(let j=0;j<3;j++)this.particles.push(new Part(e.x,e.y,pr.c));
+          if(pr.pierce>0)pr.pierce--;else{cn=true;break;}
+        }
+      }
+      if(cn)this.proj.splice(i,1);
+    }
+  }
+  const ne=[];
+  for(const e of this.enemies){
+    if(!e.alive){p.kills++;p.gainXp(e.xp);for(let j=0;j<6;j++)this.particles.push(new Part(e.x,e.y,e.c));}
+    else ne.push(e);
+  }
+  this.enemies=ne;
+  for(let i=this.particles.length-1;i>=0;i--){const pt=this.particles[i];pt.update(dt);if(pt.l<=0)this.particles.splice(i,1);}
+  for(let i=this.ftxt.length-1;i>=0;i--){const f=this.ftxt[i];f.update(dt);if(f.l<=0)this.ftxt.splice(i,1);}
+  this.updTutStep(dt);
+  this.shake=Math.max(0,this.shake-dt*30);
+};
+
+Game.prototype.updTutStep=function(dt){
+  const p=this.player,td=this.tutData;
+  if(this.tutStep===1){
+    const dist=Math.sqrt((p.x-td.startX)**2+(p.y-td.startY)**2);
+    if(dist>250){this.tutStep=2;td.timer=0;}
+  }
+  if(this.tutStep===2){
+    if(!td.dummySpawned){
+      const ex=cl(p.x+250,50,WW-50),ey=cl(p.y,50,WH-50);
+      const dummy=new Enemy(ex,ey,{n:'Манекен',h:60,a:1,s:0.3,x:10,c:'#806040',z:18,l:1,sh:'circle'},this.loc.m);
+      td.dummy=dummy;this.enemies.push(dummy);td.dummySpawned=true;
+    } else if(!td.dummy||!td.dummy.alive){this.tutStep=3;td.timer=0;}
+  }
+  if(this.tutStep===3){
+    for(const s in p.skills){
+      if(p.skills[s].cd>0){this.tutStep=4;td.timer=0;return;}
+    }
+    if(td.timer>15){this.tutStep=4;td.timer=0;}
+  }
+};
 
 Game.prototype.evolveSkill=function(p,name){
   const evo=SKILL_EVO[name];if(!evo)return name;
@@ -1354,14 +2166,13 @@ Game.prototype.triggerLv=function(){
     {n:'+1 пробитие',k:'pierce'},{n:'+15% радиус AoE',k:'aoe'}
   ];
   if(p.cdr<0.75)pool.push({n:'-5% перезарядка',k:'cdr'});
+  if(p.hpRegenPct<0.05)pool.push({n:'+0.5% HP-реген',k:'hpreg'});
   const own=Object.keys(p.skills);
   if(own.length){
     const evoSkills=own.filter(sk=>SKILL_EVO[sk]&&SKILL_EVO[sk].next);
     const affordable=evoSkills.filter(sk=>p.frag>=evoFragCost(sk));
     if(affordable.length>0){
-      const sk=pick(affordable);
-      const evo=SKILL_EVO[sk];
-      const cost=evoFragCost(sk);
+      const sk=pick(affordable);const evo=SKILL_EVO[sk];const cost=evoFragCost(sk);
       const costStr=cost>0?' ('+cost+' оск.)':'';
       pool.unshift({n:sk+' → '+evo.next+costStr,k:'evoSk',sk,cost});
     }
@@ -1374,8 +2185,7 @@ Game.prototype.triggerLv=function(){
         return p.frag>=cost;
       });
       if(affordableUp.length>0){
-        const sk=pick(affordableUp);
-        const ct=p.skills[sk].tier;
+        const sk=pick(affordableUp);const ct=p.skills[sk].tier;
         const cost=ct>=3?7:(ct>=2?4:0);
         const newDn=skillDisplayName(sk,ct+1);
         const costStr=cost>0?' ('+cost+' оск.)':'';
@@ -1414,6 +2224,7 @@ function optionInfo(c,p){
     case 'pierce':return {desc:'Пробитие',info:'Pierce: +'+p.pierceBonus+' → +'+(p.pierceBonus+1),color:'#a0c0ff'};
     case 'aoe':return {desc:'Область',info:'AoE: ×'+p.aoeMult.toFixed(2)+' → ×'+(p.aoeMult+0.15).toFixed(2),color:'#80e0ff'};
     case 'cdr':{const nc=Math.min(0.75,p.cdr+0.05);return {desc:'Снижение перезарядки',info:'CDR: '+(p.cdr*100).toFixed(0)+'% → '+(nc*100).toFixed(0)+'%'+(nc>=0.75?' (кап)':''),color:'#a0e0ff'};}
+    case 'hpreg':{const nr=Math.min(0.05,p.hpRegenPct+0.005);return {desc:'Регенерация HP',info:'Реген HP: '+(p.hpRegenPct*100).toFixed(1)+'%/с → '+(nr*100).toFixed(1)+'%/с'+(nr>=0.05?' (кап)':''),color:'#80ff80'};}
     case 'skUp':{const sk=SKILLS[c.sk];const nt=p.skills[c.sk].tier+1;const cost=c.cost||0;return {desc:sk.desc,info:'КД '+sk.cd+'с · Урон ×'+TM[nt].toFixed(1)+' · Тир: '+TI[nt]+(cost>0?' · '+cost+' оск.':''),color:TC[nt]};}
     case 'evoSk':{const evo=SKILL_EVO[c.sk];const nsk=SKILLS[evo.next];const nt=evo.startTier||0;const t=evoFragCost(c.sk);return {desc:nsk?nsk.desc:'',info:'ЭВОЛЮЦИЯ! → '+evo.next+' · Тир '+TI[nt]+' · Урон ×'+TM[nt].toFixed(1)+(t>0?' · '+t+' оск.':''),color:TC[nt]};}
     case 'newSk':{const sk=SKILLS[c.sk];return {desc:sk.desc,info:'КД '+sk.cd+'с · Урон ×'+TM[0].toFixed(1)+' · Тир: '+TI[0],color:TC[0]};}
@@ -1446,11 +2257,12 @@ Game.prototype.pick=function(i){
     case 'pierce':p.pierceBonus+=1;break;
     case 'aoe':p.aoeMult+=0.15;break;
     case 'cdr':p.cdr=Math.min(0.75,p.cdr+0.05);break;
-    case 'skUp':{
+    case 'hpreg':p.hpRegenPct=Math.min(0.05,p.hpRegenPct+0.005);break;
+    case 'skUp':
       if(c.cost&&c.cost>0)p.frag-=c.cost;
       p.skills[c.sk].tier++;
       this.ftxt.push(new FTxt(skillDisplayName(c.sk,p.skills[c.sk].tier)+' ('+TI[p.skills[c.sk].tier]+')',p.x,p.y-40,TC[p.skills[c.sk].tier],2,18));
-      break;}
+      break;
     case 'evoSk':
       if(c.cost&&c.cost>0)p.frag-=c.cost;
       this.evolveSkill(p,c.sk);
@@ -1459,10 +2271,7 @@ Game.prototype.pick=function(i){
     case 'newSp':p.spells.push({def:c.sp,cd:0});break;
     case 'art':p.arts.push(c.a);c.a.e(p);break;
     case 'wep':
-      p.mag-=(p.wep.m||0);
-      p.wep=c.w;
-      p.mag+=(p.wep.m||0);
-      break;
+      p.mag-=(p.wep.m||0);p.wep=c.w;p.mag+=(p.wep.m||0);break;
   }
   this.state='playing';
   if(this.pendingLv>0)this.pendingLv--;
@@ -1490,10 +2299,18 @@ Game.prototype.loop=function(t){
 
 Game.prototype.spawnEnemy=function(){
   if(this.enemies.length>=120)return;
-  const mx=Math.min(this.wave+1,22);
-  const pool=ET.filter(e=>e.l<=mx);
-  if(!pool.length){this.waveEnemiesToSpawn--;return;}
-  const tp=pick(pool);
+  const elites=availableElites(this);
+  const eliteChance=elites.length>0 ? Math.min(0.25,0.05+this.bsSpawned.size*0.025) : 0;
+  const isElite=elites.length>0 && Math.random()<eliteChance;
+  let tp;
+  if(isElite){
+    tp=pick(elites);
+  } else {
+    const mx=Math.min(this.wave+1,22);
+    const pool=ET.filter(e=>e.l<=mx);
+    if(!pool.length)return;
+    tp=pick(pool);
+  }
   const cx=this.camX+W/2, cy=this.camY+H/2;
   const angle=Math.random()*6.283;
   const dist=Math.max(W,H)*0.7;
@@ -1502,6 +2319,14 @@ Game.prototype.spawnEnemy=function(){
   x=cl(x,20,WW-20);y=cl(y,20,WH-20);
   const e=new Enemy(x,y,tp,this.loc.m);
   scaleEnemyToWave(e,this.wave);
+  if(isElite){
+    e.elite=true;
+    e.maxHp=~~(e.maxHp*1.4);e.hp=e.maxHp;
+    e.atk=~~(e.atk*1.25);
+    e.xp=~~(e.xp*2);
+    e.z*=1.15;
+  }
+  if(this.loc.m.chaos && Math.random()<0.25) makeChaosEnemy(e);
   this.enemies.push(e);
 };
 
@@ -1525,8 +2350,21 @@ Game.prototype.spawnBoss=function(){
   this.bsSpawned.add(name);
   const t=BT[name];
   const bx=cl(this.player.x,200,WW-200),by=Math.max(80,this.player.y-350);
-  this.bosses.push(new Boss(bx,by,{...t,n:name},this.loc.m));
-  this.ftxt.push(new FTxt(name+' появился!',this.player.x,this.player.y-250,'#ff4040',3,24));
+  if(t.pair){
+    const [n1,n2]=t.pair;
+    const t1=BT[n1]||{h:~~(t.h*0.45),a:~~(t.a*0.9),s:t.s,c:t.c,z:t.z,at:t.at,sh:t.sh,sup:t.sup};
+    const t2=BT[n2]||{h:~~(t.h*0.55),a:~~(t.a*1.1),s:t.s,c:'#ff6020',z:t.z,at:t.at,sh:t.sh,sup:t.sup};
+    const b1=new Boss(bx-80,by,{...t1,n:n1},this.loc.m);
+    const b2=new Boss(bx+80,by,{...t2,n:n2},this.loc.m);
+    b1.spawnWave=this.runTime;b2.spawnWave=this.runTime;
+    this.bosses.push(b1);this.bosses.push(b2);
+    this.ftxt.push(new FTxt(n1+' и '+n2+'!',this.player.x,this.player.y-250,'#ff4040',3,26));
+  } else {
+    const nb=new Boss(bx,by,{...t,n:name},this.loc.m);
+    nb.spawnWave=this.runTime;
+    this.bosses.push(nb);
+    this.ftxt.push(new FTxt(name+' появился!',this.player.x,this.player.y-250,'#ff4040',3,24));
+  }
   AU.sfx('boss');this.shake=10;
   AU.music(t.sup?'dragon':'boss');
   if(this.historyMode&&this.historyStep<LOCS.length-1){
@@ -1537,29 +2375,46 @@ Game.prototype.spawnBoss=function(){
 };
 
 Game.prototype.checkSecretChain=function(){
-  if(this.wave>=40&&!this.chain.iv&&!this.bsSpawned.has('Иварадж')&&this.bosses.length===0){
-    this.bsSpawned.add('Иварадж');
+  if(this.wave>=50&&!this.finalWave&&!this.chain.iv&&this.bosses.length===0){
+    this.finalWave=true;
+    this.finalChainStep=1;
+    this.finalDelay=0;
+    this.enemies=[];
+    this.waveEnemiesToSpawn=0;
+    this.waveEnemiesSpawned=0;
+    this.shake=20;
     const t=BT['Иварадж'];
     const bx=cl(this.player.x,200,WW-200),by=Math.max(80,this.player.y-350);
-    this.bosses.push(new Boss(bx,by,{...t,n:'Иварадж'},this.loc.m));
-    this.ftxt.push(new FTxt('ИВАРАДЖ ПРОБУДИЛСЯ!',this.player.x,this.player.y-250,'#ff40a0',4,28));
+    const ib=new Boss(bx,by,{...t,n:'Иварадж'},this.loc.m);
+    ib.spawnWave=this.runTime;
+    this.bosses.push(ib);
+    this.ftxt.push(new FTxt('⚔ ФИНАЛЬНАЯ ВОЛНА ⚔',this.player.x,this.player.y-300,'#ff4040',4,32));
+    this.ftxt.push(new FTxt('ИВАРАДЖ ПРОБУДИЛСЯ!',this.player.x,this.player.y-250,'#ff40a0',4,26));
     AU.sfx('sec');AU.music('final');
   }
-  if(this.chain.iv&&!this.chain.ve&&!this.bsSpawned.has('Веланава')&&this.bosses.length===0){
-    this.bsSpawned.add('Веланава');
+  if(this.finalWave&&this.finalChainStep===1&&this.bosses.length===0&&this.finalDelay<=0){
+    this.finalChainStep=2;
+    this.chain.ve=true;
     const t=BT['Веланава'];
     const bx=cl(this.player.x,200,WW-200),by=Math.max(80,this.player.y-350);
-    this.bosses.push(new Boss(bx,by,{...t,n:'Веланава'},this.loc.m));
+    const vb=new Boss(bx,by,{...t,n:'Веланава'},this.loc.m);
+    vb.spawnWave=this.runTime;
+    this.bosses.push(vb);
     this.ftxt.push(new FTxt('ВЕЛАНАВА, БОГ-СОЗДАТЕЛЬ, ЯВИЛСЯ!',this.player.x,this.player.y-250,'#f0e090',4,28));
     AU.sfx('sec');AU.music('final');
+    this.shake=15;
   }
 };
 
 Game.prototype.upd=function(dt){
   if(this.flash>0)this.flash=Math.max(0,this.flash-dt*1.5);
   if(this.timeSlowTimer>0)this.timeSlowTimer=Math.max(0,this.timeSlowTimer-dt);
+  if(this.state==='tutorial'){this.updTutorial(dt);return;}
+  if(this.state==='cutscene'){this.cutsceneTimer-=dt;if(this.cutsceneTimer<=0)this.state='victory';return;}
   if(this.state!=='playing')return;
+  this.runTime+=dt;
   const p=this.player;if(!p)return;
+  if(this.finalDelay>0)this.finalDelay=Math.max(0,this.finalDelay-dt);
   this.camX=cl(p.x-W/2,0,WW-W);
   this.camY=cl(p.y-H/2,0,WH-H);
   const ts=this.timeSlowTimer>0?0.35:1;
@@ -1592,8 +2447,7 @@ Game.prototype.upd=function(dt){
         if(d2(pr.x,pr.y,e.x,e.y)<(pr.r+e.z)**2){
           const isImp=e.t.n&&/Имп\.|Инквизит|Паладин|Элит\./.test(e.t.n);
           const dmgToEnemy=isImp?pr.dmg*(1+(p.imp||0)):pr.dmg;
-          e.dmg(dmgToEnemy,pr.src);
-          pr.hitIds.add(e);
+          e.dmg(dmgToEnemy,pr.src);pr.hitIds.add(e);
           for(let j=0;j<3;j++)this.particles.push(new Part(e.x,e.y,pr.c));
           if(p.buffs.vamp>0||p.vamp>0)p.heal(pr.dmg*.05);
           doExplode();
@@ -1604,12 +2458,10 @@ Game.prototype.upd=function(dt){
         if(!b.alive||pr.hitIds.has(b))continue;
         if(d2(pr.x,pr.y,b.x,b.y)<(pr.r+b.z)**2){
           const dmgToBoss=pr.dmg*(1+(p.apen||0));
-          b.dmg(dmgToBoss,pr.src);
-          pr.hitIds.add(b);
+          b.dmg(dmgToBoss,pr.src);pr.hitIds.add(b);
           for(let j=0;j<3;j++)this.particles.push(new Part(b.x,b.y,pr.c));
           if(p.buffs.vamp>0||p.vamp>0)p.heal(pr.dmg*.05);
-          doExplode();
-          cn=true;break;
+          doExplode();cn=true;break;
         }
       }
       if(cn)this.proj.splice(i,1);
@@ -1626,13 +2478,24 @@ Game.prototype.upd=function(dt){
   for(const e of this.enemies){
     if(!e.alive){
       p.kills++;p.gold++;
-      if(Math.random()<0.005){
+      if(e.sp==='explode'&&e.elite&&!e._exploded){
+        e._exploded=true;
+        const boomDmg=e.atk*2;
+        for(const e2 of this.enemies)if(e2.alive&&e2!==e&&d2(e.x,e.y,e2.x,e2.y)<150*150)e2.dmg(boomDmg,'normal');
+        if(d2(e.x,e.y,p.x,p.y)<150*150)p.hurt(boomDmg);
+        for(let j=0;j<20;j++)this.particles.push(new Part(e.x,e.y,'#ff6020'));
+        this.shake=6;
+      }
+      const fragChance=e.elite?(e.chaos?0.03:0.015):(e.chaos?0.01:0.005);
+      if(Math.random()<fragChance){
         p.frag++;
         this.ftxt.push(new FTxt('+1 осколок',e.x,e.y-20,'#ffcc44',1.5,14));
         for(let j=0;j<8;j++)this.particles.push(new Part(e.x,e.y,'#ffcc44'));
       }
       if(p.rid==='slime'){p.heal(5);p.mp=Math.min(p.maxMp,p.mp+5);}
-      this.ftxt.push(new FTxt('+'+~~e.xp+' XP',e.x,e.y,'#ffdd44'));
+      const xpLabel=e.elite?(e.chaos?'★ХАОС★ ':'★ЭЛИТА★ '):(e.chaos?'ХАОС ':'+');
+      const xpColor=e.elite?'#ffcc44':(e.chaos?'#c060ff':'#ffdd44');
+      this.ftxt.push(new FTxt(xpLabel+~~e.xp+' XP',e.x,e.y,xpColor));
       const nLv=p.gainXp(e.xp);
       if(nLv>0){this.pendingLv+=nLv;if(this.state!=='level_up')this.triggerLv();}
       for(let j=0;j<6;j++)this.particles.push(new Part(e.x,e.y,e.c));
@@ -1641,16 +2504,16 @@ Game.prototype.upd=function(dt){
   this.enemies=ne;
   const nb=[];const toAdd=[];
   for(const b of this.bosses){
-    if(b.bn==='Веланава'&&!this.chain.lu&&b.alive&&b.hp<b.maxHp*0.1){
-      this.chain.lu=true;
-      b.alive=false;
-      this.ftxt.push(new FTxt('ИВАРАДЖ ПОГЛОЩАЕТ ВЕЛАНАВУ!',p.x,p.y-250,'#ff40a0',4,28));
+    if(b.bn==='Веланава'&&this.finalChainStep===2&&!this.chain.lu&&b.alive&&b.hp<b.maxHp*0.1){
+      this.chain.lu=true;this.finalChainStep=3;b.alive=false;
+      this.ftxt.push(new FTxt('ИВАРАДЖ ПОГЛОЩАЕТ ВЕЛАНАВУ!',p.x,p.y-300,'#ff40a0',4,28));
       AU.sfx('sec');
       const lt=BT['Лувельгер'];
       const lbx=cl(p.x,200,WW-200),lby=Math.max(80,p.y-350);
-      toAdd.push(new Boss(lbx,lby,{...lt,n:'Лувельгер'},this.loc.m));
-      AU.music('final');
-      continue;
+      const lub=new Boss(lbx,lby,{...lt,n:'Лувельгер'},this.loc.m);
+      lub.spawnWave=this.runTime;
+      toAdd.push(lub);
+      AU.music('final');this.shake=25;continue;
     }
     if(!b.alive){
       p.kills++;p.gold+=50;p.frag+=b.td.fr||2;
@@ -1661,34 +2524,37 @@ Game.prototype.upd=function(dt){
       if(nLv>0){this.pendingLv+=nLv;if(this.state!=='level_up')this.triggerLv();}
       for(let j=0;j<50;j++)this.particles.push(new Part(b.x,b.y,b.c));
       SV.unlock('boss_'+b.bn);
-      if(b.bn==='Иварадж'){this.chain.iv=true;AU.music('combat');}
+      if(b.bn==='Иварадж'){
+        this.chain.iv=true;this.finalDelay=2;
+        this.ftxt.push(new FTxt('⚡ ИВАРАДЖ ПАЛ...',p.x,p.y-250,'#ff4040',3,24));
+        AU.music('combat');
+      }
       if(b.bn==='Веланава')this.chain.ve=true;
-      if(b.bn==='Лувельгер'){SV.d.secWins=(SV.d.secWins||0)+1;SV.save();AU.music('combat');}
+      if(b.bn==='Лувельгер'){
+        this.finalWave=false;this.finalChainStep=4;this.victory=true;
+        SV.d.secWins=(SV.d.secWins||0)+1;SV.save();SV.unlock('true_ending');
+        AU.stop();
+        this.cutsceneTimer=5;
+        this.cutsceneData={x:b.x,y:b.y,color:b.c};
+        this.enemies=[];this.proj=[];this.ftxt=[];
+        this.state='cutscene';
+      }
     } else nb.push(b);
   }
   this.bosses=nb;
   for(const x of toAdd)this.bosses.push(x);
-  for(let i=this.particles.length-1;i>=0;i--){
-    const pt=this.particles[i];pt.update(dt);
-    if(pt.l<=0)this.particles.splice(i,1);
-  }
-  for(let i=this.ftxt.length-1;i>=0;i--){
-    const f=this.ftxt[i];f.update(dt);
-    if(f.l<=0)this.ftxt.splice(i,1);
-  }
+  for(let i=this.particles.length-1;i>=0;i--){const pt=this.particles[i];pt.update(dt);if(pt.l<=0)this.particles.splice(i,1);}
+  for(let i=this.ftxt.length-1;i>=0;i--){const f=this.ftxt[i];f.update(dt);if(f.l<=0)this.ftxt.splice(i,1);}
   this.st-=dt;this.wt+=dt;
-  if(this.st<=0 && this.waveEnemiesToSpawn>0 && this.bosses.length===0){
+  if(this.st<=0 && this.waveEnemiesToSpawn>0 && this.bosses.length===0 && !this.finalWave){
     this.st=Math.max(.3,1.2-this.wave*.035);
-    this.spawnEnemy();
-    this.waveEnemiesToSpawn--;
-    this.waveEnemiesSpawned++;
+    this.spawnEnemy();this.waveEnemiesToSpawn--;this.waveEnemiesSpawned++;
   }
   if(this.bosses.length===0)this.spawnBoss();
-  if(this.waveEnemiesToSpawn===0 && this.enemies.length===0 && this.bosses.length===0){
+  if(this.state==='playing' && this.waveEnemiesToSpawn===0 && this.enemies.length===0 && this.bosses.length===0 && !this.finalWave){
     this.wave++;
     this.waveEnemiesToSpawn=5+this.wave*2;
-    this.waveEnemiesSpawned=0;
-    this.wt=0;
+    this.waveEnemiesSpawned=0;this.wt=0;
     this.ftxt.push(new FTxt('Волна '+this.wave,p.x,p.y-150,'#fff',2,26));
     if(this.wave%5===0)AU.sfx('boss');
   }
@@ -1707,6 +2573,9 @@ Game.prototype.draw=function(){
   if(this.state==='custom_name')return this.rCnm();
   if(this.state==='location_select')return this.rLoc();
   if(this.state==='chronicles')return this.rChr();
+  if(this.state==='tutorial')return this.rTutorial();
+  if(this.state==='cutscene')return this.rCutscene();
+  if(this.state==='victory')return this.rVictory();
   this.rGame();
   if(this.state==='paused')this.rPause();
   if(this.state==='level_up')this.rLv();
@@ -1724,16 +2593,22 @@ Game.prototype.rMenu=function(){
     const x=(Math.sin(t*.4+i*1.3)*.5+.5)*W;
     const y=(Math.cos(t*.3+i*.7)*.5+.5)*H;
     ctx.globalAlpha=.08+Math.abs(Math.sin(t+i))*.12;
-    ctx.fillStyle='#50c8dc';
-    ctx.beginPath();ctx.arc(x,y,2,0,7);ctx.fill();
+    ctx.fillStyle='#50c8dc';ctx.beginPath();ctx.arc(x,y,2,0,7);ctx.fill();
   }
   ctx.globalAlpha=1;
-  tx('TENSURA SURVIVAL',W/2,140,{size:52,weight:'bold',color:'#50c8dc',align:'center',glow:'#50c8dc',glowBlur:25});
-  tx('Хроники Истинных Драконов',W/2,190,{size:20,color:'#8090a0',align:'center'});
+  tx('TENSURA SURVIVAL',W/2,110,{size:52,weight:'bold',color:'#50c8dc',align:'center',glow:'#50c8dc',glowBlur:25});
+  tx('Хроники Истинных Драконов',W/2,160,{size:20,color:'#8090a0',align:'center'});
+  const hvTut=this.hov(W/2-180,220,360,60);
+  ctx.fillStyle=hvTut?'rgba(60,100,140,.9)':'rgba(40,70,110,.7)';
+  ctx.fillRect(W/2-180,220,360,60);
+  ctx.strokeStyle=SV.d.tutDone?'#80ff80':'#ffcc44';ctx.lineWidth=2;
+  ctx.strokeRect(W/2-180,220,360,60);
+  tx(SV.d.tutDone?'✓ ОБУЧЕНИЕ (пройдено)':'📖 ОБУЧЕНИЕ',W/2,258,{size:22,weight:'bold',
+    color:hvTut?'#ffd700':(SV.d.tutDone?'#80ff80':'#ffcc44'),align:'center',glow:'#ffcc44',glowBlur:12});
   const opts=[
-    {t:'1. Новая игра',y:300},
-    {t:'2. Путешествие по истории (за Римуру)',y:350},
-    {t:'3. Хроники мира',y:400}
+    {t:'1. Новая игра',y:330},
+    {t:'2. Путешествие по истории (за Римуру)',y:380},
+    {t:'3. Хроники мира',y:430}
   ];
   for(const o of opts){
     const hv=this.hov(0,o.y-25,W,50);
@@ -1758,9 +2633,9 @@ Game.prototype.rRace=function(){
     shape(r.sh||'circle',x+35,y+42,17,r.c,false);
     const key=i<9?String(i+1):(i===9?'0':(i===10?'Q':(i===11?'W':'E')));
     tx(key+'. '+r.n,x+65,y+24,{size:18,color:r.c});
-    tx(r.d,x+65,y+46,{size:11,color:'#a0a8b8'});
+    txClip(r.d,x+65,y+46,495,{size:11,color:'#a0a8b8'});
     const b=r.b;
-    tx('HP '+b.hp+' MP '+b.mp+' ATK '+b.atk+' DEF '+b.def+' SPD '+b.spd,x+65,y+70,{size:10,color:'#8090a0'});
+    txClip('HP '+b.hp+' MP '+b.mp+' ATK '+b.atk+' DEF '+b.def+' SPD '+b.spd,x+65,y+70,495,{size:10,color:'#8090a0'});
   }
   tx('ESC — назад',W/2,H-15,{size:12,color:'#606878',align:'center'});
 };
@@ -1778,10 +2653,10 @@ Game.prototype.rChar=function(){
     ctx.fillRect(x,y,350,195);
     ctx.strokeStyle=r.c;ctx.lineWidth=hv?3:2;ctx.strokeRect(x,y,350,195);
     tx((i+1)+'. '+c.n,x+15,y+28,{size:19,color:'#fff'});
-    tx(c.d,x+15,y+55,{size:12,color:'#a0a8b8'});
-    tx('Навык: '+c.sk+(c.sk2?' + '+c.sk2:''),x+15,y+95,{size:13,color:'#ffcc44'});
+    txClip(c.d,x+15,y+55,320,{size:12,color:'#a0a8b8'});
+    txClip('Навык: '+c.sk+(c.sk2?' + '+c.sk2:''),x+15,y+95,320,{size:13,color:'#ffcc44'});
     const bs=Object.entries(c.b||{}).map(([k,v])=>k+':'+(v>0?'+':'')+v).join(' ');
-    tx(bs||'Без бонусов',x+15,y+130,{size:11,color:'#80ff80'});
+    txClip(bs||'Без бонусов',x+15,y+130,320,{size:11,color:'#80ff80'});
   }
   const cx=80,cy=360;
   const hvc=this.hov(cx,cy,W-160,100);
@@ -1791,7 +2666,7 @@ Game.prototype.rChar=function(){
   tx('C. Создать своего персонажа',cx+20,cy+35,{size:19,color:'#a0a0ff'});
   tx('Своё имя, навык Универсальное Превращение.',cx+20,cy+70,{size:12,color:'#a0a8b8'});
   tx('Эволюции:',80,505,{size:14,color:'#ffcc44'});
-  tx(r.evo.map(e=>e.n+'(ур.'+e.lv+')').join(' → '),80,535,{size:11,color:'#a0a8b8'});
+  txClip(r.evo.map(e=>e.n+'(ур.'+e.lv+')').join(' → '),80,535,W-180,{size:11,color:'#a0a8b8'});
   tx('ESC — назад',W/2,H-15,{size:12,color:'#606878',align:'center'});
 };
 
@@ -1799,15 +2674,12 @@ Game.prototype.rCnm=function(){
   this.bg('#0a0a12');
   tx('ВВЕДИТЕ ИМЯ',W/2,180,{size:28,weight:'bold',color:'#a0a0ff',align:'center'});
   tx('(до 20 символов, Enter — ОК, ESC — назад)',W/2,225,{size:12,color:'#a0a8b8',align:'center'});
-  const t=performance.now()/500;
-  const cur=~~t%2===0?'_':' ';
-  ctx.fillStyle='rgba(20,25,40,.7)';
-  ctx.fillRect(W/2-300,290,600,70);
+  const t=performance.now()/500;const cur=~~t%2===0?'_':' ';
+  ctx.fillStyle='rgba(20,25,40,.7)';ctx.fillRect(W/2-300,290,600,70);
   ctx.strokeStyle='#a0a0ff';ctx.lineWidth=2;ctx.strokeRect(W/2-300,290,600,70);
   tx(this.cnm+cur,W/2,335,{size:24,color:'#fff',align:'center'});
   const hv=this.hov(W/2-100,400,200,45);
-  ctx.fillStyle=hv?'#3a5a8a':'#203050';
-  ctx.fillRect(W/2-100,400,200,45);
+  ctx.fillStyle=hv?'#3a5a8a':'#203050';ctx.fillRect(W/2-100,400,200,45);
   ctx.strokeStyle='#a0a0ff';ctx.strokeRect(W/2-100,400,200,45);
   tx('Подтвердить',W/2,428,{size:16,color:'#fff',align:'center'});
 };
@@ -1825,9 +2697,15 @@ Game.prototype.rLoc=function(){
     ctx.strokeStyle='#5070a0';ctx.lineWidth=hv?3:2;ctx.strokeRect(x,y,580,110);
     ctx.fillStyle=l.bg;ctx.fillRect(x+10,y+10,60,60);
     tx((i+1)+'. '+l.n,x+80,y+28,{size:19,color:'#fff'});
-    tx(l.d,x+80,y+52,{size:11,color:'#a0a8b8'});
-    const ms=Object.entries(l.m).map(([k,v])=>k+':'+v).join(' ');
-    tx(ms,x+80,y+82,{size:10,color:'#ffcc44'});
+    txClip(l.d,x+80,y+52,485,{size:11,color:'#a0a8b8'});
+    const labels={eh:'HP',ea:'ATK',es:'SPD',mp:'MP',chaos:'CHAOS'};
+    const ms=Object.entries(l.m).map(([k,v])=>{
+      const lb=labels[k]||k;
+      if(k==='chaos')return '☠ '+lb;
+      if(k==='mp')return lb+' +'+v;
+      return lb+' ×'+v;
+    }).join(' · ');
+    txClip(ms,x+80,y+82,485,{size:10,color:l.m.chaos?'#c060ff':'#ffcc44'});
   }
   tx('ESC — назад',W/2,H-15,{size:12,color:'#606878',align:'center'});
 };
@@ -1846,7 +2724,7 @@ Game.prototype.rChr=function(){
   const lines=CHR[sec].split('\n');
   let y=90-this.chrScrl;const x0=280;
   for(const l of lines){
-    if(y>60&&y<H-30)tx(l,x0,y,{size:12,color:'#e6e6f0'});
+    if(y>60&&y<H-30)txClip(l,x0,y,W-x0-20,{size:12,color:'#e6e6f0'});
     y+=18;
   }
   tx('← → — разделы   ↑ ↓ или колесо — прокрутка   ESC — назад',W/2,H-15,{size:12,color:'#606878',align:'center'});
@@ -1902,6 +2780,11 @@ Game.prototype.rHUD=function(){
   bar(20,44,320,16,p.mp,p.maxMp,'#4060e0');
   const effMpR=p.mpR+(p.lv*0.25)+(p.maxMp*0.01);
   tx('MP '+Math.ceil(p.mp)+'/'+p.maxMp+' (+'+effMpR.toFixed(1)+'/с)',24,57,{size:11,color:'#fff'});
+  tx('Реген HP: '+(p.hpRegenPct*100).toFixed(1)+'%/с' ,24,86,{size:9,color:'#80ff80'});
+  let bxx=180;
+  if(p.buffs.satanael>0){tx('⚡САТ',bxx,86,{size:9,color:'#ff6060',weight:'bold'});bxx+=28;}
+  if(p.buffs.azatot>0){tx('◈АЗА',bxx,86,{size:9,color:'#c080ff',weight:'bold'});bxx+=28;}
+  if(p.buffs.invuln>0){tx('✦ИММ',bxx,86,{size:9,color:'#ffffff',weight:'bold'});bxx+=28;}
   bar(20,64,320,12,p.xp,p.xpn,'#e0c040');
   tx('Lv '+p.lv+' XP '+~~p.xp+'/'+p.xpn,24,74,{size:10,color:'#fff'});
   tx(p.cn,20,100,{size:15,weight:'bold',color:p.c});
@@ -1910,33 +2793,38 @@ Game.prototype.rHUD=function(){
   tx('SPD '+p.spd.toFixed(1)+' LCK '+p.lck+' CRIT '+p.crit+'%',20,160,{size:11,color:'#e6e6f0'});
   tx('Оружие: '+p.wep.n+' (+'+p.wep.a+'/+'+p.wep.m+'m)',20,178,{size:10,color:'#a0a8b8'});
   tx('Gold '+p.gold+' Убийств '+p.kills+' Осколков '+p.frag,20,196,{size:11,color:'#ffcc44'});
-  tx('Арт: '+p.arts.length+'  Pierce +'+p.pierceBonus+'  AoE ×'+p.aoeMult.toFixed(2)+'  CDR '+(p.cdr*100).toFixed(0)+'%',20,214,{size:10,color:'#ffcc44'});
+  txClip('Арт: '+p.arts.length+'  Pierce +'+p.pierceBonus+'  AoE ×'+p.aoeMult.toFixed(2)+'  CDR '+(p.cdr*100).toFixed(0)+'%',20,214,320,{size:10,color:'#ffcc44'});
   tx('Высший/Божеств.: '+(p.hasSup()?'ДА':'нет'),20,232,{size:10,color:p.hasSup()?'#ffcc44':'#606878'});
-  tx('◈ Резонанс: '+p.resonanceCount+' (+'+(p.resonanceCount*3)+'% урона)',20,250,{size:10,color:p.resonanceCount>0?'#a0c0ff':'#606878'});
+  txClip('◈ Резонанс: '+p.resonanceCount+' (+'+(p.resonanceCount*3)+'% урона)',20,250,320,{size:10,color:p.resonanceCount>0?'#a0c0ff':'#606878'});
   tx('ESC — пауза  •  V — авто-зелье',20,400,{size:11,color:'#606878'});
-
   const rx=W-350;
-  ctx.fillStyle='rgba(0,0,0,.55)';ctx.fillRect(rx,10,340,225);
-  ctx.strokeStyle='#4060a0';ctx.strokeRect(rx,10,340,225);
-  tx('Волна '+this.wave,rx+15,32,{size:17,weight:'bold',color:'#e6e6f0'});
-  tx('Врагов '+this.enemies.length+' Боссов '+this.bosses.length,rx+15,54,{size:11,color:'#a0a8b8'});
+  ctx.fillStyle='rgba(0,0,0,.55)';ctx.fillRect(rx,10,340,235);
+  ctx.strokeStyle='#4060a0';ctx.strokeRect(rx,10,340,235);
+  if(this.finalWave){
+    const stepNames=['','Иварадж','Веланава','Лувельгер'];
+    const stepColors=['','#ff40a0','#f0e090','#c0c0ff'];
+    tx('⚔ ФИНАЛ ⚔',rx+15,32,{size:15,weight:'bold',color:'#ff4040',glow:'#ff4040',glowBlur:10});
+    tx(this.finalChainStep+'/3 — '+stepNames[this.finalChainStep],rx+15,50,{size:12,color:stepColors[this.finalChainStep]});
+    tx('⏱ '+fmtTime(this.runTime),rx+325,32,{size:11,color:'#80c0ff',align:'right'});
+  } else {
+    tx('Волна '+this.wave,rx+15,32,{size:17,weight:'bold',color:'#e6e6f0'});
+    tx('⏱ '+fmtTime(this.runTime),rx+325,32,{size:12,color:'#80c0ff',align:'right'});
+  }
+  tx('Врагов '+this.enemies.length+' Боссов '+this.bosses.length,rx+15,this.finalWave?66:54,{size:11,color:'#a0a8b8'});
   const wStr=1+0.01*(this.wave-1),wXp=1+0.10*(this.wave-1);
-  tx('Враги: HP/ATK ×'+wStr.toFixed(2)+'  XP ×'+wXp.toFixed(2),rx+15,70,{size:10,color:'#ffcc44'});
-  tx('Спавн '+this.waveEnemiesSpawned+'/'+(this.waveEnemiesSpawned+this.waveEnemiesToSpawn),rx+15,83,{size:10,color:'#a0a8b8'});
-  tx('Навыки (Q/E/R):',rx+15,100,{size:12,color:'#ffcc44'});
+  tx('Враги: HP/ATK ×'+wStr.toFixed(2)+'  XP ×'+wXp.toFixed(2),rx+15,this.finalWave?79:70,{size:10,color:'#ffcc44'});
+  tx('Спавн '+this.waveEnemiesSpawned+'/'+(this.waveEnemiesSpawned+this.waveEnemiesToSpawn),rx+15,this.finalWave?92:83,{size:10,color:'#a0a8b8'});
+  tx('Навыки (Q/E/R):',rx+15,this.finalWave?109:100,{size:12,color:'#ffcc44'});
   for(let i=0;i<3;i++){
-    const n=p.slots[i];const sx=rx+15+i*105,sy=104;
+    const n=p.slots[i];const sx=rx+15+i*105,sy=this.finalWave?113:104;
     ctx.fillStyle='rgba(30,35,55,.9)';ctx.fillRect(sx,sy,100,55);
     ctx.strokeStyle=n?'#50c8dc':'#333';ctx.lineWidth=2;ctx.strokeRect(sx,sy,100,55);
     tx(['Q','E','R'][i],sx+6,sy+16,{size:12,weight:'bold',color:'#ffcc44'});
     if(n){
-      const sk=p.skills[n];
-      const evo=SKILL_EVO[n];
-      const col=evo?evo.color:'#fff';
-      const base=n.length>10?n.slice(0,9)+'…':n;
-      const dn=SKILL_EVO[n]?base:base+(TIER_MARK[sk.tier]||'');
-      tx(dn,sx+6,sy+34,{size:9,color:col});
-      tx(TI[sk.tier],sx+6,sy+48,{size:9,color:TC[sk.tier]});
+      const sk=p.skills[n];const evo=SKILL_EVO[n];const col=evo?evo.color:'#fff';
+      const dn=n+(SKILL_EVO[n]?'':(TIER_MARK[sk.tier]||''));
+      txClip(dn,sx+6,sy+34,90,{size:9,color:col});
+      txClip(TI[sk.tier],sx+6,sy+48,90,{size:9,color:TC[sk.tier]});
       if(sk.cd>0){
         ctx.fillStyle='rgba(0,0,0,.6)';
         const hh=Math.min(55,sk.cd/SKILLS[n].cd*55);
@@ -1945,12 +2833,61 @@ Game.prototype.rHUD=function(){
       }
     }
   }
-  tx('Заклинания:',rx+15,175,{size:12,color:'#ffcc44'});
-  for(let i=0;i<Math.min(4,p.spells.length);i++){
-    const sp=p.spells[i].def;
-    icon(sp.ic||'skill',rx+25,190+i*14,7,sp.c);
-    tx(sp.n+(p.spells[i].cd>0?' ('+p.spells[i].cd.toFixed(1)+')':''),rx+38,194+i*14,{size:10,color:sp.c});
+  const spY=this.finalWave?184:175;
+  const totalSpells=p.spells.length;
+  txClip('Магия ('+totalSpells+'):',rx+15,spY,320,{size:12,color:'#ffcc44'});
+  const sAX=rx+15, sAY=spY+14;
+  const sAW=320, sAH=Math.max(20,245-sAY-2);
+  let spLayout=null,spBestScore=-Infinity;
+  for(const tryFs of [10,9,8]){
+    for(const tryRows of [1,2,3,4]){
+      const tryCols=Math.ceil(totalSpells/tryRows);
+      if(tryCols<1)continue;
+      const cellW=sAW/tryCols, cellH=sAH/tryRows;
+      if(cellH < tryFs+2) continue;
+      ctx.font=tryFs+'px Consolas,monospace';
+      let maxW=0;
+      for(let i=0;i<totalSpells;i++){
+        const sp=p.spells[i].def;
+        const cd=p.spells[i].cd>0?' '+p.spells[i].cd.toFixed(1):'';
+        const w=ctx.measureText(sp.n+cd).width+18;
+        if(w>maxW)maxW=w;
+      }
+      if(maxW>cellW) continue;
+      const score=tryFs*20 - tryRows*10;
+      if(score>spBestScore){spBestScore=score;spLayout={rows:tryRows,cols:tryCols,fs:tryFs};}
+    }
   }
+  if(!spLayout){
+    const fbRows=Math.min(4,Math.max(1,Math.ceil(totalSpells/2)));
+    spLayout={rows:fbRows,cols:Math.max(1,Math.ceil(totalSpells/fbRows)),fs:7};
+  }
+  const spCols=Math.max(1,spLayout.cols);
+  const spCellW=sAW/spCols, spCellH=sAH/spLayout.rows;
+  for(let i=0;i<totalSpells;i++){
+    const r=Math.floor(i/spCols), c=i%spCols;
+    const cx=sAX+c*spCellW, cy=sAY+r*spCellH;
+    const sp=p.spells[i].def;
+    const icr=Math.max(3,Math.min(spLayout.fs-2,Math.floor(spCellH/2-1)));
+    icon(sp.ic||'skill',cx+icr+2,cy+spCellH/2,icr,sp.c);
+    const txt=sp.n+(p.spells[i].cd>0?' ('+p.spells[i].cd.toFixed(1)+')':'');
+    txClip(txt,cx+icr*2+5,cy+spCellH/2+spLayout.fs/3,spCellW-icr*2-8,{size:spLayout.fs,color:sp.c});
+  }
+  const btnX=W-345,btnY=250,btnW=340,btnH=45;
+  const canSkip=this.canSkipWave();
+  const btnHv=canSkip&&this.hov(btnX,btnY,btnW,btnH);
+  if(canSkip){
+    ctx.fillStyle=btnHv?'rgba(60,140,60,.95)':'rgba(40,90,40,.85)';
+  } else {
+    ctx.fillStyle='rgba(40,40,50,.6)';
+  }
+  ctx.fillRect(btnX,btnY,btnW,btnH);
+  ctx.strokeStyle=canSkip?(btnHv?'#a0ffa0':'#60c060'):'#333';
+  ctx.lineWidth=2;
+  ctx.strokeRect(btnX,btnY,btnW,btnH);
+  const btnLabel=canSkip?'▶ Следующая волна: '+(this.wave+1):'▶ Недоступно';
+  tx(btnLabel,btnX+btnW/2,btnY+28,{size:14,weight:'bold',
+    color:canSkip?'#fff':'#606878',align:'center'});
   if(p.hasSage()){
     ctx.fillStyle='rgba(0,20,60,.7)';ctx.fillRect(15,280,330,110);
     ctx.strokeStyle='#a0c0ff';ctx.lineWidth=1;ctx.strokeRect(15,280,330,110);
@@ -1964,8 +2901,7 @@ Game.prototype.rHUD=function(){
     if(near){
       tx('Анализ: '+near.t.n,20,317,{size:11,color:'#ffcc44'});
       tx('HP: '+Math.ceil(near.hp)+'/'+Math.ceil(near.maxHp)+'  Угроза: '+near.t.l,20,333,{size:10,color:'#e6e6f0'});
-      const wn=near.t.n;
-      let weak='—';
+      const wn=near.t.n;let weak='—';
       if(wn.includes('Скелет')||wn.includes('Зомби')||wn.includes('Лич')||wn.includes('Нежить')||wn.includes('Ужас'))weak='Огонь';
       else if(wn.includes('Демон')||wn.includes('Адоль'))weak='Свет';
       else if(wn.includes('Ангел')||wn.includes('Михаэль')||wn.includes('Фелдвей'))weak='Тьма';
@@ -1980,35 +2916,29 @@ Game.prototype.rHUD=function(){
   for(let i=0;i<this.bosses.length;i++){
     const b=this.bosses[i];
     const bx=W/2-200,by=H-60-i*30;
-    tx(b.bn+(b.sup?' ★':'')+' — '+Math.ceil(b.hp)+'/'+b.maxHp,bx,by-6,{size:11,color:'#ff6060'});
-    bar(bx,by,400,10,b.hp,b.maxHp,'#ff4040');
+    const lbl=b.bn+(b.sup?' ★':'')+' — '+Math.ceil(b.hp)+'/'+b.maxHp+(b.enraged?'  🔥ГНЕВ '+b.enrageTimer.toFixed(1)+'с':'');
+    tx(lbl,bx,by-6,{size:11,color:b.enraged?'#ff3030':'#ff6060',glow:b.enraged?'#8b0000':null,glowBlur:8});
+    bar(bx,by,400,10,b.hp,b.maxHp,b.enraged?'#8b0000':'#ff4040');
   }
   const mmW=240,mmH=135;
   const mmX=W-mmW-15,mmY=H-mmH-15;
-  ctx.fillStyle='rgba(0,0,0,.75)';
-  ctx.fillRect(mmX,mmY,mmW,mmH);
-  ctx.strokeStyle='#4060a0';ctx.lineWidth=1;
-  ctx.strokeRect(mmX+.5,mmY+.5,mmW-1,mmH-1);
-  ctx.fillStyle='rgba(20,30,50,.55)';
-  ctx.fillRect(mmX+2,mmY+2,mmW-4,mmH-4);
+  ctx.fillStyle='rgba(0,0,0,.75)';ctx.fillRect(mmX,mmY,mmW,mmH);
+  ctx.strokeStyle='#4060a0';ctx.lineWidth=1;ctx.strokeRect(mmX+.5,mmY+.5,mmW-1,mmH-1);
+  ctx.fillStyle='rgba(20,30,50,.55)';ctx.fillRect(mmX+2,mmY+2,mmW-4,mmH-4);
   const mmSX=(mmW-4)/WW,mmSY=(mmH-4)/WH;
   for(const e of this.enemies){
     if(!e.alive)continue;
-    ctx.fillStyle='#ff6060';
-    ctx.fillRect(mmX+2+e.x*mmSX,mmY+2+e.y*mmSY,2,2);
+    ctx.fillStyle='#ff6060';ctx.fillRect(mmX+2+e.x*mmSX,mmY+2+e.y*mmSY,2,2);
   }
   for(const b of this.bosses){
     if(!b.alive)continue;
-    ctx.fillStyle='#ff2020';
-    ctx.fillRect(mmX+2+b.x*mmSX-2,mmY+2+b.y*mmSY-2,5,5);
+    ctx.fillStyle='#ff2020';ctx.fillRect(mmX+2+b.x*mmSX-2,mmY+2+b.y*mmSY-2,5,5);
   }
   ctx.strokeStyle='rgba(80,200,220,.8)';ctx.lineWidth=1;
   ctx.strokeRect(mmX+2+this.camX*mmSX,mmY+2+this.camY*mmSY,W*mmSX,H*mmSY);
   if(this.player){
-    ctx.fillStyle='#50c8dc';
-    ctx.beginPath();
-    ctx.arc(mmX+2+this.player.x*mmSX,mmY+2+this.player.y*mmSY,3,0,7);
-    ctx.fill();
+    ctx.fillStyle='#50c8dc';ctx.beginPath();
+    ctx.arc(mmX+2+this.player.x*mmSX,mmY+2+this.player.y*mmSY,3,0,7);ctx.fill();
   }
   tx('КАРТА',mmX+5,mmY+11,{size:9,color:'#a0c0ff'});
 };
@@ -2026,9 +2956,9 @@ Game.prototype.rLv=function(){
     ctx.strokeStyle=hv?'#80e0f0':'#50c8dc';ctx.lineWidth=hv?3:2;
     ctx.strokeRect(W/2-360,y,720,110);
     const oi=optionInfo(c,p);
-    tx((i+1)+'. '+c.n,W/2-340,y+28,{size:17,color:'#fff'});
-    tx(oi.desc,W/2-340,y+55,{size:12,color:'#c8d0e0'});
-    tx(oi.info,W/2-340,y+82,{size:12,color:oi.color||'#a0c0ff'});
+    txFit((i+1)+'. '+c.n,W/2-340,y+28,680,{size:17,color:'#fff'},11);
+    txFit(oi.desc,W/2-340,y+55,680,{size:12,color:'#c8d0e0'},10);
+    txFit(oi.info,W/2-340,y+82,680,{size:12,color:oi.color||'#a0c0ff'},10);
     tx('Нажмите '+(i+1),W/2+340,y+100,{size:11,color:hv?'#ffcc44':'#606878',align:'right'});
   }
   tx('Клик или 1-'+this.lvc.length+'   ·   Esc — пауза',W/2,H-40,{size:12,color:'#606878',align:'center'});
@@ -2071,7 +3001,8 @@ Game.prototype.rGO=function(){
   tx('ВЫ ПОГЛОЩЕНЫ БЕЗДНОЙ',W/2,180,{size:42,weight:'bold',color:'#ff4040',align:'center'});
   tx('Уровень '+p.lv+' • Волна '+this.wave,W/2,270,{size:22,color:'#fff',align:'center'});
   tx(p.cn+' ('+p.rn+')',W/2,315,{size:18,color:p.c,align:'center'});
-  tx('Убийств: '+p.kills+'  Золото: '+p.gold+'  Артефактов: '+p.arts.length,W/2,360,{size:14,color:'#a0a8b8',align:'center'});
+  txFit('Убийств: '+p.kills+'  Золото: '+p.gold+'  Артефактов: '+p.arts.length,W/2,360,W-80,{size:14,color:'#a0a8b8',align:'center'},10);
+  tx('⏱ Время: '+fmtTime(this.runTime),W/2,395,{size:16,color:'#80c0ff',align:'center'});
   const r=this.hov(W/2-150,440,150,50);
   const m=this.hov(W/2,440,150,50);
   ctx.fillStyle=r?'#3a6a8a':'#203050';ctx.fillRect(W/2-150,440,150,50);
@@ -2080,6 +3011,240 @@ Game.prototype.rGO=function(){
   ctx.fillStyle=m?'#3a6a8a':'#203050';ctx.fillRect(W/2,440,150,50);
   ctx.strokeRect(W/2,440,150,50);
   tx('M — меню',W/2+75,472,{size:15,color:'#fff',align:'center'});
+};
+
+Game.prototype.rCutscene=function(){
+  const cd=this.cutsceneData||{x:W/2,y:H/2,color:'#c0c0ff'};
+  const elapsed=5-this.cutsceneTimer;
+  const t=performance.now()/1000;
+  ctx.fillStyle='#000';ctx.fillRect(0,0,W,H);
+  const fadeIn=Math.min(1,elapsed*2);
+  ctx.globalAlpha=fadeIn;
+  ctx.fillStyle='#050510';ctx.fillRect(0,0,W,H);
+  ctx.globalAlpha=1;
+
+  for(let i=0;i<80;i++){
+    const x=(Math.sin(t*.3+i*1.7)*.5+.5)*W;
+    const y=(Math.cos(t*.2+i*.9)*.5+.5)*H;
+    ctx.globalAlpha=.08+Math.abs(Math.sin(t*1.5+i))*.25;
+    ctx.fillStyle=i%3===0?'#ffcc44':(i%3===1?'#50c8dc':'#c080ff');
+    ctx.beginPath();ctx.arc(x,y,1.5,0,7);ctx.fill();}
+  ctx.globalAlpha=1;
+
+  const luvAlpha=Math.max(0,1-elapsed*0.5);
+  if(luvAlpha>0){
+    const luvSize=42*(1+elapsed*0.15);
+    ctx.globalAlpha=luvAlpha*0.85;
+    shape('winged',W/2,H/2-40,luvSize,sh(cd.color,-40),false);
+    for(let i=0;i<15;i++){
+      const angle=Math.random()*6.283;
+      const r=Math.random()*80;
+      const px=W/2+Math.cos(angle)*r;
+      const py=H/2-40+Math.sin(angle)*r;
+      ctx.globalAlpha=luvAlpha*Math.random()*0.9;
+      ctx.fillStyle=cd.color;
+      ctx.beginPath();ctx.arc(px,py,Math.random()*3+1,0,7);ctx.fill();}
+    ctx.globalAlpha=1;}
+
+  if(elapsed>1&&elapsed<3){
+    const waveProg=(elapsed-1)/2;
+    const waveR=50+waveProg*300;
+    ctx.strokeStyle='rgba(192,192,255,'+(1-waveProg)*0.6+')';
+    ctx.lineWidth=4;
+    ctx.beginPath();ctx.arc(W/2,H/2-40,waveR,0,7);ctx.stroke();
+    ctx.strokeStyle='rgba(255,204,68,'+(1-waveProg)*0.4+')';
+    ctx.lineWidth=2;
+    ctx.beginPath();ctx.arc(W/2,H/2-40,waveR*0.7,0,7);ctx.stroke();}
+
+  if(elapsed>1&&elapsed<4){
+    const riseProg=(elapsed-1)/3;
+    const count=Math.floor(riseProg*40);
+    for(let i=0;i<count;i++){
+      const angle=(i/count)*6.283+t;
+      const r=40+riseProg*100;
+      const px=W/2+Math.cos(angle)*r*0.7;
+      const py=H/2-40+Math.sin(angle)*r*0.4-riseProg*60;
+      ctx.globalAlpha=0.8-riseProg*0.5;
+      ctx.fillStyle='#ffcc44';
+      ctx.beginPath();ctx.arc(px,py,2,0,7);ctx.fill();}
+    ctx.globalAlpha=1;}
+
+  if(elapsed>2){
+    const slimeProg=Math.min(1,(elapsed-2)/2);
+    const slimeSize=20+slimeProg*45;
+    ctx.globalAlpha=slimeProg;
+    ctx.fillStyle='rgba(80,200,220,0.15)';
+    ctx.beginPath();ctx.arc(W/2,H/2-40,slimeSize*2,0,7);ctx.fill();
+    shape('circle',W/2,H/2-40,slimeSize,'#50c8dc',false);
+    ctx.fillStyle='#111';
+    ctx.beginPath();ctx.arc(W/2-slimeSize*.35,H/2-40-slimeSize*.15,slimeSize*.13,0,7);ctx.fill();
+    ctx.beginPath();ctx.arc(W/2+slimeSize*.35,H/2-40-slimeSize*.15,slimeSize*.13,0,7);ctx.fill();
+    ctx.fillStyle='#fff';
+    ctx.beginPath();ctx.arc(W/2-slimeSize*.35+1,H/2-40-slimeSize*.15-1,slimeSize*.05,0,7);ctx.fill();
+    ctx.beginPath();ctx.arc(W/2+slimeSize*.35+1,H/2-40-slimeSize*.15-1,slimeSize*.05,0,7);ctx.fill();
+    ctx.strokeStyle='#50c8dc';ctx.lineWidth=2;
+    for(let i=0;i<8;i++){
+      const angle=i/8*6.283+t*0.5;
+      const r1=slimeSize*1.3,r2=slimeSize*1.3+15;
+      ctx.globalAlpha=slimeProg*0.6;
+      ctx.beginPath();
+      ctx.moveTo(W/2+Math.cos(angle)*r1,H/2-40+Math.sin(angle)*r1);
+      ctx.lineTo(W/2+Math.cos(angle)*r2,H/2-40+Math.sin(angle)*r2);
+      ctx.stroke();}
+    ctx.globalAlpha=1;}
+
+  const textLines=[
+    {l:0.3,t:'Иварадж поглощает Веланаву и Лусию...',c:'#ff40a0'},
+    {l:1.5,t:'Но Римуру поглощает самого Ивараджа.',c:'#c080ff'},
+    {l:2.7,t:'Четыре Истинных Дракона обрели покой...',c:'#50c8dc'},
+    {l:3.7,t:'Слизь стал Богом Пустоты.',c:'#ffcc44'}];
+  for(let i=0;i<textLines.length;i++){
+    const tl=textLines[i];
+    if(elapsed>=tl.l){
+      const alpha=Math.min(1,(elapsed-tl.l)*2);
+      ctx.globalAlpha=alpha;
+      txFit(tl.t,W/2,H/2+150+i*30,W-100,{size:18,color:tl.c,align:'center',glow:tl.c,glowBlur:10*alpha},12);
+      ctx.globalAlpha=1;}}
+
+  if(elapsed>1.5){
+    const btnX=W-220,btnY=H-70,btnW=200,btnH=50;
+    const hv=this.mx>=btnX&&this.mx<=btnX+btnW&&this.my>=btnY&&this.my<=btnY+btnH;
+    const alpha=Math.min(1,(elapsed-1.5)*2);
+    ctx.globalAlpha=alpha;
+    ctx.fillStyle=hv?'rgba(60,110,140,.95)':'rgba(30,50,80,.85)';
+    ctx.fillRect(btnX,btnY,btnW,btnH);
+    ctx.strokeStyle=hv?'#80e0f0':'#4060a0';
+    ctx.lineWidth=2;
+    ctx.strokeRect(btnX,btnY,btnW,btnH);
+    tx('ПРОПУСТИТЬ',btnX+btnW/2,btnY+31,{size:16,weight:'bold',color:hv?'#fff':'#c8d0e0',align:'center'});
+    ctx.globalAlpha=1;}
+};
+
+Game.prototype.rVictory=function(){
+  const p=this.player;
+  const t=performance.now()/1000;
+  ctx.fillStyle='#000';ctx.fillRect(0,0,W,H);
+  for(let i=0;i<120;i++){
+    const x=(Math.sin(t*.3+i*1.7)*.5+.5)*W;
+    const y=(Math.cos(t*.2+i*.9)*.5+.5)*H;
+    ctx.globalAlpha=.05+Math.abs(Math.sin(t*1.5+i))*.15;
+    ctx.fillStyle=i%3===0?'#ffcc44':(i%3===1?'#50c8dc':'#c080ff');
+    ctx.beginPath();ctx.arc(x,y,1+Math.sin(t+i)*1,0,7);ctx.fill();
+  }
+  ctx.globalAlpha=1;
+  ctx.save();
+  ctx.translate(W/2,180+Math.sin(t)*5);
+  shape('slime',0,0,55,'#50c8dc',false);
+  for(let i=0;i<12;i++){
+    const a=t*.6+i/12*6.283;
+    const r=80+Math.sin(t*2+i)*20;
+    ctx.globalAlpha=.4+Math.sin(t*3+i)*.3;
+    ctx.fillStyle='#ffcc44';
+    ctx.beginPath();ctx.arc(Math.cos(a)*r,Math.sin(a)*r,2,0,7);ctx.fill();
+  }
+  ctx.restore();
+  ctx.globalAlpha=1;
+  const glow=Math.sin(t*2)*0.3+0.7;
+  tx('✦ ИСТИННЫЙ ФИНАЛ ✦',W/2,320,{size:48,weight:'bold',color:'#ffcc44',align:'center',glow:'#ffcc44',glowBlur:40*glow});
+  tx('Хроники Истинных Драконов завершены',W/2,365,{size:20,color:'#a0c0ff',align:'center'});
+  const lines=[
+    'Иварадж поглотил Веланаву и Люсию — но Римуру поглотил их обоих.',
+    'Четыре Истинных Дракона обрели покой в его клинке.',
+    'Слизь, ставшая Повелителем Монстров, поднялась до Бога Пустоты.',
+    '',
+    'Вельдора наконец свободен. Вельзард и Ги Кримзон вернулись на Север.',
+    'Милим Нава улыбается. Леон, Ламирис, Диабло — все живы.',
+    'Темпест стоит. Мир Тенсуры — тоже.',
+    '',
+    'И где-то далеко, в другом мире, Миками Сатору больше не один.'
+  ];
+  let ly=410;
+  for(const line of lines){
+    txFit(line,W/2,ly,W-80,{size:14,color:line.startsWith('—')?'#ffcc44':'#e6e6f0',align:'center'},10);
+    ly+=26;
+  }
+  tx('Уровень '+p.lv+'   •   Волна 50   •   Убийств '+p.kills+'   •   Артефактов '+p.arts.length,
+     W/2,H-110,{size:14,color:'#a0a8b8',align:'center'});
+  tx('⏱ Время прохождения: '+fmtTime(this.runTime),W/2,H-140,{size:18,weight:'bold',color:'#80c0ff',align:'center'});
+  tx('Секретных побед: '+(SV.d.secWins||1),W/2,H-85,{size:12,color:'#ffcc44',align:'center'});
+  const hv=this.hov(W/2-200,H-55,400,40);
+  ctx.fillStyle=hv?'rgba(50,80,110,.9)':'rgba(30,45,65,.8)';
+  ctx.fillRect(W/2-200,H-55,400,40);
+  ctx.strokeStyle='#ffcc44';ctx.lineWidth=2;
+  ctx.strokeRect(W/2-200,H-55,400,40);
+  tx('Нажмите любую клавишу или кликните',W/2,H-30,{size:14,color:hv?'#fff':'#c8d0e0',align:'center'});
+};
+
+Game.prototype.rTutorial=function(){
+  this.rGame();
+  const boxW=740,boxH=230;
+  const boxX=W/2-boxW/2,boxY=H-boxH-25;
+  ctx.fillStyle='rgba(10,15,30,.88)';ctx.fillRect(boxX,boxY,boxW,boxH);
+  ctx.strokeStyle='#50c8dc';ctx.lineWidth=2;ctx.strokeRect(boxX,boxY,boxW,boxH);
+  const tips=[
+    {title:'📖 Добро пожаловать!',lines:[
+      'Обучающий режим научит основам за 3-4 минуты.',
+      'Управление: WASD — движение, Q/E/R — навыки, Space — уворот, V — авто-зелье, Esc — пауза.',
+      'Space — продолжить, Esc — выйти в меню.'
+    ]},
+    {title:'🚶 Движение',lines:[
+      'Используйте WASD (или стрелки) для перемещения персонажа.',
+      'Пройдите немного в любую сторону, чтобы продолжить.'
+    ]},
+    {title:'⚔️ Бой',lines:[
+      'Персонаж автоматически стреляет в ближайшего врага (predictive aim — снаряд летит в точку, где враг будет).',
+      'Убейте тренировочного манекена. Он не атакует.'
+    ]},
+    {title:'🌀 Навыки и резонанс',lines:[
+      'Навыки используются клавишами Q, E, R.',
+      'Навыки, не поместившиеся в слоты, дают +3% урона и авто-кастуются раз в 1.5 сек (Резонанс).',
+      'Нажмите Q — применить «Универсальное Превращение».'
+    ]},
+    {title:'💨 Уворот, магия, авто-зелье',lines:[
+      'Space — уворот: 0.25 сек неуязвимости, КД 2 сек.',
+      'Магия кастуется автоматически по индивидуальному КД, тратя MP. Реген = 3 + 0.25×Lv + 1% MP/сек.',
+      'V — авто-зелье: лечит 15% HP при HP<25%, КД 5 сек (не тратит ману).'
+    ]},
+    {title:'⬆️ Прокачка и осколки',lines:[
+      'Level-up — 11 базовых опций: HP, MP, ATK, DEF, SPD, MAG, RES, LCK, CRIT, Pierce, AoE. Плюс −5% CDR, +0.5% HP-реген и случайные навыки/магия/артефакты/оружие.',
+      'Осколки: 3-5 с боссов, 0.5% с обычных врагов. Тратятся ТОЛЬКО на усиления навыков.',
+      'Эволюция и апгрейд на ВЫСШИЙ = 4 осколка, на БОЖЕСТВЕННЫЙ = 7. Ранние тиры — бесплатно.'
+    ]},
+    {title:'⚠️ ВОЛНА 35 — ВАЖНО!',lines:[
+      'Боссы приходят каждые 5 волн начиная с 10-й: 10, 15, 20, 25, 30, 35, 40, 45, 50.',
+      'На 35-й волне — Вельдора и Вельгринд, УЛЬТИМАТИВНЫЕ боссы (★). Урон по ним проходит ТОЛЬКО от навыков ВЫСШЕГО тира и выше.',
+      'К этому моменту накопите 4 осколка (5 боссов дают ~20 осколков) и эволюционируйте любой навык.'
+    ]},
+    {title:'🎯 Боссы, элита и артефакты',lines:[
+      'С 5-й волны появляются ЭЛИТНЫЕ враги (золотая аура + имя). Они сильнее, но дают больше XP и осколков.',
+      'После каждого босса открывается новый тип элиты. Шанс спавна растёт от 5% до 25%.',
+      'Парные боссы: Вельдора + Вельгринд (35), Михаэль + Фелдвей (45). Артефакты дают пассивные бонусы. В Апокрифическом разломе 25% врагов — ХАОС (фиолетовая аура).'
+    ]},
+    {title:'🔥 ГНЕВ БОССА',lines:[
+      'Если убить босса быстрее 20 секунд после его появления — он впадает в предсмертный ГНЕВ.',
+      'Босс становится неуязвимым (HP=1), цвет темнеет, появляется тёмно-красная аура. ATK растёт ×2→×4, SPD ×1.5→×2.3 за 20 секунд. Надпись: «Гнев побеждённого, неудовлетворённого битвой».',
+      'Переживите 20 секунд — босс падает от истощения. Веланава не умирает (HP=1 → поглощение Лувельгером). Лувельгер тоже впадает — это его последний натиск.'
+    ]},
+    {title:'✅ Готовы!',lines:[
+      'Теперь вы знаете основы Tensura Survival.',
+      'Space — вернуться в меню и начать новую игру.',
+      'Esc — выйти в меню.'
+    ]}
+  ];
+  const tip=tips[this.tutStep];
+  if(tip){
+    tx(tip.title,boxX+20,boxY+32,{size:20,weight:'bold',color:'#ffcc44'});
+    let ty=boxY+68;
+    for(let i=0;i<tip.lines.length;i++){
+      const wrapped=wrapText(tip.lines[i],boxW-40,13,'');
+      for(let j=0;j<wrapped.length;j++){
+        if(ty+14>boxY+boxH-10)break;
+        txClip(wrapped[j],boxX+20,ty,boxW-40,{size:13,color:'#e6e6f0'});
+        ty+=18;
+      }
+    }
+    tx('Шаг '+(this.tutStep+1)+' / '+tips.length,boxX+boxW-20,boxY+32,{size:12,color:'#a0c0ff',align:'right'});
+  }
 };
 
 window.addEventListener('load',()=>{new Game();});
