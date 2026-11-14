@@ -445,7 +445,53 @@ const SKILLS={
 };
 
 const SPELLS=[
-{n:'Огненный шар',d:15,mp:6,cd:1.2,sp:500,c:'#ff8c40',t:0,ic:'flame',el:'fire',explR:40},{n:'Ледяное копьё',d:12,mp:5,cd:1.4,sp:560,c:'#60a8ff',t:0,ic:'water',el:'ice'},{n:'Режущий ветер',d:10,mp:4,cd:1,sp:640,c:'#7ad0a0',t:0,ic:'wind',el:'wind'},{n:'Каменный шип',d:20,mp:7,cd:1.8,sp:440,c:'#b09060',t:0,ic:'earth',el:'earth'},{n:'Святой луч',d:24,mp:10,cd:2.2,sp:800,c:'#f0e8b0',t:0,ic:'light',el:'light'},{n:'Тёмная стрела',d:16,mp:6,cd:1.3,sp:500,c:'#c860c0',t:0,ic:'dark',el:'dark'},{n:'Ледяная волна',d:22,mp:8,cd:1.8,sp:400,c:'#80c0ff',t:1,ic:'water',el:'ice'},{n:'Взрыв огня',d:28,mp:10,cd:2,sp:380,c:'#ff6060',t:1,ic:'flame',el:'fire',explR:60},{n:'Молния',d:26,mp:11,cd:2.2,sp:900,c:'#ffff80',t:1,ic:'wind',el:'wind',explR:50},{n:'Тёмное пламя',d:30,mp:11,cd:2,sp:500,c:'#8040c0',t:1,ic:'dark',el:'dark',explR:50},{n:'Луч света',d:32,mp:12,cd:2,sp:850,c:'#fff0c0',t:1,ic:'light',el:'light'},{n:'Каменный шторм',d:26,mp:10,cd:1.8,sp:420,c:'#a06040',t:1,ic:'earth',el:'earth'},{n:'Землетрясение',d:35,mp:13,cd:2.8,sp:300,c:'#a06040',t:2,ic:'earth',el:'earth'},{n:'Кара',d:40,mp:15,cd:3,sp:600,c:'#fff8c0',t:2,ic:'light',el:'light'},{n:'Пожирание',d:35,mp:13,cd:2.6,sp:420,c:'#8040a0',t:2,ic:'dark',el:'dark'},{n:'Адское пламя',d:45,mp:14,cd:2.4,sp:500,c:'#ff4040',t:2,ic:'flame',el:'fire',explR:60},{n:'Абсолютный ноль',d:42,mp:15,cd:2.6,sp:400,c:'#a0e0ff',t:2,ic:'water',el:'ice'},{n:'Буря',d:38,mp:14,cd:2.4,sp:700,c:'#80ffd0',t:2,ic:'wind',el:'wind'},{n:'Гравитация',d:55,mp:18,cd:3.5,sp:300,c:'#805030',t:3,ic:'earth',el:'earth'},{n:'Освящение',d:60,mp:19,cd:3.5,sp:700,c:'#ffffe0',t:3,ic:'light',el:'light'},{n:'Бездна',d:65,mp:20,cd:3.6,sp:400,c:'#402080',t:3,ic:'dark',el:'dark'},{n:'Метеор',d:70,mp:21,cd:4,sp:450,c:'#ff6060',t:3,ic:'flame',el:'fire',explR:80},{n:'Абсолютный ноль+',d:80,mp:25,cd:4.5,sp:400,c:'#c0e8ff',t:4,ic:'water',el:'ice'},{n:'Длань Бога',d:100,mp:30,cd:5,sp:650,c:'#ffffff',t:4,ic:'light',el:'light',explR:100},{n:'Огненный луч',d:70,mp:14,cd:3.2,c:'#ff6020',t:2,ic:'flame',el:'fire',laser:true,width:24,length:1800,telegraph:0.45,duration:0.7,dps:0},{n:'Ледяной луч',d:60,mp:12,cd:3,c:'#80c0ff',t:2,ic:'water',el:'ice',laser:true,width:20,length:1600,telegraph:0.4,duration:0.8,dps:0},{n:'Звёздный луч',d:110,mp:22,cd:4,c:'#fff0c0',t:3,ic:'light',el:'light',laser:true,width:30,length:2000,telegraph:0.5,duration:1.0,dps:0,pierce:99}
+  // --- ТИР 0 (Обычная) ---
+  {n:'Огненный шар',d:15,mp:6,cd:1.2,sp:500,c:'#ff8c40',t:0,ic:'flame',el:'fire',explR:40},
+  {n:'Ледяное копьё',d:12,mp:5,cd:1.4,sp:560,c:'#60a8ff',t:0,ic:'water',el:'ice'},
+  {n:'Режущий ветер',d:10,mp:4,cd:1,sp:640,c:'#7ad0a0',t:0,ic:'wind',el:'wind'},
+  {n:'Каменный шип',d:20,mp:7,cd:1.8,sp:440,c:'#b09060',t:0,ic:'earth',el:'earth'},
+  {n:'Святой луч',d:24,mp:10,cd:2.2,sp:800,c:'#f0e8b0',t:0,ic:'light',el:'light'},
+  {n:'Тёмная стрела',d:16,mp:6,cd:1.3,sp:500,c:'#c860c0',t:0,ic:'dark',el:'dark'},
+  {n:'Искра',d:8,mp:3,cd:0.8,sp:700,c:'#ffff80',t:0,ic:'light',el:'light',pattern:'bounce'},
+  {n:'Ядовитая капля',d:10,mp:5,cd:1.5,sp:400,c:'#80c040',t:0,ic:'dark',el:'dark',pattern:'pool'},
+
+  // --- ТИР 1 (Экстра) ---
+  {n:'Ледяная волна',d:22,mp:8,cd:1.8,sp:400,c:'#80c0ff',t:1,ic:'water',el:'ice'},
+  {n:'Взрыв огня',d:28,mp:10,cd:2,sp:380,c:'#ff6060',t:1,ic:'flame',el:'fire',explR:60},
+  {n:'Молния',d:26,mp:11,cd:2.2,sp:900,c:'#ffff80',t:1,ic:'wind',el:'wind',explR:50},
+  {n:'Тёмное пламя',d:30,mp:11,cd:2,sp:500,c:'#8040c0',t:1,ic:'dark',el:'dark',explR:50},
+  {n:'Луч света',d:32,mp:12,cd:2,sp:850,c:'#fff0c0',t:1,ic:'light',el:'light'},
+  {n:'Каменный шторм',d:26,mp:10,cd:1.8,sp:420,c:'#a06040',t:1,ic:'earth',el:'earth'},
+  {n:'Двойной вихрь',d:18,mp:9,cd:1.6,sp:500,c:'#80ffd0',t:1,ic:'wind',el:'wind',pattern:'spiral'},
+  {n:'Огненный шар (Отскок)',d:35,mp:12,cd:2.2,sp:600,c:'#ff8c40',t:1,ic:'flame',el:'fire',pattern:'bounce'},
+
+  // --- ТИР 2 (Уникальная) ---
+  {n:'Землетрясение',d:35,mp:13,cd:2.8,sp:300,c:'#a06040',t:2,ic:'earth',el:'earth'},
+  {n:'Кара',d:40,mp:15,cd:3,sp:600,c:'#fff8c0',t:2,ic:'light',el:'light'},
+  {n:'Пожирание',d:35,mp:13,cd:2.6,sp:420,c:'#8040a0',t:2,ic:'dark',el:'dark'},
+  {n:'Адское пламя',d:45,mp:14,cd:2.4,sp:500,c:'#ff4040',t:2,ic:'flame',el:'fire',explR:60},
+  {n:'Абсолютный ноль',d:42,mp:15,cd:2.6,sp:400,c:'#a0e0ff',t:2,ic:'water',el:'ice'},
+  {n:'Буря',d:38,mp:14,cd:2.4,sp:700,c:'#80ffd0',t:2,ic:'wind',el:'wind'},
+  {n:'Спираль Бездны',d:30,mp:12,cd:2.2,sp:550,c:'#402080',t:2,ic:'dark',el:'dark',pattern:'spiral'},
+  {n:'Ледяная лужа',d:20,mp:14,cd:3,sp:300,c:'#80c0ff',t:2,ic:'water',el:'ice',pattern:'pool'},
+  {n:'Цепная молния',d:22,mp:12,cd:2.5,sp:999,c:'#ffff80',t:2,ic:'wind',el:'wind',pattern:'chain'},
+
+  // --- ТИР 3 (Высшая) ---
+  {n:'Гравитация',d:55,mp:18,cd:3.5,sp:300,c:'#805030',t:3,ic:'earth',el:'earth'},
+  {n:'Освящение',d:60,mp:19,cd:3.5,sp:700,c:'#ffffe0',t:3,ic:'light',el:'light'},
+  {n:'Бездна',d:65,mp:20,cd:3.6,sp:400,c:'#402080',t:3,ic:'dark',el:'dark'},
+  {n:'Метеор',d:70,mp:21,cd:4,sp:450,c:'#ff6060',t:3,ic:'flame',el:'fire',explR:80},
+  {n:'Звёздный луч',d:110,mp:22,cd:4,c:'#fff0c0',t:3,ic:'light',el:'light',laser:true,width:30,length:2000,telegraph:0.5,duration:1.0,dps:0,pierce:99},
+  {n:'Лабиринт ветров',d:50,mp:18,cd:3,c:'#80ffd0',t:3,ic:'wind',el:'wind',pattern:'bounce'},
+  {n:'Святой взрыв',d:80,mp:22,cd:4,c:'#fff8c0',t:3,ic:'light',el:'light',explR:150,pattern:'bounce'},
+
+  // --- ТИР 4 (Божественная) ---
+  {n:'Абсолютный ноль+',d:80,mp:25,cd:4.5,sp:400,c:'#c0e8ff',t:4,ic:'water',el:'ice'},
+  {n:'Длань Бога',d:100,mp:30,cd:5,sp:650,c:'#ffffff',t:4,ic:'light',el:'light',explR:100},
+  {n:'Огненный луч',d:70,mp:14,cd:3.2,c:'#ff6020',t:4,ic:'flame',el:'fire',laser:true,width:24,length:1800,telegraph:0.45,duration:0.7,dps:0},
+  {n:'Ледяной луч',d:60,mp:12,cd:3,c:'#80c0ff',t:4,ic:'water',el:'ice',laser:true,width:20,length:1600,telegraph:0.4,duration:0.8,dps:0},
+  {n:'Черная дыра',d:120,mp:28,cd:5,c:'#402080',t:4,ic:'dark',el:'dark',pattern:'pool'},
+  {n:'Гнев Богов',d:150,mp:35,cd:6,c:'#ffffff',t:4,ic:'light',el:'light',pattern:'chain'}
 ];
 
 const RANKS=[
@@ -456,7 +502,7 @@ const MATERIALS={
 '—':{n:'Без материала',c:'#808080'},'Демоническая Сталь':{n:'Демоническая Сталь',c:'#8b2020'},'Мифрил':{n:'Мифрил',c:'#c0e0ff'},'Орихалк':{n:'Орихалк',c:'#ffcc44'},'Божественная Сталь':{n:'Божественная Сталь',c:'#c0ffc0'},'Священная Сталь':{n:'Священная Сталь',c:'#ff80ff'},'Звёздное Сердце':{n:'Звёздное Сердце',c:'#ffffff'}
 };
 
-const FORGE_RANK_BY_NEXT={10:0,15:1,20:2,25:3,30:4,35:4,40:5,45:5,50:6};
+const FORGE_RANK_BY_NEXT={10:0,15:1,20:2,25:3,30:4,35:5,40:5,45:6,50:6};
 
 const WEAPONS=[
 {n:'Клинок новичка',a:2,m:0,rank:0,atkType:'sword',cost:20,el:null,mat:'—',d:'Стартовый меч. Базовый взмах.'},
@@ -651,7 +697,7 @@ const CHR={
 'Расы':Object.values(RACES).map(r=>r.n+': '+r.d+' Пассив: '+r.p).join('\n\n'),
 'Эволюции':Object.values(RACES).map(r=>r.n+':\n'+r.evo.map(e=>'  • '+e.n+' ур.'+e.lv).join('\n')).join('\n\n'),
 'Навыки':Object.entries(SKILLS).map(([n,s])=>n+': '+s.desc+' (КД '+s.cd+'с)').join('\n\n')+'\n\nТиры: '+TI.join(' → ')+'\n\nУсиление на Высший — 4 осколка. На Божественный — 7.',
-'Магия':SPELLS.map(s=>s.n+' ('+s.d+(s.laser?' лазер':'')+', '+s.mp+' MP)').join('\n')+'\n\nРеген маны: 3 + 0.25×Lv + 1% макс. MP в секунду.',
+'Магия':SPELLS.map(s=>s.n+' ('+s.d+(s.laser?' лазер':'')+(s.pattern?' '+s.pattern:'')+', '+s.mp+' MP)').join('\n')+'\n\nРеген маны: 3 + 0.25×Lv + 1% макс. MP в секунду.',
 'Артефакты':ARTS.map(a=>a.n+': '+a.d).join('\n'),
 'Резонанс':`Навыки вне слотов Q/E/R дают +3% урона. Авто-каст раз в 1.5 сек (КД ×4).`,
 'Враги':ET.map(e=>e.n+' — HP '+e.h+', ATK '+e.a+', lvl '+e.l+(e.behavior?' ['+e.behavior+']':'')).join('\n')+'\n\nЭЛИТА:\n'+ELITE.map(e=>'  ★ '+e.n).join('\n'),
@@ -722,6 +768,7 @@ this.explR=explR||0;this.explDmg=explDmg||0;this.hitIds=new Set();
 this.curve=0;this.speed0=0;
 this.angle=Math.atan2(vy, vx);
 this.visType='circle';
+this.bounce = false;
 this.curveFlipAt=undefined;this.curveFlipTo=0;this.curveFlipped=false;
 this.echoPhase=null;this.echoTimer=0;this.echoWait=0;this.echoBurst=0;
 this.echoBurstSpeed=0;this.echoBurstDmg=0;this.echoBurstColor='#fff';}
@@ -744,6 +791,16 @@ update(dt){
   else if(this.echoPhase==='wait'){this.echoTimer-=dt;}
   this.tr.push(this.x,this.y);if(this.tr.length>10){this.tr.shift();this.tr.shift();}
   this.x+=this.vx*dt;this.y+=this.vy*dt;this.l-=dt;
+
+  if (this.bounce) {
+      if (this.x < 10 || this.x > WW-10) {
+          this.vx *= -1; this.x = cl(this.x, 10, WW-10);
+      }
+      if (this.y < 10 || this.y > WH-10) {
+          this.vy *= -1; this.y = cl(this.y, 10, WH-10);
+      }
+  }
+
   if(!this.echoPhase&&this.l<=0)this.alive=false;}
 draw(){
 for(let i=0;i<this.tr.length-2;i+=2){ctx.globalAlpha=(i/this.tr.length)*.4;ctx.fillStyle=this.c;
@@ -1506,6 +1563,11 @@ constructor(rid,ch,loc){
   this.acdMul=0;this.wepKill=0;this.wepSlayUndead=0;
   this.wepSlayLiving=0;this.wepSlayDragon=0;this.wepBossBonus=0;this.wepHope=false;
   this.elpisCd=0;
+  this.ownedWeapons=[];
+  this.equippedWeapons=[null,null,null];
+  this.activeWeaponIndex=0;
+  this.weaponAbilityCd=0;
+  this.enhanceCd=[0,0,0];
   this.resonanceCount=0;this.resonanceTimer=0;
   this.game=null;
   if(rid==='goblin')this.spd*=1.15;
@@ -1584,6 +1646,150 @@ tryParry(){if(this.parryCd>0||this.parryWindow>0)return false;
   this.parryWindow=0.3;this.parryCd=Math.max(1.0,3.0*(1-this.cdr));
   if(this.game)castVis(this.game,this,'#ffcc44',10,this.z+5);AU.sfx('sel');return true;}
 
+castSpell(sp, dmgMultiplier, isEnhance, g) {
+    let t = this.near(g.enemies, g.bosses);
+    if(!t) return;
+    const pa=predictAim(this.x,this.y,t,sp.def.sp||800);
+    const a=pa!==null?pa:Math.atan2(t.y-this.y,t.x-this.x);
+    const elm=elemMul(this,sp.def.el);
+    let dm=(sp.def.d*TM[sp.def.t]+this.mag*.5)*dmgMultiplier*elm;
+    let src=(this.hasSup() || sp.def.t >= 3) ? 'supreme' : 'normal';
+    if(isEnhance) src = 'supreme';
+    
+    if (sp.def.pattern === 'bounce') {
+        const pr = new Proj(this.x, this.y, Math.cos(a)*600, Math.sin(a)*600, dm, sp.def.c, 10*(this.aoeMult||1), true, 99, src);
+        pr.bounce = true; pr.l = 5;
+        g.proj.push(pr);
+    } 
+    else if (sp.def.pattern === 'spiral') {
+        for(let i=0; i<3; i++) {
+            const pr = new Proj(this.x, this.y, Math.cos(a)*400, Math.sin(a)*400, dm, sp.def.c, 8*(this.aoeMult||1), true, 99, src);
+            pr.setCurve(2.5 * (i%2?1:-1), 3);
+            g.proj.push(pr);
+        }
+    }
+    else if (sp.def.pattern === 'pool') {
+        const pr = new Proj(this.x, this.y, Math.cos(a)*800, Math.sin(a)*800, dm, sp.def.c, 10, true, 99, src);
+        pr.explR = 80; pr.explDmg = 0;
+        g.proj.push(pr);
+        g.pools.push({x:t.x, y:t.y, r:100, life:4, maxLife:4, dmg:dm*0.5, color:sp.def.c, friendly:true, src:src});
+    }
+    else if (sp.def.pattern === 'chain') {
+        let curT = t; let hitList = new Set(); hitList.add(curT);
+        for(let i=0; i<4; i++) {
+            g.lasers.push(new Laser(curT.x, curT.y, Math.atan2(curT.y-this.y, curT.x-this.x), {
+                length: 200, width: 15, telegraph: 0, duration: 0.2, color: sp.def.c, friendly: true, dmg: dm, src: src
+            }));
+            let nextT = null; let minD = 400*400;
+            for(const e of g.enemies) {
+                if(!e.alive || hitList.has(e)) continue;
+                const d = d2(curT.x, curT.y, e.x, e.y);
+                if(d < minD) { minD = d; nextT = e; }
+            }
+            if(!nextT) break;
+            g.lasers.push(new Laser(curT.x, curT.y, Math.atan2(nextT.y-curT.y, nextT.x-curT.x), {
+                length: Math.sqrt(minD), width: 8, telegraph: 0, duration: 0.2, color: sp.def.c, friendly: true, dmg: dm*0.8, src: src
+            }));
+            curT = nextT; hitList.add(curT);
+        }
+        g.shake = 6;
+    }
+    else if(sp.def.laser){
+      const lsOpt={length:(sp.def.length||1800)*(this.aoeMult||1),width:(sp.def.width||22)*(this.aoeMult||1),
+        telegraph:0.1,duration:0.8,color:sp.def.c,
+        friendly:true,dmg:dm,dps:0,pierce:99,src:src,pierceBonus:this.pierceBonus||0};
+      g.lasers.push(new Laser(this.x,this.y,a,lsOpt));
+    } else {
+      const explR=(sp.def.explR||0)*(this.aoeMult||1);
+      const explDmg=explR>0?dm*0.35:0;
+      g.proj.push(new Proj(this.x,this.y,Math.cos(a)*sp.def.sp,Math.sin(a)*sp.def.sp,dm,sp.def.c,7*(this.aoeMult||1),true,this.pierceBonus||0,src,explR,explDmg));
+    }
+}
+
+  triggerWeaponAbility(slotIdx, g) {
+    if (this.weaponAbilityCd > 0) return;
+    this.weaponAbilityCd = 0.5;
+    let wep = this.equippedWeapons[slotIdx];
+    if(!wep) return;
+    let t = this.near(g.enemies, g.bosses);
+    let a = t ? Math.atan2(t.y-this.y, t.x-this.x) : this.aim;
+    let src = 'supreme';
+    let baseDmg = (this.atk + wep.a) * 3;
+    
+    switch(wep.atkType) {
+        case 'sword': 
+            g.slashes.push(new Slash(this.x, this.y, a, 150, Math.PI*1.5, wep.c||'#fff'));
+            doMeleeHit(g, this, a, 150, Math.PI*1.5, baseDmg, src);
+            break;
+        case 'katana':
+            g.slashes.push(new Slash(this.x, this.y, a, 250, Math.PI*0.2, wep.c||'#fff'));
+            doMeleeHit(g, this, a, 250, Math.PI*0.4, baseDmg*1.5, src);
+            break;
+        case 'dagger':
+            this.x = t ? t.x - Math.cos(a)*50 : this.x + Math.cos(a)*200;
+            this.y = t ? t.y - Math.sin(a)*50 : this.y + Math.sin(a)*200;
+            this.inv = 0.5;
+            doMeleeHit(g, this, a, 100, Math.PI*2, baseDmg*2, src);
+            break;
+        case 'spear':
+            g.slashes.push(new Slash(this.x, this.y, a, 300, Math.PI*0.1, wep.c||'#fff'));
+            doMeleeHit(g, this, a, 300, Math.PI*0.1, baseDmg*2, src);
+            break;
+        case 'scythe':
+            g.slashes.push(new Slash(this.x, this.y, a, 180, Math.PI*2, wep.c||'#fff'));
+            doMeleeHit(g, this, a, 180, Math.PI*2, baseDmg*1.2, src);
+            break;
+        case 'hammer':
+            g.slashes.push(new Slash(this.x, this.y, a, 250, Math.PI*2, wep.c||'#fff'));
+            doMeleeHit(g, this, a, 250, Math.PI*2, baseDmg*1.5, src);
+            g.shake = 15;
+            break;
+        case 'gauntlet':
+            doMeleeHit(g, this, a, 150, Math.PI*2, baseDmg*1.5, src);
+            g.shake = 10;
+            break;
+        case 'bow':
+            for(let i=-3; i<=3; i++) {
+                let aa = a + i*0.1;
+                let pr = new Proj(this.x, this.y, Math.cos(aa)*1400, Math.sin(aa)*1400, baseDmg, wep.c||'#fff', 6, true, 99, src);
+                pr.visType = 'arrow'; pr.l = 2; g.proj.push(pr);
+            }
+            break;
+        case 'staff':
+        case 'wand':
+            for(let i=0; i<5; i++) {
+                let aa = a + rnd(-0.5, 0.5);
+                let pr = new Proj(this.x, this.y, Math.cos(aa)*800, Math.sin(aa)*800, baseDmg, wep.c||'#fff', 15, true, 99, src);
+                pr.explR = 80; pr.explDmg = baseDmg*0.5; g.proj.push(pr);
+            }
+            break;
+        case 'grimoire':
+            let pr = new Proj(this.x, this.y, Math.cos(a)*300, Math.sin(a)*300, baseDmg*2, wep.c||'#fff', 30, true, 99, src);
+            pr.l = 3; pr.explR = 200; pr.explDmg = baseDmg*2; g.proj.push(pr);
+            break;
+        case 'claw':
+            for(let i=0; i<10; i++) {
+                g.slashes.push(new Slash(this.x, this.y, a+rnd(-0.5,0.5), 120, Math.PI*0.3, wep.c||'#fff'));
+            }
+            doMeleeHit(g, this, a, 120, Math.PI*1.5, baseDmg*1.5, src);
+            break;
+        case 'stellar':
+            for(let i=0; i<16; i++) {
+                let aa = i/16 * Math.PI*2;
+                let pr = new Proj(this.x, this.y, Math.cos(aa)*800, Math.sin(aa)*800, baseDmg, '#fff8c0', 10, true, 99, src);
+                pr.visType = 'beam'; pr.l = 2; g.proj.push(pr);
+            }
+            break;
+        case 'elpis':
+            doMeleeHit(g, this, a, 300, Math.PI*2, baseDmg*3, src);
+            g.slashes.push(new Slash(this.x, this.y, a, 300, Math.PI*2, '#fff8c0'));
+            this.hp = Math.min(this.maxHp, this.hp + this.maxHp*0.2);
+            break;
+    }
+    AU.sfx('sec');
+    g.shake = 8;
+  }
+
 update(dt,k,g){
   this.game=g;
   if(this.parryWindow>0)this.parryWindow-=dt;
@@ -1611,6 +1817,8 @@ update(dt,k,g){
   this.mcd=Math.max(0,this.mcd-dt);this.dcd=Math.max(0,this.dcd-dt);
   this.tearCd=Math.max(0,this.tearCd-dt);
   this.elpisCd=Math.max(0,this.elpisCd-dt);
+  if(this.enhanceCd){for(let i=0;i<3;i++)this.enhanceCd[i]=Math.max(0,this.enhanceCd[i]-dt);}
+  if(this.weaponAbilityCd) this.weaponAbilityCd=Math.max(0,this.weaponAbilityCd-dt);
   this.apcd=Math.max(0,this.apcd-dt);
   for(const b in this.buffs)this.buffs[b]=Math.max(0,this.buffs[b]-dt);
   if(this.buffs.shield<=0&&this.shield>0)this.shield=0;
@@ -1621,7 +1829,8 @@ update(dt,k,g){
     this.apcd=Math.max(1.5,5*(1-this.cdr));
     g.ftxt.push(new FTxt('Мудрец: +'+~~heal+' HP',this.x,this.y-35,'#a0ffa0',1.5,14));}
   const t=this.near(g.enemies,g.bosses);
-  if(t&&this.acd<=0){
+  
+  if(t&&this.acd<=0 && !g.magicMaster){
     const pa=predictAim(this.x,this.y,t,600);const a=pa!==null?pa:Math.atan2(t.y-this.y,t.x-this.x);
     const cr=Math.random()*100<this.crit;const cm=cr?this.cdmg:1;
     const baseDm=(this.atk+this.wep.a)*cm*dmgBonus;
@@ -1754,7 +1963,7 @@ update(dt,k,g){
     this.acd=Math.max(0.15,rawAcd*(1-this.cdr));
   }
 
-  if(this.spells.length){
+  if(this.spells.length && !g.weaponMaster){
     const ready=this.spells.filter(sp=>(sp.cd||0)<=0&&this.mp>=sp.def.mp);
     if(ready.length&&t){let sp;const frac=this.mp/this.maxMp;
       if(frac<0.3){sp=ready.reduce((a,b)=>a.def.mp<=b.def.mp?a:b);}
@@ -1762,21 +1971,8 @@ update(dt,k,g){
       else{sp=pick(ready);}
       if(this.buffs.satanael<=0)this.mp-=sp.def.mp;
       sp.cd=sp.def.cd*(1-this.cdr);
-      const pa=predictAim(this.x,this.y,t,sp.def.sp||800);
-      const a=pa!==null?pa:Math.atan2(t.y-this.y,t.x-this.x);
-      const elm=elemMul(this,sp.def.el);
-      const dm=(sp.def.d*TM[sp.def.t]+this.mag*.5)*dmgBonus*elm;
-      const src=this.hasSup()?'supreme':'normal';
-      if(sp.def.laser){
-        const lsOpt={length:(sp.def.length||1800)*(this.aoeMult||1),width:(sp.def.width||22)*(this.aoeMult||1),
-          telegraph:sp.def.telegraph||0.4,duration:sp.def.duration||0.8,color:sp.def.c,
-          friendly:true,dmg:dm,dps:0,pierce:sp.def.pierce||(this.pierceBonus||0),src:src,pierceBonus:this.pierceBonus||0};
-        g.lasers.push(new Laser(this.x,this.y,a,lsOpt));
-      } else {
-        const explR=(sp.def.explR||0)*(this.aoeMult||1);
-        const explDmg=explR>0?dm*0.35:0;
-        g.proj.push(new Proj(this.x,this.y,Math.cos(a)*sp.def.sp,Math.sin(a)*sp.def.sp,dm,sp.def.c,7*(this.aoeMult||1),true,this.pierceBonus||0,src,explR,explDmg));
-      }}}
+      this.castSpell(sp, 1, false, g);
+    }}
   const bonusRegen=(this.buffs.regen||0)*0.5;this.regen+=dt;
   if(this.regen>=1){this.regen-=1;
   const effMpR=this.mpR+(this.lv*0.25)+(this.maxMp*0.01);
@@ -1836,10 +2032,13 @@ ctx.beginPath();ctx.arc(this.x,this.y,this.hitR+hbp+2,0,7);ctx.stroke();
 ctx.fillStyle=hexA(this.c,0.55);ctx.beginPath();ctx.arc(this.x,this.y,this.hitR,0,7);ctx.fill();
 ctx.fillStyle=hexA(hbCol,0.85);ctx.beginPath();ctx.arc(this.x,this.y,this.hitR*0.45,0,7);ctx.fill();
 if(this.parryWindow>0){const w=0.6+Math.sin(performance.now()/60)*0.4;
-  ctx.strokeStyle='rgba(255,220,80,'+w+')';ctx.lineWidth=3;
-  ctx.beginPath();ctx.arc(this.x,this.y,this.z+8,0,7);ctx.stroke();
-  ctx.strokeStyle='rgba(255,255,255,'+(w*0.6)+')';ctx.lineWidth=1.5;
-  ctx.beginPath();ctx.arc(this.x,this.y,this.z+12,0,7);ctx.stroke();}
+  const pR = this.z + this.hitR * 2.5;
+  ctx.strokeStyle='rgba(255,220,80,'+w+')';ctx.lineWidth=4;
+  ctx.beginPath();ctx.arc(this.x,this.y,pR,0,7);ctx.stroke();
+  ctx.strokeStyle='rgba(255,255,255,'+(w*0.6)+')';ctx.lineWidth=2;
+  ctx.beginPath();ctx.arc(this.x,this.y,pR+8,0,7);ctx.stroke();
+  ctx.fillStyle='rgba(255,220,80,'+(w*0.15)+')';
+  ctx.beginPath();ctx.arc(this.x,this.y,pR,0,7);ctx.fill();}
 if(this.parrySuccess>0){const t=this.parrySuccess/0.4;
   ctx.globalAlpha=t;ctx.strokeStyle='#ffff80';ctx.lineWidth=4;
   ctx.beginPath();ctx.arc(this.x,this.y,this.z+15+(1-t)*35,0,7);ctx.stroke();
@@ -1871,9 +2070,10 @@ class Game{
     this.tutStep=0;this.tutData=null;
     this.finalWave=false;this.finalChainStep=0;this.finalDelay=0;this.victory=false;
     this.cutsceneTimer=0;this.cutsceneData=null;
-    this.forgeRank=0;this.forgePending=false;this.forgeItems=[];
+    this.forgeRank=0;this.forgePending=false;this.forgeItems=[];this.forgeScroll=0;
     this.pendingSkipGold=0;
     this.runRecorded=false;
+    this.weaponMaster=false;this.magicMaster=false;this.pendingMode='normal';
     this.camX=0;this.camY=0;
     this.last=performance.now();
     this.bind();requestAnimationFrame(t=>this.loop(t));}
@@ -1885,17 +2085,25 @@ class Game{
       this.md(e.button);e.preventDefault();});
     cv.addEventListener('wheel',e=>{this.onWheel(e.deltaY);e.preventDefault();},{passive:false});
     cv.addEventListener('contextmenu',e=>e.preventDefault());}
-  onWheel(d){if(this.state==='chronicles')this.chrScrl=Math.max(0,this.chrScrl+d*.5);}
-  startHistory(){this.historyMode=true;this.srid='slime';this.sch=RACES.slime.ch[0];this.sloc=LOCS[0];this.startRun();AU.sfx('sel');}
+  onWheel(d){
+    if(this.state==='chronicles')this.chrScrl=Math.max(0,this.chrScrl+d*.5);
+    if(this.state==='forge'){
+      const maxScroll = Math.max(0, this.forgeItems.length * 85 - 420);
+      this.forgeScroll = Math.max(0, Math.min(this.forgeScroll + d*0.5, maxScroll));
+    }
+  }
+  startHistory(){this.historyMode=true;this.pendingMode='history';this.srid='slime';this.sch=RACES.slime.ch[0];this.sloc=LOCS[0];this.startRun();AU.sfx('sel');}
   
   md(b){const mx=this.mx,my=this.my;
     if(this.state==='menu'){
-      if(my>=220&&my<=280){this.startTutorial();AU.sfx('sel');return;}
-      if(my>=310&&my<=370){this.state='mode_select';AU.sfx('sel');return;}
-      if(my>=400&&my<=460){this.state='chronicles';this.chrS=0;this.chrScrl=0;this.retTo='menu';AU.sfx('sel');return;}}
+      if(my>=220&&my<=280 && mx>=W/2-180 && mx<=W/2+180){this.startTutorial();AU.sfx('sel');return;}
+      if(my>=310&&my<=370 && mx>=W/2-180 && mx<=W/2+180){this.state='mode_select';AU.sfx('sel');return;}
+      if(my>=400&&my<=460 && mx>=W/2-180 && mx<=W/2+180){this.state='chronicles';this.chrS=0;this.chrScrl=0;this.retTo='menu';AU.sfx('sel');return;}}
     else if(this.state==='mode_select'){
-      if(my>=180&&my<=260){this.state='race_select';this.historyMode=false;AU.sfx('sel');return;}
-      if(my>=280&&my<=360){this.startHistory();return;}}
+      if(my>=180&&my<=260){this.pendingMode='normal';this.state='race_select';this.historyMode=false;AU.sfx('sel');return;}
+      if(my>=280&&my<=360){this.startHistory();return;}
+      if(my>=380&&my<=450){this.pendingMode='weapon_master';this.state='race_select';this.historyMode=false;AU.sfx('sel');return;}
+      if(my>=470&&my<=540){this.pendingMode='magic_master';this.state='race_select';this.historyMode=false;AU.sfx('sel');return;}}
     else if(this.state==='race_select'){const ids=Object.keys(RACES);
       for(let i=0;i<ids.length;i++){const col=i%2,row=~~(i/2);
         const x=60+col*620,y=70+row*90;
@@ -1924,12 +2132,24 @@ class Game{
       if(this.pendingLv>0)this.triggerLv();AU.sfx('sel');}
     else if(this.state==='forge'){
       const pool=this.forgeItems;
-      const cellH=pool.length>=5?85:100;
-      const startY=pool.length>=5?140:160;
+      const startY=160;
       for(let i=0;i<pool.length;i++){
-        const y=startY+i*cellH;
-        if(mx>=W/2-380&&mx<=W/2+380&&my>=y&&my<=y+cellH-15){
+        const y=startY+i*85-this.forgeScroll;
+        if(y<160-85||y>160+420)continue;
+        if(mx>=W/2-380&&mx<=W/2+380&&my>=y&&my<=y+70){
           const w=pool[i];
+          
+          if(this.weaponMaster){
+            if(this.player.ownedWeapons.includes(w)){AU.sfx('sel');return;}
+            if(this.player.gold>=w.cost){
+              this.player.gold-=w.cost;
+              this.player.ownedWeapons.push(w);
+              AU.sfx('lvl');
+              this.ftxt.push(new FTxt('КУПЛЕНО: '+w.n,this.player.x,this.player.y-60,RANKS[w.rank].c,2.5,20));
+            }else{AU.sfx('sel');}
+            return;
+          }
+          
           if(this.player.wep.n===w.n){AU.sfx('sel');return;}
           if(this.player.gold>=w.cost){
             this.player.gold-=w.cost;
@@ -1943,7 +2163,7 @@ class Game{
             this.ftxt.push(new FTxt('СКОВАНО: '+w.n,this.player.x,this.player.y-60,RANKS[w.rank].c,2.5,20));
           } else {AU.sfx('sel');}
           return;}}
-      const btnY=startY+pool.length*cellH+20;
+      const btnY=H-65;
       if(mx>=W/2-150&&mx<=W/2+150&&my>=btnY&&my<=btnY+50){
         this.forgePending=false;
         this.wave++;
@@ -1976,15 +2196,17 @@ class Game{
       else if(k==='3'){this.state='chronicles';this.chrS=0;this.chrScrl=0;this.retTo='menu';}
       else if(k==='4'||k==='t'){this.startTutorial();}}
     else if(this.state==='mode_select'){
-      if(k==='1'){this.state='race_select';this.historyMode=false;AU.sfx('sel');}
+      if(k==='1'){this.pendingMode='normal';this.state='race_select';this.historyMode=false;AU.sfx('sel');}
       else if(k==='2'){this.startHistory();}
+      else if(k==='3'){this.pendingMode='weapon_master';this.state='race_select';this.historyMode=false;AU.sfx('sel');}
+      else if(k==='4'){this.pendingMode='magic_master';this.state='race_select';this.historyMode=false;AU.sfx('sel');}
       else if(k==='escape'){this.state='menu';AU.sfx('sel');}}
     else if(this.state==='race_select'){const ids=Object.keys(RACES);let idx=-1;
       if(k.length===1){const n=parseInt(k);
         if(!isNaN(n))idx=n===0?9:n-1;
         else if(k==='q')idx=10;else if(k==='w')idx=11;else if(k==='e')idx=12;}
       if(idx>=0&&idx<ids.length){this.srid=ids[idx];this.state='character_select';}
-      else if(k==='escape')this.state='menu';}
+      else if(k==='escape')this.state='mode_select';}
     else if(this.state==='character_select'){const r=RACES[this.srid];const n=parseInt(k);
       if(!isNaN(n)&&n>=1&&n<=r.ch.length){this.sch=r.ch[n-1];this.state='location_select';}
       else if(k==='c'){this.state='custom_name';this.cnm='';}
@@ -2019,6 +2241,26 @@ class Game{
         this.state='playing';if(this.pendingLv>0)this.pendingLv--;
         if(this.pendingLv>0)this.triggerLv();}}
     else if(this.state==='forge'){
+      if(this.weaponMaster){
+        if(k==='q'||k==='e'||k==='r'){
+          let slot=k==='q'?0:(k==='e'?1:2);
+          const pool=this.forgeItems;
+          for(let i=0;i<pool.length;i++){
+            const y=160+i*85-this.forgeScroll;
+            if(y<160-85||y>160+420)continue;
+            if(this.mx>=W/2-380&&this.mx<=W/2+380&&this.my>=y&&this.my<=y+70){
+              const w=pool[i];
+              if(this.player.ownedWeapons.includes(w)||this.player.gold>=w.cost){
+                if(!this.player.ownedWeapons.includes(w)){this.player.gold-=w.cost;this.player.ownedWeapons.push(w);}
+                this.player.equippedWeapons[slot]=w;
+                AU.sfx('lvl');
+                this.ftxt.push(new FTxt('В СЛОТ '+['Q','E','R'][slot]+': '+w.n,this.player.x,this.player.y-80,'#80ff80',2,20));
+              }else{AU.sfx('sel');}
+              return;
+            }
+          }
+        }
+      }
       if(k==='escape'){
         this.forgePending=false;
         this.wave++;
@@ -2052,14 +2294,40 @@ class Game{
       if(k==='r')this.startRun();
       else if(k==='m'){this.recordRun();this.state='menu';this.player=null;AU.stop();AU.music('menu');}}}
       
-  useSk(i){const p=this.player;if(!p)return;const n=p.slots[i];if(!n)return;
+  useSk(i){
+    const p=this.player;if(!p)return;
+    if(this.weaponMaster){
+        if(!p.equippedWeapons[i]) return;
+        if(p.wep.unapply) p.wep.unapply(p);
+        p.wep = p.equippedWeapons[i];
+        if(p.wep.apply) p.wep.apply(p);
+        p.activeWeaponIndex = i;
+        p.acd = 0;
+        p.triggerWeaponAbility(i, this);
+        return;
+    }
+    if(this.magicMaster){
+        const sp = p.spells[i];
+        if(!sp || p.enhanceCd[i] > 0) return;
+        p.enhanceCd[i] = 8;
+        for(let c=0;c<5;c++){
+          setTimeout(()=>{
+            if(this.state==='playing') p.castSpell(sp, 2.0, true, this);
+          }, c*100);
+        }
+        AU.sfx('sec'); this.shake = 10;
+        return;
+    }
+    const n=p.slots[i];if(!n)return;
     const sk=p.skills[n];if(!sk||sk.cd>0)return;
     if(this.lasers&&this.lasers.some(l=>l.ownerSkill===n&&l.alive))return;
     sk.cd=Math.max(1.0,SKILLS[n].cd*(1-p.cdr));
     const t=p.near(this.enemies,this.bosses);
-    SKILLS[n].n=n;SKILLS[n].el=SKILL_ELEM[n];SKILLS[n].cast(this,p,t);}
+    SKILLS[n].n=n;SKILLS[n].el=SKILL_ELEM[n];SKILLS[n].cast(this,p,t);
+}
     
   startRun(){this.player=new Player(this.srid,this.sch,this.sloc);
+    this.player.game = this;
     this.loc=this.sloc;this.enemies=[];this.bosses=[];this.proj=[];this.particles=[];this.ftxt=[];this.mines=[];this.lasers=[];this.pools=[];this.slashes=[];
     this.wave=1;this.wt=0;this.st=0;this.bsSpawned=new Set();this.shake=0;this.runTime=0;
     this.waveEnemiesToSpawn=5+this.wave*2;this.waveEnemiesSpawned=0;
@@ -2067,9 +2335,33 @@ class Game{
     this.timeSlowTimer=0;this.flash=0;this.pendingLv=0;
     this.finalWave=false;this.finalChainStep=0;this.finalDelay=0;this.victory=false;
     this.cutsceneTimer=0;this.cutsceneData=null;
-    this.forgeRank=0;this.forgePending=false;this.forgeItems=[];
+    this.forgeRank=0;this.forgePending=false;this.forgeItems=[];this.forgeScroll=0;
     this.pendingSkipGold=0;
     this.runRecorded=false;
+    
+    this.weaponMaster = (this.pendingMode === 'weapon_master');
+    this.magicMaster = (this.pendingMode === 'magic_master');
+    
+    if (this.weaponMaster) {
+        this.player.skills = {};
+        this.player.slots = [null, null, null];
+        this.player.spells = [];
+        this.player.equippedWeapons = [WEAPONS[0], WEAPONS[3], WEAPONS[2]];
+        this.player.ownedWeapons = [WEAPONS[0], WEAPONS[3], WEAPONS[2]];
+        this.player.activeWeaponIndex = 0;
+        this.player.wep = this.player.equippedWeapons[0];
+        if(this.player.wep.apply) this.player.wep.apply(this.player);
+    }
+    if (this.magicMaster) {
+        this.player.skills = {};
+        this.player.slots = [null, null, null];
+        this.player.spells = [{def:SPELLS[0],cd:0}, {def:SPELLS[1],cd:0}, {def:SPELLS[2],cd:0}];
+        this.player.spells.sort((a,b) => b.def.t - a.def.t);
+        this.player.enhanceCd = [0, 0, 0];
+        this.player.wep = WEAPONS[2];
+        if(this.player.wep.apply) this.player.wep.apply(this.player);
+    }
+    
     this.camX=cl(this.player.x-W/2,0,WW-W);this.camY=cl(this.player.y-H/2,0,WH-H);
     this.state='playing';if(!AU.init)AU.i();AU.stop();AU.music('combat');}
     
@@ -2103,8 +2395,9 @@ Game.prototype.startTutorial=function(){
   this.timeSlowTimer=0;this.flash=0;this.pendingLv=0;
   this.finalWave=false;this.finalChainStep=0;this.finalDelay=0;this.victory=false;
   this.cutsceneTimer=0;this.cutsceneData=null;this.runTime=0;
-  this.forgeRank=0;this.forgePending=false;this.forgeItems=[];
+  this.forgeRank=0;this.forgePending=false;this.forgeItems=[];this.forgeScroll=0;
   this.pendingSkipGold=0;
+  this.weaponMaster=false;this.magicMaster=false;
   this.camX=cl(this.player.x-W/2,0,WW-W);this.camY=cl(this.player.y-H/2,0,WH-H);
   this.tutStep=0;
   this.tutData={startX:this.player.x,startY:this.player.y,dummy:null,dummySpawned:false,timer:0};
@@ -2164,7 +2457,7 @@ Game.prototype.triggerLv=function(){
   if(p.cdr<0.75)pool.push({n:'-5% перезарядка',k:'cdr'});
   if(p.hpRegenPct<0.05)pool.push({n:'+0.5% HP-реген',k:'hpreg'});
   const own=Object.keys(p.skills);
-  if(own.length){
+  if(own.length && !this.weaponMaster && !this.magicMaster){
     const evoSkills=own.filter(sk=>SKILL_EVO[sk]&&SKILL_EVO[sk].next);
     const affordable=evoSkills.filter(sk=>p.frag>=evoFragCost(sk));
     if(affordable.length>0){const sk=pick(affordable);const evo=SKILL_EVO[sk];const cost=evoFragCost(sk);
@@ -2176,18 +2469,27 @@ Game.prototype.triggerLv=function(){
       if(affordableUp.length>0){const sk=pick(affordableUp);const ct=p.skills[sk].tier;
         const cost=ct>=3?7:(ct>=2?4:0);const newDn=skillDisplayName(sk,ct+1);
         const costStr=cost>0?' ('+cost+' оск.)':'';
-        pool.push({n:skillDisplayName(sk,ct)+' → '+newDn+' ('+TI[ct+1]+')'+costStr,k:'skUp',sk,cost});}}}
-  if(Object.keys(p.skills).length<3){
+        pool.push({n:skillDisplayName(sk,ct)+' → '+newDn+' ('+TI[ct+1]+')'+costStr,k:'skUp',sk,cost});}}
+  }
+  if(Object.keys(p.skills).length<3 && !this.weaponMaster && !this.magicMaster){
     const av=Object.keys(SKILLS).filter(s=>!p.skills[s]&&!Object.values(SKILL_EVO).some(e=>e.next===s)&&!SKILLS[s].ult);
     if(av.length){const ns=pick(av);pool.push({n:'Навык: '+ns,k:'newSk',sk:ns});}}
   const avSp=SPELLS.filter(s=>!p.spells.find(x=>x.def.n===s.n));
-  if(avSp.length){const ns=pick(avSp);pool.push({n:'Магия: '+ns.n,k:'newSp',sp:ns});}
+  if(avSp.length){
+    const ns=pick(avSp);
+    pool.push({n:'Магия: '+ns.n,k:'newSp',sp:ns});
+    if(this.magicMaster && avSp.length>1) {
+      const ns2=pick(avSp.filter(s=>s.n!==ns.n));
+      if(ns2) pool.push({n:'Магия: '+ns2.n,k:'newSp',sp:ns2});
+    }
+  }
   const avA=ARTS.filter(a=>!p.arts.find(x=>x.n===a.n));
   if(avA.length){const a=pick(avA);pool.push({n:'Артефакт: '+a.n,k:'art',a});}
   for(let i=pool.length-1;i>0;i--){const j=~~(Math.random()*(i+1));[pool[i],pool[j]]=[pool[j],pool[i]];}
   const evoIdx=pool.findIndex(x=>x.k==='evoSk');
   if(evoIdx>1){[pool[1],pool[evoIdx]]=[pool[evoIdx],pool[1]];}
-  this.lvc=pool.slice(0,Math.min(3,pool.length));AU.sfx('lvl');};
+  this.lvc=pool.slice(0,Math.min(3,pool.length));AU.sfx('lvl');
+}
 
 function optionInfo(c,p){
   switch(c.k){
@@ -2240,7 +2542,10 @@ Game.prototype.pick=function(i){
       break;
     case 'evoSk':if(c.cost&&c.cost>0)p.frag-=c.cost;this.evolveSkill(p,c.sk);break;
     case 'newSk':if(c.sk)p.addSk(c.sk);break;
-    case 'newSp':p.spells.push({def:c.sp,cd:0});break;
+    case 'newSp':
+      p.spells.push({def:c.sp,cd:0});
+      if(this.magicMaster) p.spells.sort((a,b) => b.def.t - a.def.t);
+      break;
     case 'art':p.arts.push(c.a);c.a.e(p);break;
   }
   this.state='playing';
@@ -2396,8 +2701,7 @@ Game.prototype.upd=function(dt){
           doExplode();cn=true;break;}}
       if(cn)this.proj.splice(i,1);
     } else {
-      if(d2(pr.x,pr.y,p.x,p.y)<(pr.r+p.hitR)**2){
-        if(p.parryWindow>0){
+      if (p.parryWindow > 0 && d2(pr.x, pr.y, p.x, p.y) < (pr.r + p.hitR * 2.5)**2) {
           p.parryWindow=0;p.parrySuccess=0.4;p.parryCd=0;
           p.inv=0.3;p.buffs.insp=Math.max(p.buffs.insp,1.5);
           const reverseAngle=Math.atan2(pr.vy,pr.vx)+Math.PI;
@@ -2405,7 +2709,10 @@ Game.prototype.upd=function(dt){
           pr.vx=Math.cos(reverseAngle)*newSpeed;pr.vy=Math.sin(reverseAngle)*newSpeed;
           pr.fr=true;pr.src='supreme';pr.dmg*=2;pr.c='#ffff80';pr.l=3;pr.tr=[];
           for(let j=0;j<10;j++)this.particles.push(new Part(p.x,p.y,'#ffff80'));
-          continue;}
+          continue;
+      }
+      
+      if(d2(pr.x,pr.y,p.x,p.y)<(pr.r+p.hitR)**2){
         const dmgIn=pr.dmg*(1-Math.min(0.5,p.mres||0))*(1-Math.min(0.5,p.res*0.01));
         p.hurt(dmgIn);
         for(let j=0;j<5;j++)this.particles.push(new Part(p.x,p.y,'#ff6060'));
@@ -2481,21 +2788,35 @@ Game.prototype.upd=function(dt){
   for(const x of toAdd)this.bosses.push(x);
   for(let i=this.particles.length-1;i>=0;i--){const pt=this.particles[i];pt.update(dt);if(pt.l<=0)this.particles.splice(i,1);}
   if(this.mines)for(let i=this.mines.length-1;i>=0;i--){this.mines[i].life-=dt;if(this.mines[i].life<=0)this.mines.splice(i,1);}
-  if(this.pools)for(let i=this.pools.length-1;i>=0;i--){const pl=this.pools[i];pl.life-=dt;
+  if(this.pools)for(let i=this.pools.length-1;i>=0;i--){
+    const pl=this.pools[i];
+    pl.life-=dt;
     if(pl.life<=0){this.pools.splice(i,1);continue;}
-    if(d2(pl.x,pl.y,p.x,p.y)<pl.r*pl.r&&!p.dodg&&p.buffs.invuln<=0){
-      if(p.dod>0&&Math.random()*100<p.dod)continue;
-      let dh=pl.dmg*dt*(1-Math.min(0.5,p.res*0.01));
-      if(p.buffs.stoic>0)dh*=0.5;
-      if(p.shield>0){const ab=Math.min(p.shield,dh);p.shield-=ab;dh-=ab;}
-      if(dh>0)p.hp-=dh;
-      if(Math.random()<0.15)this.particles.push(new Part(p.x,p.y,pl.color));}}
+    
+    if (pl.friendly) {
+        for(const e of this.enemies){
+            if(e.alive && d2(pl.x,pl.y,e.x,e.y) < (pl.r+e.z)**2) e.dmg(pl.dmg*dt, pl.src);
+        }
+        for(const b of this.bosses){
+            if(b.alive && d2(pl.x,pl.y,b.x,b.y) < (pl.r+b.z)**2) b.dmg(pl.dmg*dt, pl.src);
+        }
+    } else {
+        if(d2(pl.x,pl.y,p.x,p.y)<pl.r*pl.r&&!p.dodg&&p.buffs.invuln<=0){
+          if(p.dod>0&&Math.random()*100<p.dod)continue;
+          let dh=pl.dmg*dt*(1-Math.min(0.5,p.res*0.01));
+          if(p.buffs.stoic>0)dh*=0.5;
+          if(p.shield>0){const ab=Math.min(p.shield,dh);p.shield-=ab;dh-=ab;}
+          if(dh>0)p.hp-=dh;
+          if(Math.random()<0.15)this.particles.push(new Part(p.x,p.y,pl.color));
+        }
+    }
+  }
   if(this.lasers)for(let i=this.lasers.length-1;i>=0;i--){
     const ls=this.lasers[i];ls.update(dt);
     if(!ls.alive){this.lasers.splice(i,1);continue;}
     if(ls.phase!=='active')continue;
     if(ls.hostile&&p.parryWindow>0){
-      if(ls.hitsPoint(p.x,p.y,p.hitR)){
+      if(ls.hitsPoint(p.x,p.y,p.hitR * 2.5)){
         p.parryWindow=0;p.parrySuccess=0.4;p.parryCd=0;
         p.inv=0.4;p.buffs.invuln=Math.max(p.buffs.invuln,0.4);
         p.buffs.insp=Math.max(p.buffs.insp,1.5);
@@ -2541,8 +2862,12 @@ Game.prototype.upd=function(dt){
     }
     if(FORGE_RANK_BY_NEXT[nextWave]!==undefined && !this.forgePending){
       this.forgeRank=FORGE_RANK_BY_NEXT[nextWave];
-      this.forgeItems=WEAPONS.filter(w=>w.rank===this.forgeRank);
-      this.forgePending=true;this.state='forge';AU.music('menu');return;}
+      if(this.magicMaster){
+        this.forgeItems = WEAPONS.filter(w=>w.rank===this.forgeRank && ['staff','wand','grimoire'].includes(w.atkType));
+      } else {
+        this.forgeItems = WEAPONS.filter(w=>w.rank===this.forgeRank);
+      }
+      this.forgePending=true;this.state='forge';this.forgeScroll=0;AU.music('menu');return;}
     this.wave++;this.forgePending=false;
     this.waveEnemiesToSpawn=5+this.wave*2;this.waveEnemiesSpawned=0;this.wt=0;
     this.ftxt.push(new FTxt('Волна '+this.wave,p.x,p.y-150,'#fff',2,26));
@@ -2618,26 +2943,37 @@ Game.prototype.rModeSelect=function(){
     ctx.beginPath();ctx.arc(x,y,1.5,0,7);ctx.fill();}
   ctx.globalAlpha=1;
 
-  tx('ВЫБЕРИТЕ РЕЖИМ ИГРЫ',W/2,80,{size:36,weight:'bold',color:'#50c8dc',align:'center',glow:'#50c8dc',glowBlur:20});
+  tx('ВЫБЕРИТЕ РЕЖИМ ИГРЫ',W/2,60,{size:34,weight:'bold',color:'#50c8dc',align:'center',glow:'#50c8dc',glowBlur:20});
 
-  const h1=this.hov(W/2-300,180,600,80);
-  ctx.fillStyle=h1?'rgba(50,70,100,.95)':'rgba(20,30,50,.8)';ctx.fillRect(W/2-300,180,600,80);
-  ctx.strokeStyle=h1?'#80e0f0':'#50c8dc';ctx.lineWidth=h1?3:2;ctx.strokeRect(W/2-300,180,600,80);
-  tx('1. Обычная игра (Выживание)',W/2-280,210,{size:22,color:'#fff'});
-  tx('Классический режим. Выберите расу, персонажа и локацию.',W/2-280,240,{size:13,color:'#a0a8b8'});
+  // 1. Обычная игра
+  const h1=this.hov(W/2-300,130,600,70);
+  ctx.fillStyle=h1?'rgba(50,70,100,.95)':'rgba(20,30,50,.8)';ctx.fillRect(W/2-300,130,600,70);
+  ctx.strokeStyle=h1?'#80e0f0':'#50c8dc';ctx.lineWidth=h1?3:2;ctx.strokeRect(W/2-300,130,600,70);
+  tx('1. Обычная игра (Выживание)',W/2-280,158,{size:20,color:'#fff'});
+  tx('Классический режим. Выберите расу, персонажа и локацию.',W/2-280,185,{size:12,color:'#a0a8b8'});
 
-  const h2=this.hov(W/2-300,280,600,80);
-  ctx.fillStyle=h2?'rgba(50,70,100,.95)':'rgba(20,30,50,.8)';ctx.fillRect(W/2-300,280,600,80);
-  ctx.strokeStyle=h2?'#80e0f0':'#50c8dc';ctx.lineWidth=h2?3:2;ctx.strokeRect(W/2-300,280,600,80);
-  tx('2. Путешествие по истории (за Римуру)',W/2-280,310,{size:22,color:'#ffcc44'});
-  tx('Сюжетный режим. Каждый новый босс открывает новую локацию.',W/2-280,340,{size:13,color:'#a0a8b8'});
+  // 2. История
+  const h2=this.hov(W/2-300,220,600,70);
+  ctx.fillStyle=h2?'rgba(50,70,100,.95)':'rgba(20,30,50,.8)';ctx.fillRect(W/2-300,220,600,70);
+  ctx.strokeStyle=h2?'#80e0f0':'#ffcc44';ctx.lineWidth=h2?3:2;ctx.strokeRect(W/2-300,220,600,70);
+  tx('2. Путешествие по истории',W/2-280,248,{size:20,color:'#ffcc44'});
+  tx('Сюжетный режим. Каждый новый босс открывает новую локацию.',W/2-280,275,{size:12,color:'#a0a8b8'});
 
-  ctx.fillStyle='rgba(20,20,30,.6)';ctx.fillRect(W/2-300,380,600,80);
-  ctx.strokeStyle='#333';ctx.lineWidth=2;ctx.strokeRect(W/2-300,380,600,80);
-  tx('3. Режим "Апокалипсис" (Скоро)',W/2-280,410,{size:22,color:'#606878'});
-  tx('Будет добавлено в будущих обновлениях.',W/2-280,440,{size:13,color:'#404050'});
+  // 3. Мастер Оружия
+  const h3=this.hov(W/2-300,310,600,70);
+  ctx.fillStyle=h3?'rgba(50,70,100,.95)':'rgba(20,30,50,.8)';ctx.fillRect(W/2-300,310,600,70);
+  ctx.strokeStyle=h3?'#80e0f0':'#80ff80';ctx.lineWidth=h3?3:2;ctx.strokeRect(W/2-300,310,600,70);
+  tx('3. Мастер Оружия (Арсенал)',W/2-280,338,{size:20,color:'#80ff80'});
+  tx('Запрет магии и навыков. Экипируйте 3 оружия в слоты Q/E/R.',W/2-280,365,{size:12,color:'#a0a8b8'});
 
-  tx('ESC — назад',W/2,H-40,{size:14,color:'#606878',align:'center'});
+  // 4. Властитель Магии
+  const h4=this.hov(W/2-300,400,600,70);
+  ctx.fillStyle=h4?'rgba(50,70,100,.95)':'rgba(20,30,50,.8)';ctx.fillRect(W/2-300,400,600,70);
+  ctx.strokeStyle=h4?'#80e0f0':'#c080ff';ctx.lineWidth=h4?3:2;ctx.strokeRect(W/2-300,400,600,70);
+  tx('4. Властитель Магии (Чародей)',W/2-280,428,{size:20,color:'#c080ff'});
+  tx('Запрет навыков и оружия. Усиливайте магию (Q/E/R).',W/2-280,455,{size:12,color:'#a0a8b8'});
+
+  tx('ESC — назад',W/2,H-30,{size:14,color:'#606878',align:'center'});
 };
 
 Game.prototype.rRace=function(){
@@ -2790,7 +3126,10 @@ Game.prototype.rHUD=function(){
   
   const wR=RANKS[p.wep.rank];const wMat=MATERIALS[p.wep.mat]||MATERIALS['—'];
   const isElpis=p.wep.n.includes('Эльпис');
-  if(isElpis){
+  if(this.magicMaster){
+    txClip('★ ВЛАСТИТЕЛЬ МАГИИ ★', 20, 178, 320, {size:12, color:'#c080ff', weight:'bold'});
+    txClip('Посох: '+p.wep.n, 20, 190, 320, {size:9, color:'#a0a8b8'});
+  } else if(isElpis){
     const pulse=0.7+Math.sin(performance.now()/200)*0.3;
     ctx.globalAlpha=pulse;txClip('★ ЭЛЬПИС (НАДЕЖДА) ★',20,178,180,{size:10,color:'#fff8c0',weight:'bold'});
     ctx.globalAlpha=1;
@@ -2833,8 +3172,35 @@ Game.prototype.rHUD=function(){
   const wStr=1+0.01*(this.wave-1),wXp=1+0.10*(this.wave-1);
   tx('Враги: HP/ATK ×'+wStr.toFixed(2)+'  XP ×'+wXp.toFixed(2),rx+15,this.finalWave?79:70,{size:10,color:'#ffcc44'});
   tx('Спавн '+this.waveEnemiesSpawned+'/'+(this.waveEnemiesSpawned+this.waveEnemiesToSpawn),rx+15,this.finalWave?92:83,{size:10,color:'#a0a8b8'});
-  tx('Навыки (Q/E/R):',rx+15,this.finalWave?109:100,{size:12,color:'#ffcc44'});
-  for(let i=0;i<3;i++){const n=p.slots[i];const sx=rx+15+i*105,sy=this.finalWave?113:104;
+  tx(this.magicMaster?'Усиление (Q/E/R):':(this.weaponMaster?'Арсенал (Q/E/R):':'Навыки (Q/E/R):'),rx+15,this.finalWave?109:100,{size:12,color:'#ffcc44'});
+  
+  for(let i=0;i<3;i++){
+    const n=p.slots[i];const sx=rx+15+i*105,sy=this.finalWave?113:104;
+    if(this.magicMaster){
+        const sp = p.spells[i];
+        ctx.fillStyle='rgba(30,35,55,.9)';ctx.fillRect(sx,sy,100,55);
+        ctx.strokeStyle=sp?'#c080ff':'#333';ctx.lineWidth=2;ctx.strokeRect(sx,sy,100,55);
+        tx(['Q','E','R'][i],sx+6,sy+16,{size:12,weight:'bold',color:'#ffcc44'});
+        if(sp){
+            txClip(sp.def.n,sx+6,sy+34,90,{size:9,color:sp.def.c});
+            txClip('Усиление',sx+6,sy+48,90,{size:9,color:'#a0a8b8'});
+            if(p.enhanceCd[i]>0){ctx.fillStyle='rgba(0,0,0,.6)';const hh=Math.min(55,p.enhanceCd[i]/8*55);ctx.fillRect(sx,sy+55-hh,100,hh);tx(p.enhanceCd[i].toFixed(1),sx+50,sy+30,{size:13,weight:'bold',color:'#fff',align:'center'});}
+        }
+        continue;
+    }
+    if(this.weaponMaster){
+        const w=p.equippedWeapons[i];
+        ctx.fillStyle=p.activeWeaponIndex===i?'rgba(50,80,120,.9)':'rgba(30,35,55,.9)';
+        ctx.fillRect(sx,sy,100,55);
+        ctx.strokeStyle=w?(p.activeWeaponIndex===i?'#ffcc44':'#50c8dc'):'#333';ctx.lineWidth=2;ctx.strokeRect(sx,sy,100,55);
+        tx(['Q','E','R'][i],sx+6,sy+16,{size:12,weight:'bold',color:'#ffcc44'});
+        if(w){
+            txClip(w.n,sx+6,sy+34,90,{size:9,color:RANKS[w.rank].c});
+            txClip('Способность',sx+6,sy+48,90,{size:9,color:'#a0a8b8'});
+            if(p.weaponAbilityCd>0){ctx.fillStyle='rgba(0,0,0,.6)';const hh=Math.min(55,p.weaponAbilityCd*55);ctx.fillRect(sx,sy+55-hh,100,hh);}
+        }
+        continue;
+    }
     ctx.fillStyle='rgba(30,35,55,.9)';ctx.fillRect(sx,sy,100,55);
     ctx.strokeStyle=n?'#50c8dc':'#333';ctx.lineWidth=2;ctx.strokeRect(sx,sy,100,55);
     tx(['Q','E','R'][i],sx+6,sy+16,{size:12,weight:'bold',color:'#ffcc44'});
@@ -2844,34 +3210,39 @@ Game.prototype.rHUD=function(){
       txClip(TI[sk.tier],sx+6,sy+48,90,{size:9,color:TC[sk.tier]});
       if(sk.cd>0){ctx.fillStyle='rgba(0,0,0,.6)';
         const hh=Math.min(55,sk.cd/SKILLS[n].cd*55);ctx.fillRect(sx,sy+55-hh,100,hh);
-        tx(sk.cd.toFixed(1),sx+50,sy+30,{size:13,weight:'bold',color:'#fff',align:'center'});}}}
-  const spY=this.finalWave?184:175;
-  const totalSpells=p.spells.length;
-  txClip('Магия ('+totalSpells+'):',rx+15,spY,320,{size:12,color:'#ffcc44'});
-  const sAX=rx+15, sAY=spY+14;
-  const sAW=320, sAH=Math.max(20,245-sAY-2);
-  let spLayout=null,spBestScore=-Infinity;
-  for(const tryFs of [10,9,8]){for(const tryRows of [1,2,3,4]){
-      const tryCols=Math.ceil(totalSpells/tryRows);if(tryCols<1)continue;
-      const cellW=sAW/tryCols, cellH=sAH/tryRows;
-      if(cellH < tryFs+2) continue;
-      ctx.font=tryFs+'px Consolas,monospace';let maxW=0;
-      for(let i=0;i<totalSpells;i++){const sp=p.spells[i].def;
-        const cd=p.spells[i].cd>0?' '+p.spells[i].cd.toFixed(1):'';
-        const w=ctx.measureText(sp.n+cd).width+18;if(w>maxW)maxW=w;}
-      if(maxW>cellW) continue;
-      const score=tryFs*20 - tryRows*10;
-      if(score>spBestScore){spBestScore=score;spLayout={rows:tryRows,cols:tryCols,fs:tryFs};}}}
-  if(!spLayout){const fbRows=Math.min(4,Math.max(1,Math.ceil(totalSpells/2)));
-    spLayout={rows:fbRows,cols:Math.max(1,Math.ceil(totalSpells/fbRows)),fs:7};}
-  const spCols=Math.max(1,spLayout.cols);
-  const spCellW=sAW/spCols, spCellH=sAH/spLayout.rows;
-  for(let i=0;i<totalSpells;i++){const r=Math.floor(i/spCols), c=i%spCols;
-    const cx=sAX+c*spCellW, cy=sAY+r*spCellH;const sp=p.spells[i].def;
-    const icr=Math.max(3,Math.min(spLayout.fs-2,Math.floor(spCellH/2-1)));
-    icon(sp.ic||'skill',cx+icr+2,cy+spCellH/2,icr,sp.c);
-    const txt=sp.n+(p.spells[i].cd>0?' ('+p.spells[i].cd.toFixed(1)+')':'');
-    txClip(txt,cx+icr*2+5,cy+spCellH/2+spLayout.fs/3,spCellW-icr*2-8,{size:spLayout.fs,color:sp.c});}
+        tx(sk.cd.toFixed(1),sx+50,sy+30,{size:13,weight:'bold',color:'#fff',align:'center'});}}
+  }
+  
+  if (!this.weaponMaster) {
+      const spY=this.finalWave?184:175;
+      const totalSpells=p.spells.length;
+      txClip('Магия ('+totalSpells+'):',rx+15,spY,320,{size:12,color:'#ffcc44'});
+      const sAX=rx+15, sAY=spY+14;
+      const sAW=320, sAH=Math.max(20,245-sAY-2);
+      let spLayout=null,spBestScore=-Infinity;
+      for(const tryFs of [10,9,8]){for(const tryRows of [1,2,3,4]){
+          const tryCols=Math.ceil(totalSpells/tryRows);if(tryCols<1)continue;
+          const cellW=sAW/tryCols, cellH=sAH/tryRows;
+          if(cellH < tryFs+2) continue;
+          ctx.font=tryFs+'px Consolas,monospace';let maxW=0;
+          for(let i=0;i<totalSpells;i++){const sp=p.spells[i].def;
+            const cd=p.spells[i].cd>0?' '+p.spells[i].cd.toFixed(1):'';
+            const w=ctx.measureText(sp.n+cd).width+18;if(w>maxW)maxW=w;}
+          if(maxW>cellW) continue;
+          const score=tryFs*20 - tryRows*10;
+          if(score>spBestScore){spBestScore=score;spLayout={rows:tryRows,cols:tryCols,fs:tryFs};}}}
+      if(!spLayout){const fbRows=Math.min(4,Math.max(1,Math.ceil(totalSpells/2)));
+        spLayout={rows:fbRows,cols:Math.max(1,Math.ceil(totalSpells/fbRows)),fs:7};}
+      const spCols=Math.max(1,spLayout.cols);
+      const spCellW=sAW/spCols, spCellH=sAH/spLayout.rows;
+      for(let i=0;i<totalSpells;i++){const r=Math.floor(i/spCols), c=i%spCols;
+        const cx=sAX+c*spCellW, cy=sAY+r*spCellH;const sp=p.spells[i].def;
+        const icr=Math.max(3,Math.min(spLayout.fs-2,Math.floor(spCellH/2-1)));
+        icon(sp.ic||'skill',cx+icr+2,cy+spCellH/2,icr,sp.c);
+        const txt=sp.n+(p.spells[i].cd>0?' ('+p.spells[i].cd.toFixed(1)+')':'');
+        txClip(txt,cx+icr*2+5,cy+spCellH/2+spLayout.fs/3,spCellW-icr*2-8,{size:spLayout.fs,color:sp.c});}
+  }
+
   const btnX=W-345,btnY=250,btnW=340,btnH=45;
   const canSkip=this.canSkipWave();const btnHv=canSkip&&this.hov(btnX,btnY,btnW,btnH);
   if(canSkip){ctx.fillStyle=btnHv?'rgba(60,140,60,.95)':'rgba(40,90,40,.85)';}
@@ -2881,6 +3252,7 @@ Game.prototype.rHUD=function(){
   ctx.strokeRect(btnX,btnY,btnW,btnH);
   const btnLabel=canSkip?'▶ Следующая волна: '+(this.wave+1):'▶ Недоступно';
   tx(btnLabel,btnX+btnW/2,btnY+28,{size:14,weight:'bold',color:canSkip?'#fff':'#606878',align:'center'});
+  
   if(p.hasSage()){ctx.fillStyle='rgba(0,20,60,.7)';ctx.fillRect(15,280,330,110);
     ctx.strokeStyle='#a0c0ff';ctx.lineWidth=1;ctx.strokeRect(15,280,330,110);
     tx('◈ ВЕЛИКИЙ МУДРЕЦ ◈',20,297,{size:12,weight:'bold',color:'#a0c0ff'});
@@ -2913,8 +3285,7 @@ Game.prototype.rHUD=function(){
   ctx.strokeRect(mmX+2+this.camX*mmSX,mmY+2+this.camY*mmSY,W*mmSX,H*mmSY);
   if(this.player){ctx.fillStyle='#50c8dc';ctx.beginPath();
     ctx.arc(mmX+2+this.player.x*mmSX,mmY+2+this.player.y*mmSY,3,0,7);ctx.fill();}
-  tx('КАРТА',mmX+5,mmY+11,{size:9,color:'#a0c0ff'});
-};
+  tx('КАРТА',mmX+5,mmY+11,{size:9,color:'#a0c0ff'});};
 
 Game.prototype.rLv=function(){
   const p=this.player;
@@ -2981,30 +3352,62 @@ Game.prototype.rForge=function(){
   const rk=RANKS[this.forgeRank];
   tx('Ранг: '+rk.n,W/2,105,{size:18,weight:'bold',color:rk.c,align:'center'});
   tx('Золото: '+~~this.player.gold,W/2,132,{size:14,color:'#ffcc44',align:'center'});
+
   const pool=this.forgeItems;
-  const cellH=pool.length>=5?85:100;
-  const startY=pool.length>=5?140:160;
+  const cellH=85;
+  const startY=160;
+  const visibleH=420;
+  const maxScroll=Math.max(0, pool.length*cellH - visibleH);
+  if(this.forgeScroll>maxScroll)this.forgeScroll=maxScroll;
+
+  ctx.save();
+  ctx.beginPath();
+  ctx.rect(0, startY, W, visibleH);
+  ctx.clip();
+
   for(let i=0;i<pool.length;i++){
-    const w=pool[i];const y=startY+i*cellH;
-    const hv=this.hov(W/2-380,y,760,cellH-15);
+    const w=pool[i];const y=startY+i*cellH-this.forgeScroll;
+    if(y<startY-cellH || y>startY+visibleH)continue;
+
+    const hv=this.hov(W/2-380,y,760,70);
     const canAfford=this.player.gold>=w.cost;
     const isEq=this.player.wep.n===w.n;
+    const isOwned=this.weaponMaster && this.player.ownedWeapons.includes(w);
     const mat=MATERIALS[w.mat]||MATERIALS['—'];
+    
     ctx.fillStyle=hv&&!isEq?'rgba(50,70,100,.95)':'rgba(25,35,55,.9)';
-    ctx.fillRect(W/2-380,y,760,cellH-15);
-    ctx.strokeStyle=isEq?'#50c8dc':(hv&&canAfford&&!isEq?'#ffcc44':'#4060a0');
-    ctx.lineWidth=hv?3:2;ctx.strokeRect(W/2-380,y,760,cellH-15);
+    ctx.fillRect(W/2-380,y,760,70);
+    ctx.strokeStyle=isEq?'#50c8dc':(hv&&(canAfford||isOwned)&&!isEq?'#ffcc44':'#4060a0');
+    ctx.lineWidth=hv?3:2;ctx.strokeRect(W/2-380,y,760,70);
+    
     const wc=RANKS[w.rank].c;
     txFit(w.n,W/2-360,y+22,540,{size:16,color:wc},11);
     tx('['+RANKS[w.rank].n+']',W/2+360,y+22,{size:11,color:wc,align:'right'});
     txClip('['+w.mat+']',W/2-360,y+38,300,{size:11,color:mat.c});
     txClip(w.atkType.toUpperCase(),W/2-360+310,y+38,200,{size:11,color:'#a0c0ff'});
     txClip(w.d,W/2-360,y+54,720,{size:11,color:'#c8d0e0'});
-    tx('ATK +'+w.a+' · MAG +'+w.m+' · '+w.cost+' золота',W/2-360,y+70,{size:11,color:canAfford||isEq?'#80ff80':'#ff6060'});
-    if(isEq){tx('ЭКИПИРОВАНО',W/2+340,y+70,{size:11,color:'#50c8dc',align:'right',weight:'bold'});}
-    else if(!canAfford){tx('Не хватает золота',W/2+340,y+70,{size:11,color:'#ff6060',align:'right'});}
-    else{tx('СКОВАТЬ',W/2+340,y+70,{size:12,color:'#ffcc44',align:'right',weight:'bold'});}}
-  const btnY=startY+pool.length*cellH+20;
+    tx('ATK +'+w.a+' · MAG +'+w.m+' · '+w.cost+' золота',W/2-360,y+70,{size:11,color:canAfford||isEq||isOwned?'#80ff80':'#ff6060'});
+    
+    if(isEq){tx('ЭКИПИРОВАНО',W/2+340,y+50,{size:11,color:'#50c8dc',align:'right',weight:'bold'});}
+    else if(isOwned){tx('КУПЛЕНО (Q/E/R)',W/2+340,y+50,{size:11,color:'#80ff80',align:'right',weight:'bold'});}
+    else if(!canAfford){tx('Не хватает золота',W/2+340,y+50,{size:11,color:'#ff6060',align:'right'});}
+    else{
+      if(this.weaponMaster) tx('КУПИТЬ',W/2+340,y+50,{size:12,color:'#ffcc44',align:'right',weight:'bold'});
+      else tx('СКОВАТЬ',W/2+340,y+50,{size:12,color:'#ffcc44',align:'right',weight:'bold'});
+    }
+  }
+  ctx.restore();
+
+  if(maxScroll>0){
+    ctx.fillStyle='rgba(0,0,0,.5)';ctx.fillRect(W/2+390, startY, 12, visibleH);
+    const thumbH = Math.max(30, (visibleH/maxScroll)*visibleH);
+    const thumbY = startY + (this.forgeScroll/maxScroll)*(visibleH - thumbH);
+    ctx.fillStyle='#ffcc44';ctx.fillRect(W/2+390, thumbY, 12, thumbH);
+  }
+
+  if(this.weaponMaster) tx('Купить: Клик · Экипировать: Q/E/R (наведи на оружие)',W/2,H-100,{size:14,color:'#ffcc44',align:'center'});
+
+  const btnY=H-65;
   const hvC=this.hov(W/2-150,btnY,300,50);
   ctx.fillStyle=hvC?'#3a6a8a':'#203050';ctx.fillRect(W/2-150,btnY,300,50);
   ctx.strokeStyle='#50c8dc';ctx.lineWidth=2;ctx.strokeRect(W/2-150,btnY,300,50);
@@ -3168,8 +3571,7 @@ Game.prototype.rTutorial=function(){
     for(let i=0;i<tip.lines.length;i++){const wrapped=wrapText(tip.lines[i],boxW-40,13,'');
       for(let j=0;j<wrapped.length;j++){if(ty+14>boxY+boxH-10)break;
         txClip(wrapped[j],boxX+20,ty,boxW-40,{size:13,color:'#e6e6f0'});ty+=18;}}
-    tx('Шаг '+(this.tutStep+1)+' / '+tips.length,boxX+boxW-20,boxY+32,{size:12,color:'#a0c0ff',align:'right'});}
-};
+    tx('Шаг '+(this.tutStep+1)+' / '+tips.length,boxX+boxW-20,boxY+32,{size:12,color:'#a0c0ff',align:'right'});}};
 
 // --- ЗАПУСК ИГРЫ ---
 window.addEventListener('load',()=>{new Game();});
