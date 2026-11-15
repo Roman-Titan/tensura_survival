@@ -2484,31 +2484,35 @@ Game.prototype.triggerLv=function(){
   ];
   if(p.cdr<0.75)pool.push({n:'-5% перезарядка',k:'cdr'});
   if(p.hpRegenPct<0.05)pool.push({n:'+0.5% HP-реген',k:'hpreg'});
-  const own=Object.keys(p.skills);
-  if(own.length && !this.weaponMaster && !this.magicMaster){
-    const evoSkills=own.filter(sk=>SKILL_EVO[sk]&&SKILL_EVO[sk].next);
-    const affordable=evoSkills.filter(sk=>p.frag>=evoFragCost(sk));
-    if(affordable.length>0){const sk=pick(affordable);const evo=SKILL_EVO[sk];const cost=evoFragCost(sk);
-      const costStr=cost>0?' ('+cost+' оск.)':'';
-      pool.unshift({n:sk+' → '+evo.next+costStr,k:'evoSk',sk,cost});}
-    const nonEvo=own.filter(sk=>!SKILL_EVO[sk]);
-    if(nonEvo.length){const affordableUp=nonEvo.filter(sk=>{const ct=p.skills[sk].tier;
-        if(ct>=TI.length-1)return false;const cost=ct>=3?7:(ct>=2?4:0);return p.frag>=cost;});
-      if(affordableUp.length>0){const sk=pick(affordableUp);const ct=p.skills[sk].tier;
-        const cost=ct>=3?7:(ct>=2?4:0);const newDn=skillDisplayName(sk,ct+1);
+  // Блок навыков и магии — только если это НЕ Мастер Оружия
+  if (!this.weaponMaster) {
+    const own=Object.keys(p.skills);
+    if(own.length && !this.magicMaster){
+      const evoSkills=own.filter(sk=>SKILL_EVO[sk]&&SKILL_EVO[sk].next);
+      const affordable=evoSkills.filter(sk=>p.frag>=evoFragCost(sk));
+      if(affordable.length>0){const sk=pick(affordable);const evo=SKILL_EVO[sk];const cost=evoFragCost(sk);
         const costStr=cost>0?' ('+cost+' оск.)':'';
-        pool.push({n:skillDisplayName(sk,ct)+' → '+newDn+' ('+TI[ct+1]+')'+costStr,k:'skUp',sk,cost});}}
-  }
-  if(Object.keys(p.skills).length<3 && !this.weaponMaster && !this.magicMaster){
-    const av=Object.keys(SKILLS).filter(s=>!p.skills[s]&&!Object.values(SKILL_EVO).some(e=>e.next===s)&&!SKILLS[s].ult);
-    if(av.length){const ns=pick(av);pool.push({n:'Навык: '+ns,k:'newSk',sk:ns});}}
-  const avSp=SPELLS.filter(s=>!p.spells.find(x=>x.def.n===s.n));
-  if(avSp.length){
-    const ns=pick(avSp);
-    pool.push({n:'Магия: '+ns.n,k:'newSp',sp:ns});
-    if(this.magicMaster && avSp.length>1) {
-      const ns2=pick(avSp.filter(s=>s.n!==ns.n));
-      if(ns2) pool.push({n:'Магия: '+ns2.n,k:'newSp',sp:ns2});
+        pool.unshift({n:sk+' → '+evo.next+costStr,k:'evoSk',sk,cost});}
+      const nonEvo=own.filter(sk=>!SKILL_EVO[sk]);
+      if(nonEvo.length){const affordableUp=nonEvo.filter(sk=>{const ct=p.skills[sk].tier;
+          if(ct>=TI.length-1)return false;const cost=ct>=3?7:(ct>=2?4:0);return p.frag>=cost;});
+        if(affordableUp.length>0){const sk=pick(affordableUp);const ct=p.skills[sk].tier;
+          const cost=ct>=3?7:(ct>=2?4:0);const newDn=skillDisplayName(sk,ct+1);
+          const costStr=cost>0?' ('+cost+' оск.)':'';
+          pool.push({n:skillDisplayName(sk,ct)+' → '+newDn+' ('+TI[ct+1]+')'+costStr,k:'skUp',sk,cost});}}
+    }
+    if(Object.keys(p.skills).length<3 && !this.magicMaster){
+      const av=Object.keys(SKILLS).filter(s=>!p.skills[s]&&!Object.values(SKILL_EVO).some(e=>e.next===s)&&!SKILLS[s].ult);
+      if(av.length){const ns=pick(av);pool.push({n:'Навык: '+ns,k:'newSk',sk:ns});}}
+    
+    const avSp=SPELLS.filter(s=>!p.spells.find(x=>x.def.n===s.n));
+    if(avSp.length){
+      const ns=pick(avSp);
+      pool.push({n:'Магия: '+ns.n,k:'newSp',sp:ns});
+      if(this.magicMaster && avSp.length>1) {
+        const ns2=pick(avSp.filter(s=>s.n!==ns.n));
+        if(ns2) pool.push({n:'Магия: '+ns2.n,k:'newSp',sp:ns2});
+      }
     }
   }
   const avA=ARTS.filter(a=>!p.arts.find(x=>x.n===a.n));
