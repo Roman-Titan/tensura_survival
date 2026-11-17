@@ -433,7 +433,7 @@ function doMeleeHit(g, p, angle, range, arc, dmg, src) {
                 hitAny = true;
                 for(let j=0;j<5;j++) g.particles.push(new Part(e.x, e.y, p.c));
                 if (p.wepHope) {
-                    const heal = p.maxHp * 0.01;
+                    const heal = p.maxHp * 0.005;
                     p.hp = Math.min(p.maxHp, p.hp + heal);
                     g.ftxt.push(new FTxt('+'+~~heal+' HP', e.x, e.y-15, '#fff8c0', 1.2, 12));
                 }
@@ -1589,6 +1589,117 @@ if(this.echoPhase==='wait'){
 if(this.visType === 'circle'){ctx.fillStyle='#fff';ctx.beginPath();ctx.arc(this.x,this.y,this.r*.4,0,7);ctx.fill();}
 }}
 
+class CosmicBeam{
+  constructor(x,y,angle,length,width,dmg,src){
+    this.x=x;this.y=y;this.angle=angle;
+    this.length=length;
+    this.endWidth=width;
+    this.startWidth=6;
+    this.dmg=dmg;this.src=src;
+    this.life=0.45;this.maxLife=0.45;
+    this.stars=[];
+    for(let i=0;i<45;i++){
+      this.stars.push({
+        t: Math.random(),
+        side: Math.random()*2-1,
+        size: rnd(0.6,2.8),
+        bright: rnd(0.4,1),
+        phase: Math.random()*6.28,
+        drift: rnd(-0.3,0.3)
+      });
+    }
+  }
+  hitsPoint(px,py,pr){
+    const dx=Math.cos(this.angle),dy=Math.sin(this.angle);
+    const vx=px-this.x,vy=py-this.y;
+    const proj=vx*dx+vy*dy;
+    if(proj<0||proj>this.length)return false;
+    const perpX=vx-proj*dx,perpY=vy-proj*dy;
+    const dist=Math.sqrt(perpX*perpX+perpY*perpY);
+    const halfWidth=this.startWidth/2 + (this.endWidth/2-this.startWidth/2)*(proj/this.length);
+    return dist<=halfWidth+pr;
+  }
+  update(dt){this.life-=dt;}
+  draw(){
+    const a=cl(this.life/this.maxLife,0,1);
+    const endX=this.x+Math.cos(this.angle)*this.length;
+    const endY=this.y+Math.sin(this.angle)*this.length;
+    const px=-Math.sin(this.angle),py=Math.cos(this.angle);
+    const sR=this.startWidth/2, eR=this.endWidth/2;
+    
+    ctx.save();
+    
+    // 1. Основное тело — градиент космоса
+    const grad=ctx.createLinearGradient(this.x,this.y,endX,endY);
+    grad.addColorStop(0,'rgba(255,255,255,'+(0.95*a)+')');
+    grad.addColorStop(0.1,'rgba(255,240,200,'+(0.85*a)+')');
+    grad.addColorStop(0.3,'rgba(220,150,255,'+(0.7*a)+')');
+    grad.addColorStop(0.55,'rgba(120,80,220,'+(0.55*a)+')');
+    grad.addColorStop(0.8,'rgba(50,20,120,'+(0.35*a)+')');
+    grad.addColorStop(1,'rgba(15,5,40,0)');
+    ctx.fillStyle=grad;
+    ctx.beginPath();
+    ctx.moveTo(this.x+px*sR,this.y+py*sR);
+    ctx.lineTo(endX+px*eR,endY+py*eR);
+    ctx.lineTo(endX-px*eR,endY-py*eR);
+    ctx.lineTo(this.x-px*sR,this.y-py*sR);
+    ctx.closePath();
+    ctx.fill();
+    
+    // 2. Звёзды (мерцают и дрейфуют к концу)
+    const now=performance.now()/1000;
+    for(const s of this.stars){
+      const progress = (s.t + now*s.drift*0.1) % 1;
+      const tX=this.x+Math.cos(this.angle)*this.length*progress;
+      const tY=this.y+Math.sin(this.angle)*this.length*progress;
+      const halfW=sR+(eR-sR)*progress;
+      const sx=tX+px*s.side*halfW*0.9;
+      const sy=tY+py*s.side*halfW*0.9;
+      const twinkle=0.5+Math.sin(now*6+s.phase)*0.5;
+      ctx.globalAlpha=a*s.bright*twinkle;
+      ctx.fillStyle=Math.random()<0.1?'#ffe8a0':'#ffffff';
+      ctx.beginPath();
+      ctx.arc(sx,sy,s.size*twinkle,0,7);
+      ctx.fill();
+    }
+    ctx.globalAlpha=1;
+    
+    // 3. Туманность — внутренние полосы
+    ctx.globalAlpha=a*0.35;
+    ctx.strokeStyle='#c080ff';
+    ctx.lineWidth=1.5;
+    for(let i=-2;i<=2;i++){
+      ctx.beginPath();
+      ctx.moveTo(this.x+px*sR*i*0.4,this.y+py*sR*i*0.4);
+      ctx.lineTo(endX+px*eR*i*0.5,endY+py*eR*i*0.5);
+      ctx.stroke();
+    }
+    ctx.globalAlpha=1;
+    
+    // 4. Яркое ядро (тонкая линия в центре)
+    ctx.globalAlpha=a;
+    ctx.strokeStyle='#ffffff';
+    ctx.lineWidth=2;
+    ctx.beginPath();
+    ctx.moveTo(this.x,this.y);
+    ctx.lineTo(endX,endY);
+    ctx.stroke();
+    
+    // 5. Свечение на конце конуса
+    ctx.globalAlpha=a*0.6;
+    const endGrad=ctx.createRadialGradient(endX,endY,0,endX,endY,eR*1.2);
+    endGrad.addColorStop(0,'rgba(255,255,255,'+a*0.8+')');
+    endGrad.addColorStop(0.5,'rgba(200,150,255,'+a*0.4+')');
+    endGrad.addColorStop(1,'rgba(100,50,200,0)');
+    ctx.fillStyle=endGrad;
+    ctx.beginPath();
+    ctx.arc(endX,endY,eR*1.2,0,7);
+    ctx.fill();
+    
+    ctx.restore();
+  }
+}
+
 class Laser{
 constructor(x,y,angle,opts){opts=opts||{};
   this.x=x;this.y=y;this.angle=angle;
@@ -1653,8 +1764,10 @@ this.elite=false;this.chaos=false;this.shield=0;this._exploded=false;
 this.behavior=t.behavior||null;this.behaviorTimer=rnd(1.5,3);this.behaviorData=null;
 this.buffAura=0;this._splitDone=false;this._berserk=false;
 this._dodgeCd=0;this._dodgeDir=1;this.buffStacks=0;
-this.marked=0;this.slow=0;this.slowTimer=0;}
+this.marked=0;this.slow=0;this.slowTimer=0;
+this.game=null;}
 update(dt,p,g){
+  this.game=g;
   if(this.marked>0)this.marked-=dt;
   if(this.slowTimer>0)this.slowTimer-=dt;
   
@@ -1760,8 +1873,20 @@ update(dt,p,g){
             this.x+=Math.cos(perp)*80;this.y+=Math.sin(perp)*80;
             for(let i=0;i<8;i++)g.particles.push(new Part(this.x,this.y,'#a0c0ff'));break;}}}}}
   if(this.buffAura>0)this.buffAura=Math.max(0,this.buffAura-dt);}
-dmg(v,src){if(this.shield>0){const ab=Math.min(this.shield,v);this.shield-=ab;v-=ab;}
-  this.hp-=v;this.hf=.1;if(this.hp<=0)this.alive=false;return true;}
+dmg(v,src){
+  if(this.shield>0){const ab=Math.min(this.shield,v);this.shield-=ab;v-=ab;}
+  this.hp-=v;this.hf=.1;
+  if(this.game && this.game.player && v>=1){
+    this.game.player.dmgAccum += v;
+    if(v>=5 || Math.random()<0.3){
+      const col = src==='supreme' ? '#ffffff' : '#ffcc44';
+      const sz = v>500 ? 18 : (v>100 ? 15 : 13);
+      this.game.ftxt.push(new FTxt(''+~~v, this.x+rnd(-15,15), this.y-20, col, 0.8, sz));
+    }
+  }
+  if(this.hp<=0)this.alive=false;
+  return true;
+}
 draw(){ctx.globalAlpha=.3;ctx.fillStyle='#000';ctx.beginPath();
   ctx.ellipse(this.x,this.y+this.z*.7,this.z*.8,this.z*.3,0,0,7);ctx.fill();ctx.globalAlpha=1;
   if(this.marked>0){ctx.strokeStyle='rgba(255,40,200,0.7)';ctx.lineWidth=2;ctx.beginPath();ctx.arc(this.x,this.y,this.z*1.5,0,7);ctx.stroke();}
@@ -1886,6 +2011,14 @@ this.hf=Math.max(0,this.hf-dt);this.hsf=Math.max(0,this.hsf-dt);}
 dmg(v,src){if(this.sup&&src!=='supreme'){this.hsf=.5;return false;}
 if(this.enraged){this.hf=.1;return true;}
 this.hp-=v;this.hf=.1;
+if(this.game && this.game.player && v>=1){
+  this.game.player.dmgAccum += v;
+  if(v>=5 || Math.random()<0.3){
+    const col = src==='supreme' ? '#ffffff' : '#ffcc44';
+    const sz = v>500 ? 20 : (v>100 ? 16 : 14);
+    this.game.ftxt.push(new FTxt(''+~~v, this.x+rnd(-20,20), this.y-30, col, 0.9, sz));
+  }
+}
 if(this.bn==='Вельданава'&&this.hp<1)this.hp=1;
 const elapsed=this.game?(this.game.runTime-this.spawnWave):((performance.now()-this.spawnAt)/1000);
 const enrageThreshold=this.bn==='Вельданава'?2:0;
@@ -2205,9 +2338,13 @@ cast(p,g){const a=Math.atan2(p.y-this.y,p.x-this.x);
   const at=pick(this.td.at);
   if(at==='fs'||at==='df'){for(let i=-4;i<=4;i++){const aa=a+i*.18;
 g.proj.push(new Proj(this.x,this.y,Math.cos(aa)*280,Math.sin(aa)*280,this.atk*.5,'#f0d060',6,false));}}
-else if(at==='hn'){g.proj.push(new Proj(this.x,this.y,0,0,this.atk,'#f0d060',30,false,99));}
-else if(at==='tp'||at==='dt'){this.x=p.x+rnd(-100,100);this.y=p.y+rnd(-100,100);
-g.proj.push(new Proj(this.x,this.y,0,0,this.atk,'#a040e0',20,false,99));}
+else if(at==='hn'){g.proj.push(new Proj(this.x,this.y,Math.cos(a)*250,Math.sin(a)*250,this.atk,'#f0d060',30,false,2));}
+else if(at==='tp'||at==='dt'){
+  this.x = p.x + rnd(-100,100);
+  this.y = p.y + rnd(-100,100);
+  const newAngle = Math.atan2(p.y - this.y, p.x - this.x);
+  g.proj.push(new Proj(this.x, this.y, Math.cos(newAngle)*500, Math.sin(newAngle)*500, this.atk, '#a040e0', 20, false, 2));
+}
 else if(at==='pb'){for(let i=0;i<12;i++){const aa=i/12*6.283;
 g.proj.push(new Proj(this.x,this.y,Math.cos(aa)*350,Math.sin(aa)*350,this.atk*.6,'#a040e0',5,false));}}
 else if(at==='vw'){g.proj.push(new Proj(this.x,this.y,Math.cos(a)*400,Math.sin(a)*400,this.atk,'#8040a0',18,false,99));}
@@ -2457,6 +2594,9 @@ constructor(rid,ch,loc){
   this.x=WW/2;this.y=WH/2;this.z=15;this.hitR=10;this.aim=0;
   this.lv=1;this.xp=0;this.xpn=50;this.xpM=1;
   this.gold=0;this.kills=0;this.frag=0;
+  this.dmgAccum=0;
+  this.dpsHistory=[];
+  this.dpsTimer=0;
   this.wep=WEAPONS[0];this.arts=[];
   this.spells=[{def:SPELLS[0],cd:0}];
   this.skills={};this.slots=[null,null,null];
@@ -2547,14 +2687,28 @@ hurt(v,isLaser=false,attacker=null){
   if(this.shield>0){const ab=Math.min(this.shield,d);this.shield-=ab;d-=ab;if(this.shield<=0)this.buffs.shield=0;}
   if(!isLaser) d=~~d;
   this.hp-=d;
-  if(!isLaser) this.inv=.35;
+  if(!isLaser) this.inv=.1;
+  if(this.game && d>=1){
+    this.game.ftxt.push(new FTxt('-'+(~~d), this.x+rnd(-25,25), this.y-30, '#ff6060', 1.0, 15));
+  }
+// Показываем цифру урона, чтобы игрок видел, что его бьют
+  if(this.game && d >= 1) {
+    this.game.ftxt.push(new FTxt(
+      '-'+~~d,
+      this.x + rnd(-30,30),
+      this.y - 30,
+      '#ff6060',
+      1.0,
+      16
+    ));
+  }
   const now=performance.now();
   if(!this._lastDmgSfx||now-this._lastDmgSfx>160){AU.sfx('damage');this._lastDmgSfx=now;}
   if(this.hp<=0){
     if(this.tear&&this.tearCd<=0){
       this.hp=this.maxHp*.5;this.tearCd=Math.max(20,60*(1-this.cdr));
     } else if(this.wepHope && this.elpisCd <= 0) {
-      this.hp = this.maxHp * 0.5;
+      this.hp = this.maxHp * 0.3;
       this.elpisCd = 60;
       this.buffs.invuln = 3;
       if(this.game){
@@ -2843,11 +2997,23 @@ _performWeaponAttack(wep,g,t,dmgBonus){
         prStl.l=1.5;prStl.visType='beam';g.proj.push(prStl);
       }
       break;
-    case 'elpis':
-      g.slashes.push(new Slash(this.x,this.y,a,180*ao,Math.PI*2,'#fff8c0'));
-      doMeleeHit(g,this,a,180*ao,Math.PI*2,baseDm*1.5,'supreme');
-      for(let i=0;i<25;i++){const aa=Math.random()*6.283;g.particles.push(new Part(this.x+Math.cos(aa)*40,this.y+Math.sin(aa)*40,'#fff8c0'));}
-      break;
+    case 'elpis': {
+	  const beamLen=420*ao;
+	  const beamW=200*ao;
+	  const cb=new CosmicBeam(this.x,this.y,a,beamLen,beamW,baseDm*1.5,'supreme');
+	  g.cosmicBeams.push(cb);
+	  for(const e of g.enemies){
+		if(e.alive && !cb.hitIds?.has(e) && cb.hitsPoint(e.x,e.y,e.z)) e.dmg(baseDm*1.5,'supreme');
+	  }
+	  for(const b of g.bosses){
+		if(b.alive && cb.hitsPoint(b.x,b.y,b.z)) b.dmg(baseDm*1.5,'supreme');
+	  }
+	  for(let i=0;i<20;i++){
+		const aa=a+rnd(-0.4,0.4);
+		g.particles.push(new Part(this.x+Math.cos(aa)*40,this.y+Math.sin(aa)*40,'#fff8c0'));
+	  }
+	  break;
+	}
     case 'chakram':
       const ch = new Proj(this.x, this.y, Math.cos(a)*1000, Math.sin(a)*1000, baseDm, this.c, 10*ao, true, 99, src);
       ch.l = 0.5;
@@ -3037,11 +3203,24 @@ triggerWeaponAbility(slotIdx, g) {
               pr.visType = 'beam'; pr.l = 2; g.proj.push(pr);
           }
           break;
-      case 'elpis':
-          doMeleeHit(g, this, a, 300*ao, Math.PI*2, baseDmg*3, src);
-          g.slashes.push(new Slash(this.x, this.y, a, 300*ao, Math.PI*2, '#fff8c0'));
-          this.hp = Math.min(this.maxHp, this.hp + this.maxHp*0.10);
-          break;
+      case 'elpis': {
+		const beamLen=650*ao;
+		const beamW=320*ao;
+		const cb=new CosmicBeam(this.x,this.y,a,beamLen,beamW,baseDmg*3,'supreme');
+		g.cosmicBeams.push(cb);
+		for(const e of g.enemies){
+		  if(e.alive && cb.hitsPoint(e.x,e.y,e.z)) e.dmg(baseDmg*3,'supreme');
+		}
+		for(const b of g.bosses){
+		  if(b.alive && cb.hitsPoint(b.x,b.y,b.z)) b.dmg(baseDmg*3,'supreme');
+		}
+		for(let i=0;i<40;i++){
+		  const aa=a+rnd(-0.6,0.6);
+		  g.particles.push(new Part(this.x+Math.cos(aa)*60,this.y+Math.sin(aa)*60,'#c080ff'));
+		}
+		this.hp = Math.min(this.maxHp, this.hp + this.maxHp*0.03);
+		break;
+	  }
       case 'chakram':
           for(let i=0;i<3;i++){
               let aa = a + (i-1)*0.3;
@@ -3162,6 +3341,13 @@ triggerWeaponAbility(slotIdx, g) {
 
 update(dt,k,g){
   this.game=g;
+  this.dpsTimer+=dt;
+  if(this.dpsTimer>=1){
+    this.dpsHistory.push(this.dmgAccum);
+    if(this.dpsHistory.length>5)this.dpsHistory.shift();
+    this.dmgAccum=0;
+    this.dpsTimer-=1;
+  }
   if(this.parryWindow>0)this.parryWindow-=dt;
   if(this.absoluteParryTimer>0)this.absoluteParryTimer-=dt;
   if(this.parryCd>0)this.parryCd-=dt;
@@ -3330,7 +3516,7 @@ class Game {
     this.state='menu';this.keys={};this.mx=0;this.my=0;
     this.srid=null;this.sch=null;this.sloc=null;this.cnm='';
     this.chrS=0;this.chrScrl=0;this.lvc=[];this.evoShow=null;this.retTo=null;
-    this.enemies=[];this.bosses=[];this.proj=[];this.particles=[];this.ftxt=[];this.mines=[];this.lasers=[];this.pools=[];this.slashes=[];
+    this.enemies=[];this.bosses=[];this.proj=[];this.particles=[];this.ftxt=[];this.mines=[];this.lasers=[];this.pools=[];this.slashes=[];this.cosmicBeams=[];
     this.player=null;this.loc=null;
     this.wave=1;this.wt=0;this.st=0;this.bsSpawned=new Set();this.shake=0;
     this.runTime=0;
@@ -4177,7 +4363,7 @@ class Game {
               if (e.slow > 0) { finalDmg *= 0.5; }
               if(e.dmg(finalDmg,pr.src)){
                 if(p.wepHope){const isCrit=dmgToEnemy>=pr.dmg*1.4;
-                  const heal=p.maxHp*(isCrit?0.025:0.01);
+                  const heal=p.maxHp*(isCrit?0.012:0.005);
                   p.hp=Math.min(p.maxHp,p.hp+heal);
                   this.ftxt.push(new FTxt('+'+~~heal+' HP',e.x,e.y-15,'#fff8c0',1.2,12));
                   for(let j=0;j<3;j++)this.particles.push(new Part(p.x,p.y,'#fff8c0'));}
@@ -4227,7 +4413,7 @@ class Game {
     for(const e of this.enemies){
       if(!e.alive){
         p.kills++;p.gold+=1+p.lck*0.02;
-        if(p.wepHope){const heal=p.maxHp*0.05;
+        if(p.wepHope){const heal=p.maxHp*0.02;
           p.hp=Math.min(p.maxHp,p.hp+heal);p.buffs.invuln=Math.max(p.buffs.invuln,0.5);
           this.ftxt.push(new FTxt('НАДЕЖДА! +'+~~heal+' HP',e.x,e.y-30,'#fff8c0',2,16));
           for(let j=0;j<15;j++){const aa=Math.random()*6.283;
@@ -4335,6 +4521,10 @@ class Game {
             if(Math.random()<0.15)this.particles.push(new Part(p.x,p.y,pl.color));
           }
       }
+    }
+	if(this.cosmicBeams)for(let i=this.cosmicBeams.length-1;i>=0;i--){
+      this.cosmicBeams[i].update(dt);
+      if(this.cosmicBeams[i].life<=0)this.cosmicBeams.splice(i,1);
     }
     if(this.lasers)for(let i=this.lasers.length-1;i>=0;i--){
       const ls=this.lasers[i];ls.update(dt);
@@ -4665,6 +4855,7 @@ Game.prototype.rGame=function(){
     ctx.globalAlpha=0.35;ctx.strokeStyle='#ffffff';ctx.lineWidth=1;
     ctx.beginPath();ctx.arc(m.x,m.y,m.r+4,0,7);ctx.stroke();ctx.globalAlpha=1;}
   if(this.lasers)for(const ls of this.lasers)ls.draw();
+  if(this.cosmicBeams)for(const cb of this.cosmicBeams)cb.draw();
   for(const sl of this.slashes)sl.draw();
   for(const pr of this.proj)pr.draw();
   for(const pt of this.particles)pt.draw();
@@ -4721,6 +4912,14 @@ Game.prototype.rHUD=function(){
   else {tx('Gold '+~~p.gold+' Убийств '+p.kills+' Осколков '+p.frag,20,203,{size:11,color:'#ffcc44'});}
   const laserBonus=(p.pierceBonus*10);
   txClip('Арт: '+p.arts.length+'  Pierce +'+p.pierceBonus+' (+'+laserBonus+'% лазер)  AoE ×'+p.aoeMult.toFixed(2)+'  CDR '+(p.cdr*100).toFixed(0)+'%',20,218,320,{size:10,color:'#ffcc44'});
+  // DPS-счётчик
+  const dpsSum = p.dpsHistory.reduce((a,b)=>a+b,0);
+  const dpsAvg = p.dpsHistory.length>0 ? dpsSum/p.dpsHistory.length : 0;
+  const dpsColor = dpsAvg>500 ? '#ff4040' : (dpsAvg>100 ? '#ffcc44' : '#a0c0ff');
+  tx('⚔ DPS: '+~~dpsAvg,20,258,{size:11,color:dpsColor,weight:'bold'});
+  // Текущий урон за последнюю секунду
+  const dpsLast = p.dpsHistory.length>0 ? p.dpsHistory[p.dpsHistory.length-1] : 0;
+  if(dpsLast>0) tx('('+~~dpsLast+' за сек.)',100,258,{size:9,color:'#a0a8b8'});
   tx('Высший: '+(p.hasSup()?'ДА':'нет'),20,232,{size:10,color:p.hasSup()?'#ffcc44':'#606878'});
   txClip('◈ Резонанс: '+p.resonanceCount+' (+'+(p.resonanceCount*3)+'% урона)',20,244,320,{size:10,color:p.resonanceCount>0?'#a0c0ff':'#606878'});
   let ex=20;
