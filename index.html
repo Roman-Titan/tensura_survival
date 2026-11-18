@@ -510,8 +510,58 @@ const SKILLS={
 'Несокрушимая Стена':{desc:'Мощный барьер.',cd:12,cast(g,p){p.buffs.shield=8;p.shield=200+p.lv*15;g.ftxt.push(new FTxt('НЕСОКРУШИМАЯ СТЕНА!',p.x,p.y-40,'#a0c0ff',2.2,20));castVis(g,p,'#a0c0ff',32,90);}},
 'Кара':{desc:'Карающий свет.',cd:4,cast(g,p,t){if(!t)return;const d=(25*TM[p.skills[this.n].tier]+p.mag*.4)*elemMul(p,this.el);t.dmg(d,'normal');g.ftxt.push(new FTxt('КАРА!',t.x,t.y-40,'#fff8c0',1.8,16));castVis(g,p,'#fff8c0',8,0);for(let i=0;i<8;i++)g.particles.push(new Part(t.x,t.y,'#fff8c0'));}},
 'Божественная Кара':{desc:'Усиленный свет.',cd:6,cast(g,p){const d=(50*TM[p.skills[this.n].tier]+p.mag*.8)*elemMul(p,this.el);for(const e of g.enemies)if(e.alive&&d2(e.x,e.y,p.x,p.y)<150*150)e.dmg(d,'normal');for(const b of g.bosses)if(b.alive&&d2(b.x,b.y,p.x,p.y)<150*150)b.dmg(d,'normal');g.ftxt.push(new FTxt('БОЖЕСТВЕННАЯ КАРА!',p.x,p.y-40,'#fff0c0',2,18));castVis(g,p,'#fff0c0',20,150);}},
-'Небесный Суд':{desc:'Столб небесного огня.',cd:8,cast(g,p,t){if(!t)return;const d=(80*TM[p.skills[this.n].tier]+p.mag*1.2)*elemMul(p,this.el);t.dmg(d,'supreme');g.flash=0.5;g.ftxt.push(new FTxt('НЕБЕСНЫЙ СУД!',t.x,t.y-40,'#fff0c0',2.5,22));castVis(g,p,'#fff0c0',20,0);for(let i=0;i<20;i++)g.particles.push(new Part(t.x,t.y,'#fff0c0'));}},
-'Судный День':{ult:true,desc:'Требует Высший тир.',cd:20,cast(g,p){const t=p.skills[this.n].tier;if(t<TIER_SUP){g.ftxt.push(new FTxt('Нужен Высший!',p.x,p.y-30,'#ff4040',1.5));return;}const E=elemMul(p,this.el);for(const e of g.enemies)if(e.alive)e.dmg(500*TM[t]*E);for(const b of g.bosses)if(b.alive)b.dmg(500*TM[t]*E,'supreme');g.shake=25;g.flash=1;g.ftxt.push(new FTxt('СУДНЫЙ ДЕНЬ!',p.x,p.y-60,'#ffffff',4,28));castVis(g,p,'#ffffff',60,200);castVis(g,p,'#ffcc44',40,0);}},
+'Небесный Суд':{desc:'Святой крест. 4 луча света.',cd:8,cast(g,p,t){
+  const tier=p.skills[this.n].tier;
+  let dB=1+0.03*(p.resonanceCount||0);
+  if(p.buffs.insp>0)dB*=1.2;if(p.buffs.res>0)dB*=1.5;
+  if(p.buffs.luck>0)dB*=1.3;if(p.buffs.satanael>0)dB*=1.5;if(p.buffs.azatot>0)dB*=2;
+  const cr=Math.random()*100<p.crit;const cm=cr?p.cdmg:1;
+  const d=(80*TM[tier]+p.mag*1.2)*dB*cm*elemMul(p,this.el);
+  const src=src(tier);
+  // Крест из 4 лучей, центр = игрок
+  laserCross(g, p.x, p.y, 4, {
+    length: 900*(p.aoeMult||1),
+    width: 30*(p.aoeMult||1),
+    telegraph: 0.35,
+    duration: 0.8,
+    dps: 0,
+    dmg: d,
+    color: '#fff0c0',
+    friendly: true,
+    pierce: 99,
+    src: src,
+    ownerSkill: this.n,
+    pierceBonus: p.pierceBonus||0
+  });
+  g.flash = 0.3;
+  g.ftxt.push(new FTxt('НЕБЕСНЫЙ КРЕСТ!', p.x, p.y-40, '#fff0c0', 2.5, 22));
+  castVis(g, p, '#fff0c0', 30, 0);
+}},
+'Судный День':{ult:true,desc:'Требует Высший тир. Вращающийся крест из 8 лучей.',cd:20,cast(g,p){
+  const t=p.skills[this.n].tier;
+  if(t<TIER_SUP){g.ftxt.push(new FTxt('Нужен Высший!',p.x,p.y-30,'#ff4040',1.5));return;}
+  const E=elemMul(p,this.el);
+  const d = 400*TM[t]*E;
+  // 8 лучей + вращение = божественный крест
+  laserRotate(g, p.x, p.y, 8, 1.2, {
+    length: 2200*(p.aoeMult||1),
+    width: 40*(p.aoeMult||1),
+    telegraph: 0.5,
+    duration: 2.5,
+    dps: d*0.5,
+    dmg: 0,
+    color: '#ffffff',
+    friendly: true,
+    pierce: 99,
+    src: 'supreme',
+    ownerSkill: this.n,
+    pierceBonus: p.pierceBonus||0
+  });
+  g.shake=25;g.flash=1;
+  g.ftxt.push(new FTxt('СУДНЫЙ ДЕНЬ!',p.x,p.y-60,'#ffffff',4,28));
+  castVis(g,p,'#ffffff',80,0);
+  castVis(g,p,'#ffcc44',40,150);
+}},
 'Иллюзия':{desc:'Сбивает с толку.',cd:6,cast(g,p){for(const e of g.enemies)if(e.alive&&d2(e.x,e.y,p.x,p.y)<200*200)e.atk*=0.8;for(const b of g.bosses)if(b.alive&&d2(b.x,b.y,p.x,p.y)<200*200)b.atk*=0.8;g.ftxt.push(new FTxt('ИЛЛЮЗИЯ!',p.x,p.y-40,'#c080ff',2,18));castVis(g,p,'#c080ff',20,100);}},
 'Мираж':{desc:'Ложные цели.',cd:8,cast(g,p){for(const e of g.enemies)if(e.alive&&d2(e.x,e.y,p.x,p.y)<250*250){e.atk*=0.7;e.spd*=0.9;}for(const b of g.bosses)if(b.alive&&d2(b.x,b.y,p.x,p.y)<250*250){b.atk*=0.7;b.spd*=0.9;}g.ftxt.push(new FTxt('МИРАЖ!',p.x,p.y-40,'#a040ff',2,18));castVis(g,p,'#a040ff',25,120);}},
 'Лабиринт':{desc:'Запутывает врагов.',cd:10,cast(g,p){for(const e of g.enemies)if(e.alive&&d2(e.x,e.y,p.x,p.y)<300*300){e.atk*=0.5;e.spd*=0.7;}for(const b of g.bosses)if(b.alive&&d2(b.x,b.y,p.x,p.y)<300*300){b.atk*=0.5;b.spd*=0.7;}g.ftxt.push(new FTxt('ЛАБИРИНТ!',p.x,p.y-40,'#a040ff',2.2,20));castVis(g,p,'#a040ff',32,150);}},
@@ -544,25 +594,50 @@ const SKILLS={
 'Спираль Света':{desc:'Четыре вращающихся лазера.',cd:11,cast(g,p,t){const tier=p.skills[this.n].tier;let dB=1+0.03*(p.resonanceCount||0);if(p.buffs.insp>0)dB*=1.2;if(p.buffs.res>0)dB*=1.5;if(p.buffs.luck>0)dB*=1.3;if(p.buffs.satanael>0)dB*=1.5;if(p.buffs.azatot>0)dB*=2;if(p.rid==='ogre'&&p.hp<p.maxHp*0.5)dB*=1.2;const dps=(40*TM[tier]+p.mag*0.7)*dB*elemMul(p,this.el);const s=p.hasSup()?'supreme':'normal';laserRotate(g,p.x,p.y,4,1.5,{length:1600*(p.aoeMult||1),width:16*(p.aoeMult||1),telegraph:0.5,duration:3.0,dps:dps,dmg:0,color:'#ffcc44',friendly:true,offset:Math.random()*Math.PI*2,src:s,ownerSkill:this.n,pierceBonus:p.pierceBonus||0});castVis(g,p,'#ffcc44',30,0);g.ftxt.push(new FTxt('СПИРАЛЬ СВЕТА!',p.x,p.y-60,'#ffcc44',2.5,20));}},
 'Космический Вихрь':{ult:true,desc:'Божественный. Восемь вращающихся лазеров.',cd:20,cast(g,p,t){const tier=p.skills[this.n].tier;let dB=1+0.03*(p.resonanceCount||0);if(p.buffs.insp>0)dB*=1.2;if(p.buffs.res>0)dB*=1.5;if(p.buffs.luck>0)dB*=1.3;if(p.buffs.satanael>0)dB*=1.5;if(p.buffs.azatot>0)dB*=2;if(p.rid==='ogre'&&p.hp<p.maxHp*0.5)dB*=1.2;const dps=(65*TM[tier]+p.mag*1.0)*dB*elemMul(p,this.el);laserRotate(g,p.x,p.y,8,2.2,{length:2000*(p.aoeMult||1),width:20*(p.aoeMult||1),telegraph:0.6,duration:4.0,dps:dps,dmg:0,color:'#ffffff',friendly:true,offset:Math.random()*Math.PI*2,src:'supreme',ownerSkill:this.n,pierceBonus:p.pierceBonus||0});castVis(g,p,'#ffffff',60,0);castVis(g,p,'#ffcc44',40,100);g.ftxt.push(new FTxt('КОСМИЧЕСКИЙ ВИХРЬ!',p.x,p.y-60,'#ffffff',3,22));g.shake=25;}},
 // === ПАРТИЯ 1: СВЕТ и ЗАЩИТА ===
-'Михаэль':{desc:'Король Правосудия. Святые кресты, Supreme-урон.',cd:7,cast(g,p){
+'Михаэль':{desc:'Король Правосудия. Святой крест из 4 лучей.',cd:7,cast(g,p){
   const t=p.skills[this.n].tier;const E=elemMul(p,this.el);
   const d=(150*TM[t]+p.mag*2)*E;
-  for(const e of g.enemies)if(e.alive&&d2(e.x,e.y,p.x,p.y)<300*300)e.dmg(d,'supreme');
-  for(const b of g.bosses)if(b.alive&&d2(b.x,b.y,p.x,p.y)<300*300)b.dmg(d,'supreme');
-  const a=Math.atan2(p.y-p.y,p.x-p.x);
-  bhCross(g,p.x,p.y,6,320,this.atk*0,'#f0d060',5,{arms:4,offset:p.aim,lifetime:3,dmg:d});
-  p.buffs.invuln=1.5;
-  g.ftxt.push(new FTxt('МИХАЭЛЬ: ПРАВОСУДИЕ!',p.x,p.y-50,'#f0d060',2.5,22));
-  castVis(g,p,'#f0d060',40,300);
+  // Крест из 4 лучей + лечение + неуязвимость
+  laserCross(g, p.x, p.y, 4, {
+    length: 1200*(p.aoeMult||1),
+    width: 36*(p.aoeMult||1),
+    telegraph: 0.3,
+    duration: 1.0,
+    dps: 0,
+    dmg: d,
+    color: '#f0d060',
+    friendly: true,
+    pierce: 99,
+    src: 'supreme',
+    ownerSkill: this.n,
+    pierceBonus: p.pierceBonus||0
+  });
+  p.buffs.invuln = 1.5;
+  p.hp = Math.min(p.maxHp, p.hp + 150*t);
+  g.ftxt.push(new FTxt('МИХАЭЛЬ: ПРАВОСУДИЕ!', p.x, p.y-50, '#f0d060', 2.5, 22));
+  castVis(g, p, '#f0d060', 40, 0);
 }},
-'Метатрон':{ult:true,desc:'Король Чистоты. Очищающая вспышка.',cd:15,cast(g,p){
+'Метатрон':{ult:true,desc:'Король Чистоты. Вращающийся крест из 8 лучей + очищение.',cd:15,cast(g,p){
   const t=p.skills[this.n].tier;const E=elemMul(p,this.el);
-  const d=(300*TM[t]+p.mag*3)*E;
-  for(const e of g.enemies)if(e.alive)e.dmg(d,'supreme');
-  for(const b of g.bosses)if(b.alive)b.dmg(d,'supreme');
+  const d=(250*TM[t]+p.mag*3)*E;
+  // Вращающийся крест из 8 лучей
+  laserRotate(g, p.x, p.y, 8, 1.5, {
+    length: 2000*(p.aoeMult||1),
+    width: 32*(p.aoeMult||1),
+    telegraph: 0.4,
+    duration: 2.0,
+    dps: d*0.4,
+    dmg: d*0.5,
+    color: '#ffffff',
+    friendly: true,
+    pierce: 99,
+    src: 'supreme',
+    ownerSkill: this.n,
+    pierceBonus: p.pierceBonus||0
+  });
   p.hp=p.maxHp;p.mp=p.maxMp;p.buffs.invuln=3;
   g.flash=1;g.shake=20;
-  g.ftxt.push(new FTxt('МЕТАТРОН: ОЧИЩЕНИЕ!',p.x,p.y-60,'#ffffff',3,26));
+  g.ftxt.push(new FTxt('МЕТАТРОН: ОЧИЩЕНИЕ!', p.x, p.y-60, '#ffffff', 3, 26));
   for(let i=0;i<80;i++)g.particles.push(new Part(p.x+rnd(-200,200),p.y+rnd(-200,200),'#ffffff'));
 }},
 'Сариэль':{ult:true,desc:'Король Надежды. Неуязвимость, лечение, урон.',cd:20,cast(g,p){
@@ -1142,7 +1217,10 @@ const SPELLS=[
   {n:'Снайперский Луч',d:150,mp:25,cd:4.0,sp:2000,c:'#ffffff',t:4,ic:'light',el:'light',pattern:'snipe'},
   {n:'Зеркальный Барьер',d:30,mp:30,cd:6.0,sp:400,c:'#c0e0ff',t:4,ic:'water',el:'ice',pattern:'reflect'},
   {n:'Фазовый Сдвиг',d:80,mp:28,cd:5.0,sp:0,c:'#a0c0ff',t:4,ic:'wind',el:'wind',pattern:'phase'},
-  {n:'Барьер Творца',d:100,mp:35,cd:8.0,sp:0,c:'#ffffff',t:4,ic:'light',el:'light',pattern:'barrier'}
+  {n:'Барьер Творца',d:100,mp:35,cd:8.0,sp:0,c:'#ffffff',t:4,ic:'light',el:'light',pattern:'barrier'},
+    // --- Крестовые заклинания ---
+  {n:'Святой Крест',d:60,mp:16,cd:3.0,c:'#fff8c0',t:2,ic:'light',el:'light',pattern:'cross',length:900,width:28},
+  {n:'Божественный Крест',d:140,mp:28,cd:4.5,c:'#ffffff',t:4,ic:'light',el:'light',pattern:'cross',length:1500,width:40},
 ];
 
 const RANKS=[
@@ -1241,7 +1319,12 @@ const WEAPONS=[
 {n:'Лук Вельзарда',a:125,m:105,rank:6,atkType:'bow',cost:1280,el:'ice',mat:'Звёздное Сердце',d:'5 стрел. +40% лёд, +50% статы.',apply:p=>{p.im+=0.4;p.fm+=0.25;p.wm+=0.25;p.em+=0.25;p.lm+=0.25;p.dm+=0.25;p.tm+=0.25;p.mm+=0.25;p.cm+=0.25;p.vm+=0.25;p.cdr=Math.min(0.75,p.cdr+0.2);p.mult(1.5);},unapply:p=>{p.im-=0.4;p.fm-=0.25;p.wm-=0.25;p.em-=0.25;p.lm-=0.25;p.dm-=0.25;p.tm-=0.25;p.mm-=0.25;p.cm-=0.25;p.vm-=0.25;p.cdr=Math.max(0,p.cdr-0.2);p.div(1.5);}},
 {n:'Книга Апокалипсиса',a:50,m:150,rank:6,atkType:'grimoire',cost:1280,el:'chaos',mat:'Звёздное Сердце',d:'Черная дыра. +40% хаос, +50% статы.',apply:p=>{p.cm+=0.4;p.fm+=0.25;p.im+=0.25;p.wm+=0.25;p.em+=0.25;p.lm+=0.25;p.dm+=0.25;p.tm+=0.25;p.mm+=0.25;p.vm+=0.25;p.cdr=Math.min(0.75,p.cdr+0.2);p.mult(1.5);},unapply:p=>{p.cm-=0.4;p.fm-=0.25;p.im-=0.25;p.wm-=0.25;p.em-=0.25;p.lm-=0.25;p.dm-=0.25;p.tm-=0.25;p.mm-=0.25;p.vm-=0.25;p.cdr=Math.max(0,p.cdr-0.2);p.div(1.5);}},
 {n:'Эльпис (Надежда)',a:180,m:150,rank:6,atkType:'elpis',cost:2560,el:'light',mat:'Звёздное Сердце',d:'Сильнейшее оружие. 360° удар. +60% свет, +60% статы. Пассив: Спасение верой.',apply:p=>{p.lm+=0.6;p.fm+=0.3;p.im+=0.3;p.wm+=0.3;p.em+=0.3;p.dm+=0.3;p.tm+=0.3;p.mm+=0.3;p.cm+=0.3;p.vm+=0.3;p.cdr=Math.min(0.75,p.cdr+0.3);p.crit+=15;p.cdmg+=0.3;p.mult(1.6);p.wepHope=true;},unapply:p=>{p.lm-=0.6;p.fm-=0.3;p.im-=0.3;p.wm-=0.3;p.em-=0.3;p.dm-=0.3;p.tm-=0.3;p.mm-=0.3;p.cm-=0.3;p.vm-=0.3;p.cdr=Math.max(0,p.cdr-0.3);p.crit-=15;p.cdmg-=0.3;p.div(1.6);p.wepHope=false;}},
-{n:'Оружие Богов',a:150,m:150,rank:6,atkType:'god_weapon',cost:1280,el:'light',mat:'Звёздное Сердце',d:'Чередует все паттерны атаки. +50% ко всем статам.',apply:p=>{p.mult(1.5);p.crit+=10;p.cdr=Math.min(0.75,p.cdr+0.1);},unapply:p=>{p.div(1.5);p.crit-=10;p.cdr=Math.max(0,p.cdr-0.1);}}
+{n:'Оружие Богов',a:150,m:150,rank:6,atkType:'god_weapon',cost:1280,el:'light',mat:'Звёздное Сердце',d:'Чередует все паттерны атаки. +50% ко всем статам.',apply:p=>{p.mult(1.5);p.crit+=10;p.cdr=Math.min(0.75,p.cdr+0.1);},unapply:p=>{p.div(1.5);p.crit-=10;p.cdr=Math.max(0,p.cdr-0.1);}},
+
+// === ОРУЖИЕ С КРЕСТОВОЙ АТАКОЙ ===
+{n:'Крест Небес',a:55,m:35,rank:4,atkType:'crossbeam',cost:320,el:'light',mat:'Орихалк',d:'Крест из 4 лучей. 1-й луч на ближайшего врага. +20% свет.',apply:p=>{p.lm+=0.2;},unapply:p=>{p.lm-=0.2;}},
+{n:'Крест Серафима',a:85,m:60,rank:5,atkType:'holycross',cost:640,el:'light',mat:'Священная Сталь',d:'Крест из 8 лучей. Лечит при ударе. +30% свет, +5% CDR.',apply:p=>{p.lm+=0.3;p.cdr=Math.min(0.75,p.cdr+0.05);},unapply:p=>{p.lm-=0.3;p.cdr=Math.max(0,p.cdr-0.05);}},
+{n:'Крест Творца',a:150,m:130,rank:6,atkType:'divinecross',cost:1280,el:'light',mat:'Звёздное Сердце',d:'Крест из 8 лучей + вращение + лечение. +50% ко всем, +60% свет.',apply:p=>{p.lm+=0.6;p.fm+=0.3;p.im+=0.3;p.wm+=0.3;p.em+=0.3;p.dm+=0.3;p.tm+=0.3;p.mm+=0.3;p.cm+=0.3;p.vm+=0.3;p.cdr=Math.min(0.75,p.cdr+0.2);p.mult(1.5);},unapply:p=>{p.lm-=0.6;p.fm-=0.3;p.im-=0.3;p.wm-=0.3;p.em-=0.3;p.dm-=0.3;p.tm-=0.3;p.mm-=0.3;p.cm-=0.3;p.vm-=0.3;p.cdr=Math.max(0,p.cdr-0.2);p.div(1.5);}}
 ];
 
 const ARTS=[
@@ -1957,11 +2040,40 @@ function bhSpiralFint(g,x,y,angle,speed,curve1,curve2,dmg,color,r,opts){opts=opt
 function laserBeam(g,x,y,angle,opts){opts=opts||{};g.lasers.push(new Laser(x,y,angle,opts));}
 function laserFan(g,x,y,baseAngle,count,spread,opts){opts=opts||{};
   for(let i=0;i<count;i++){const a=baseAngle+(i-(count-1)/2)*spread;g.lasers.push(new Laser(x,y,a,opts));}}
-function laserCross(g,x,y,count,opts){opts=opts||{};const off=opts.offset||0;
-  for(let i=0;i<count;i++){const a=off+i/count*Math.PI*2;g.lasers.push(new Laser(x,y,a,opts));}}
-function laserRotate(g,x,y,count,rotSpeed,opts){opts=opts||{};const off=opts.offset||0;
-  for(let i=0;i<count;i++){const a=off+i/count*Math.PI*2;
-    const o=Object.assign({},opts);o.rotate=rotSpeed;g.lasers.push(new Laser(x,y,a,o));}}
+function laserCross(g,x,y,count,opts){
+  opts=opts||{};
+  let off = opts.offset;
+  if(off === undefined){
+    // Автопоиск ближайшего врага
+    let target=null, bestDist=Infinity;
+    for(const e of g.enemies){if(!e.alive)continue;const d=d2(e.x,e.y,x,y);if(d<bestDist){bestDist=d;target=e;}}
+    for(const b of g.bosses){if(!b.alive)continue;const d=d2(b.x,b.y,x,y);if(d<bestDist){bestDist=d;target=b;}}
+    off = target ? Math.atan2(target.y-y, target.x-x) : 0;
+  }
+  for(let i=0;i<count;i++){
+    const a=off+i/count*Math.PI*2;
+    const o=Object.assign({},opts);
+    delete o.offset;
+    g.lasers.push(new Laser(x,y,a,o));
+  }
+}
+function laserRotate(g,x,y,count,rotSpeed,opts){
+  opts=opts||{};
+  let off = opts.offset;
+  if(off === undefined){
+    let target=null, bestDist=Infinity;
+    for(const e of g.enemies){if(!e.alive)continue;const d=d2(e.x,e.y,x,y);if(d<bestDist){bestDist=d;target=e;}}
+    for(const b of g.bosses){if(!b.alive)continue;const d=d2(b.x,b.y,x,y);if(d<bestDist){bestDist=d;target=b;}}
+    off = target ? Math.atan2(target.y-y, target.x-x) : 0;
+  }
+  for(let i=0;i<count;i++){
+    const a=off+i/count*Math.PI*2;
+    const o=Object.assign({},opts);
+    o.rotate=rotSpeed;
+    delete o.offset;
+    g.lasers.push(new Laser(x,y,a,o));
+  }
+}
 
 class Boss extends Enemy{
 constructor(x,y,t,m){super(x,y,t,m);this.bn=t.n;this.ph=1;
@@ -2878,6 +2990,23 @@ castSpell(sp, dmgMultiplier, isEnhance, g) {
             pr.l = 2.0; g.proj.push(pr);
         }
     }
+	else if (sp.def.pattern === 'cross') {
+    // Крест из 4 лучей с игроком в центре
+        laserCross(g, this.x, this.y, 4, {
+		length: (sp.def.length || 900) * (this.aoeMult||1),
+		width: (sp.def.width || 28) * (this.aoeMult||1),
+		telegraph: 0.3,
+		duration: 0.8,
+		dps: 0,
+		dmg: dm,
+		color: sp.def.c,
+		friendly: true,
+		pierce: 99,
+		src: src,
+		ownerSkill: null,
+		pierceBonus: this.pierceBonus || 0
+      });
+	}
     else {
       const explR=(sp.def.explR||0)*(this.aoeMult||1);
       const explDmg=explR>0?dm*0.35:0;
@@ -2997,6 +3126,65 @@ _performWeaponAttack(wep,g,t,dmgBonus){
         prStl.l=1.5;prStl.visType='beam';g.proj.push(prStl);
       }
       break;
+	case 'crossbeam': {
+	  const beamLen = 800*ao;
+	  const beamW = 28*ao;
+	  laserCross(g, this.x, this.y, 4, {
+		length: beamLen,
+		width: beamW,
+		telegraph: 0.15,
+		duration: 0.6,
+		dps: 0,
+		dmg: baseDm,
+		color: '#fff8c0',
+		friendly: true,
+		pierce: 99,
+		src: src,
+		ownerSkill: 'crossbeam',
+		pierceBonus: this.pierceBonus || 0
+	  });
+	  break;
+	}
+	case 'holycross': {
+	  const beamLen = 1200*ao;
+	  const beamW = 36*ao;
+	  laserCross(g, this.x, this.y, 8, {
+		length: beamLen,
+		width: beamW,
+		telegraph: 0.15,
+		duration: 0.8,
+		dps: 0,
+		dmg: baseDm*1.2,
+		color: '#ffffff',
+		friendly: true,
+		pierce: 99,
+		src: 'supreme',
+		ownerSkill: 'holycross',
+		pierceBonus: this.pierceBonus || 0
+	  });
+	  this.hp = Math.min(this.maxHp, this.hp + this.maxHp*0.01);
+	  break;
+	}
+	case 'divinecross': {
+	  const beamLen = 1600*ao;
+	  const beamW = 48*ao;
+	  laserRotate(g, this.x, this.y, 8, 0.5, {
+		length: beamLen,
+		width: beamW,
+		telegraph: 0.15,
+		duration: 1.0,
+		dps: baseDm*0.3,
+		dmg: baseDm*1.5,
+		color: '#ffffff',
+		friendly: true,
+		pierce: 99,
+		src: 'supreme',
+		ownerSkill: 'divinecross',
+		pierceBonus: this.pierceBonus || 0
+	  });
+	  this.hp = Math.min(this.maxHp, this.hp + this.maxHp*0.015);
+	  break;
+	}
     case 'elpis': {
 	  const beamLen=420*ao;
 	  const beamW=200*ao;
@@ -3203,6 +3391,68 @@ triggerWeaponAbility(slotIdx, g) {
               pr.visType = 'beam'; pr.l = 2; g.proj.push(pr);
           }
           break;
+	  case 'crossbeam': {
+		const beamLen = 1400*ao;
+		const beamW = 44*ao;
+		laserCross(g, this.x, this.y, 4, {
+		  length: beamLen,
+		  width: beamW,
+		  telegraph: 0.3,
+		  duration: 1.2,
+		  dps: 0,
+		  dmg: baseDmg*1.5,
+		  color: '#fff8c0',
+	      friendly: true,
+		  pierce: 99,
+		  src: 'supreme',
+		  ownerSkill: 'crossbeam',
+		  pierceBonus: this.pierceBonus || 0
+		});
+		this.buffs.invuln = Math.max(this.buffs.invuln, 1.0);
+		break;
+	  }
+	  case 'holycross': {
+		const beamLen = 1600*ao;
+		const beamW = 48*ao;
+		laserCross(g, this.x, this.y, 8, {
+		  length: beamLen,
+		  width: beamW,
+		  telegraph: 0.35,
+		  duration: 1.5,
+		  dps: 0,
+		  dmg: baseDmg*2.0,
+		  color: '#ffffff',
+		  friendly: true,
+		  pierce: 99,
+		  src: 'supreme',
+		  ownerSkill: 'holycross',
+		  pierceBonus: this.pierceBonus || 0
+		});
+		this.buffs.invuln = Math.max(this.buffs.invuln, 1.5);
+		this.hp = Math.min(this.maxHp, this.hp + this.maxHp*0.05);
+		break;
+	  }
+	  case 'divinecross': {
+		const beamLen = 2200*ao;
+		const beamW = 64*ao;
+		laserRotate(g, this.x, this.y, 8, 1.2, {
+		  length: beamLen,
+		  width: beamW,
+		  telegraph: 0.4,
+		  duration: 2.5,
+		  dps: baseDmg*0.7,
+		  dmg: baseDmg*3.0,
+		  color: '#ffffff',
+		  friendly: true,
+		  pierce: 99,
+	      src: 'supreme',
+		  ownerSkill: 'divinecross',
+		  pierceBonus: this.pierceBonus || 0
+		});
+		this.buffs.invuln = Math.max(this.buffs.invuln, 2.5);
+		this.hp = Math.min(this.maxHp, this.hp + this.maxHp*0.08);
+		break;
+      }
       case 'elpis': {
 		const beamLen=650*ao;
 		const beamW=320*ao;
