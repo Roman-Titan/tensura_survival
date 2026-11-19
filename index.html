@@ -64,10 +64,13 @@ ctx.beginPath();ctx.arc(s*.3,-s*.1,s*.5,0,7);ctx.fill();}
 else if(name==='skill'){ctx.beginPath();ctx.moveTo(0,-s);ctx.lineTo(s,0);ctx.lineTo(0,s);ctx.lineTo(-s,0);ctx.closePath();ctx.stroke();}
 else{ctx.beginPath();ctx.arc(0,0,s*.5,0,7);ctx.fill();}
 ctx.restore();}
+function addTimer(g,delay,fn){if(!g)return;if(!g.timers)g.timers=[];g.timers.push({t:delay,fn:fn});}
 function castVis(g,p,c,n,r){n=n||15;
+  if(r&&g&&g.shockwaves)g.shockwaves.push(new Shockwave(p.x,p.y,r,c,0.35));
   for(let i=0;i<n;i++){
     if(r){const a=i/n*6.283;g.particles.push(new Part(p.x+Math.cos(a)*r,p.y+Math.sin(a)*r,c));}
     else g.particles.push(new Part(p.x,p.y,c));}}
+
 
 const SK='tensura_save_master';
 const SV={
@@ -119,50 +122,61 @@ const THEMES = {
   'Хината Сакагучи':{ elems: ['light', 'time'], arts: ['Осколок Хроноса'] }
 };
 
-const AU={c:null,m:null,en:true,init:false,tr:null,t:null,_pendingMusic:null,
+const AU={c:null,m:null,f:null,en:true,init:false,tr:null,t:null,_pendingMusic:null,step:0,
 i(){if(this.init)return;try{const A=window.AudioContext||window.webkitAudioContext;
-this.c=new A();this.m=this.c.createGain();this.m.gain.value=.4;this.m.connect(this.c.destination);this.init=true;
+this.c=new A();this.m=this.c.createGain();this.m.gain.value=0.38;
+this.f=this.c.createBiquadFilter();this.f.type='lowpass';this.f.frequency.value=1400;
+this.f.connect(this.m);this.m.connect(this.c.destination);this.init=true;
 if(this.c.state==='suspended')this.c.resume();
 if(this._pendingMusic){const pm=this._pendingMusic;this._pendingMusic=null;this.music(pm);}}
 catch(e){this.en=false;}},
-n(f,d,v,tp){if(!this.en||!this.c)return;try{const o=this.c.createOscillator(),g=this.c.createGain();
-o.type=tp||'sine';o.frequency.value=f;g.gain.setValueAtTime(v||.06,this.c.currentTime);
-g.gain.exponentialRampToValueAtTime(.001,this.c.currentTime+d);
-o.connect(g);g.connect(this.m);o.start();o.stop(this.c.currentTime+d);}catch(e){}},
+setMuffle(muffled){if(!this.f||!this.c)return;try{this.f.frequency.setTargetAtTime(muffled?380:1400,this.c.currentTime,0.08);}catch(e){}},
+n(freq,dur,vol,tp,detune=0){if(!this.en||!this.c)return;try{const now=this.c.currentTime;
+const o=this.c.createOscillator(),g=this.c.createGain();
+o.type=tp||'sine';o.frequency.setValueAtTime(freq,now);if(detune)o.detune.setValueAtTime(detune,now);
+g.gain.setValueAtTime(0.001,now);g.gain.linearRampToValueAtTime(vol||0.06,now+0.015);
+g.gain.exponentialRampToValueAtTime(0.001,now+dur);
+o.connect(g);g.connect(this.f);o.start(now);o.stop(now+dur);}catch(e){}},
 sfx(n){if(!this.en||!this.c)return;
-if(n==='hit')this.n(180,.05,.06,'square');
-else if(n==='crit'){this.n(400,.06,.08,'square');setTimeout(()=>this.n(620,.08,.07,'square'),35);}
-else if(n==='damage'){this.n(90,.16,.10,'triangle');setTimeout(()=>this.n(60,.22,.08,'sine'),40);}
-else if(n==='kill'){this.n(320,.08,.07,'sine');setTimeout(()=>this.n(160,.12,.05,'sine'),55);}
-else if(n==='pickup'){this.n(880,.05,.06,'sine');setTimeout(()=>this.n(1320,.09,.07,'sine'),45);}
-else if(n==='wave'){this.n(520,.14,.08,'triangle');setTimeout(()=>this.n(780,.22,.09,'triangle'),95);}
-else if(n==='victory'){const arp=[523,659,784,1047];arp.forEach((f,i)=>setTimeout(()=>this.n(f,.32,.10,'triangle'),i*130));}
-else if(n==='defeat'){const dirge=[420,320,240,160];dirge.forEach((f,i)=>setTimeout(()=>this.n(f,.38,.10,'triangle'),i*160));}
-else if(n==='lvl'){this.n(523,.12,.08);setTimeout(()=>this.n(659,.12,.08),70);setTimeout(()=>this.n(784,.2,.08),140);}
-else if(n==='boss')this.n(110,.5,.16,'sawtooth');
-else if(n==='evo')for(let i=0;i<5;i++)setTimeout(()=>this.n(261*1.2**i,.22,.09),i*70);
-else if(n==='dodge')this.n(880,.1,.06);
-else if(n==='sel')this.n(700,.05,.05,'square');
-else if(n==='sec')for(let i=0;i<6;i++)setTimeout(()=>this.n(200*1.15**i,.3,.1,'sawtooth'),i*90);
-else if(n==='absorb'){this.n(140,.3,.14,'sawtooth');setTimeout(()=>this.n(90,.4,.12,'triangle'),120);}
-else if(n==='slow'){this.n(600,.4,.08,'sine');setTimeout(()=>this.n(300,.6,.08,'sine'),150);}},
+if(n==='hit')this.n(180,0.05,0.06,'square');
+else if(n==='crit'){this.n(440,0.06,0.08,'square');setTimeout(()=>this.n(660,0.09,0.07,'square'),35);}
+else if(n==='damage'){this.n(95,0.16,0.11,'sawtooth');setTimeout(()=>this.n(55,0.24,0.09,'sine'),40);}
+else if(n==='kill'){this.n(320,0.08,0.07,'sine');setTimeout(()=>this.n(160,0.12,0.05,'sine'),55);}
+else if(n==='pickup'){this.n(880,0.06,0.06,'triangle');setTimeout(()=>this.n(1320,0.1,0.07,'triangle'),45);}
+else if(n==='parry'){this.n(1046,0.25,0.12,'triangle');this.n(1568,0.30,0.08,'sine',12);setTimeout(()=>this.n(2093,0.35,0.07,'sine'),40);}
+else if(n==='wave'){this.n(523,0.14,0.08,'triangle');setTimeout(()=>this.n(784,0.22,0.09,'triangle'),95);}
+else if(n==='victory'){[523,659,784,1047].forEach((f,i)=>setTimeout(()=>this.n(f,0.35,0.10,'triangle'),i*120));}
+else if(n==='defeat'){[420,320,240,160].forEach((f,i)=>setTimeout(()=>this.n(f,0.38,0.10,'sawtooth'),i*160));}
+else if(n==='lvl'){[523,659,784,1047].forEach((f,i)=>setTimeout(()=>this.n(f,0.14,0.08,'triangle'),i*65));}
+else if(n==='boss'){this.n(82,0.6,0.16,'sawtooth');this.n(110,0.5,0.12,'square',-15);}
+else if(n==='evo'){for(let i=0;i<6;i++)setTimeout(()=>this.n(261*Math.pow(1.18,i),0.24,0.09,'triangle'),i*65);}
+else if(n==='dodge')this.n(880,0.1,0.06,'sine');
+else if(n==='sel')this.n(700,0.05,0.05,'triangle');
+else if(n==='sec'){for(let i=0;i<6;i++)setTimeout(()=>this.n(200*Math.pow(1.15,i),0.3,0.1,'sawtooth'),i*90);}
+else if(n==='absorb'){this.n(140,0.3,0.14,'sawtooth');setTimeout(()=>this.n(90,0.4,0.12,'triangle'),120);}
+else if(n==='slow'){this.n(600,0.4,0.08,'sine');setTimeout(()=>this.n(300,0.6,0.08,'sine'),150);}},
 music(tp){
   if(!this.init||!this.en){this._pendingMusic=tp;return;}
   if(this.tr===tp)return;
-  this.stop();this.tr=tp;
-  let n,dur,noteVol,bassVol,bassChance;
-  if(tp==='menu'){n=[130,146,164,174,196];dur=900;noteVol=.06;bassVol=.035;bassChance=0.35;}
-  else if(tp==='combat'){n=[220,261,293,330,349];dur=380;noteVol=.055;bassVol=.03;bassChance=0.4;}
-  else if(tp==='boss'){n=[82,92,110,123];dur=280;noteVol=.06;bassVol=.04;bassChance=0.5;}
-  else if(tp==='dragon'){n=[110,130,156,175,196];dur=320;noteVol=.06;bassVol=.04;bassChance=0.45;}
-  else if(tp==='final'){n=[61,73,82,92,103];dur=260;noteVol=.065;bassVol=.045;bassChance=0.55;}
-  else{n=[130];dur=600;noteVol=.06;bassVol=.035;bassChance=0.3;}
-  this.t=setInterval(()=>{if(!this.en)return;const mel=pick(n);
-    this.n(mel,dur/1000*.85,noteVol,'triangle');
-    if(Math.random()<bassChance)this.n(mel/2,dur/1000*1.4,bassVol,'sine');
-  },dur);
+  this.stop();this.tr=tp;this.step=0;
+  const tracks={
+    menu:{seq:[261.6,329.6,392.0,493.9,523.3,493.9,392.0,329.6],bass:[130.8,130.8,164.8,164.8,196.0,196.0,164.8,164.8],dur:360,wave:'triangle'},
+    combat:{seq:[220.0,261.6,329.6,293.7,220.0,246.9,293.7,349.2],bass:[110.0,110.0,130.8,130.8,98.0,98.0,110.0,110.0],dur:220,wave:'triangle'},
+    boss:{seq:[110.0,116.5,130.8,116.5,110.0,146.8,138.6,116.5],bass:[55.0,55.0,65.4,65.4,55.0,73.4,69.3,58.3],dur:190,wave:'sawtooth'},
+    dragon:{seq:[146.8,174.6,220.0,261.6,293.7,261.6,220.0,174.6],bass:[73.4,73.4,87.3,87.3,110.0,110.0,87.3,87.3],dur:185,wave:'sawtooth'},
+    final:{seq:[82.4,98.0,110.0,123.5,130.8,123.5,110.0,98.0],bass:[41.2,41.2,49.0,55.0,65.4,55.0,49.0,41.2],dur:170,wave:'sawtooth'}
+  };
+  const cfg=tracks[tp]||tracks.menu;
+  this.t=setInterval(()=>{
+    if(!this.en)return;
+    const idx=this.step%cfg.seq.length;
+    this.n(cfg.seq[idx],(cfg.dur/1000)*0.9,0.045,cfg.wave);
+    if(this.step%2===0)this.n(cfg.bass[idx],(cfg.dur/1000)*1.8,0.055,'sine');
+    this.step++;
+  },cfg.dur);
 },
 stop(){if(this.t)clearInterval(this.t);this.t=null;this.tr=null;}};
+
 
 const TI=['Обычный','Экстра','Уникальный','Высший','Божественный'];
 const TM=[1,1.8,3.0,5.0,8.0];
@@ -517,7 +531,7 @@ const SKILLS={
   if(p.buffs.luck>0)dB*=1.3;if(p.buffs.satanael>0)dB*=1.5;if(p.buffs.azatot>0)dB*=2;
   const cr=Math.random()*100<p.crit;const cm=cr?p.cdmg:1;
   const d=(80*TM[tier]+p.mag*1.2)*dB*cm*elemMul(p,this.el);
-  const src=src(tier);
+  const sType=src(tier);
   // Крест из 4 лучей, центр = игрок
   laserCross(g, p.x, p.y, 4, {
     length: 900*(p.aoeMult||1),
@@ -2482,7 +2496,7 @@ if(this.sup&&this.hsf>0){ctx.strokeStyle='rgba(255,100,100,.5)';ctx.lineWidth=4;
   ctx.beginPath();ctx.arc(this.x,this.y,this.z+15,0,7);ctx.stroke();}
 ctx.fillStyle=sh(this.c,20);ctx.globalAlpha=this.enraged?0.3:0.15;
 ctx.beginPath();ctx.arc(this.x,this.y,this.z*au*1.8,0,7);ctx.fill();ctx.globalAlpha=1;
-shape(this.sh,this.x,this.y,this.z*au,this.c,this.hf>0);
+drawBossAvatar(this);
 bar(this.x-60,this.y-this.z-22,120,8,this.hp,this.maxHp,this.enraged?'#8b0000':'#ff4040');
 const label=(this.bn+(this.sup?' ★':'')+' Ф'+this.ph);
 tx(label,this.x,this.y-this.z-30,{color:this.enraged?'#ff3030':'#ffcc44',size:13,align:'center',glow:this.enraged?'#8b0000':null,glowBlur:15});
@@ -2664,6 +2678,295 @@ function evoFragCost(sk){
   const evo=SKILL_EVO[sk];if(!evo)return 0;
   const t=evo.startTier||0;if(t>=4)return 7;if(t>=3)return 4;return 0;
 }
+
+const CHAR_VIS={
+  'Римуру Темпест':{body:'#50c8dc',eye:'#ffd700',hair:'#90e8ff',hairStyle:'long',evoWings:true},
+  'Шинша':{body:'#ff90c8',eye:'#ffd700',hair:'#ffb0e0',hairStyle:'twintails',bow:'#ff4080'},
+  'Ригурд':{body:'#68b850',eye:'#ffcc44',crown:'#d4af37',beard:'#e0e0e0'},
+  'Ригур':{body:'#78c860',eye:'#fff',scarf:'#4080ff'},
+  'Гобта':{body:'#8cd66a',eye:'#111',hair:'#2a2a35',hairStyle:'spiky'},
+  'Бенемару':{body:'#d66040',eye:'#ff3030',hair:'#ff3030',hairStyle:'spiky',horns:2,hornCol:'#fff',aura:'#ff5020'},
+  'Шион':{body:'#b070d0',eye:'#9040c0',hair:'#9050d0',hairStyle:'long',horns:1,hornCol:'#222'},
+  'Соуэй':{body:'#4060a0',eye:'#60b0ff',hair:'#203060',hairStyle:'spiky',horns:1,hornCol:'#fff',scarf:'#203050'},
+  'Хакуро':{body:'#d0b090',eye:'#fff',hair:'#f0f0f5',hairStyle:'bob',horns:2,hornCol:'#ddd',beard:'#f0f0f5'},
+  'Шуна':{body:'#f0a0c0',eye:'#ff80b0',hair:'#ffb0d0',hairStyle:'long',horns:2,hornCol:'#fff',bow:'#ff6090'},
+  'Габиру':{body:'#4a9f8f',eye:'#ffcc44',crown:'#ff6040'},
+  'Аберу':{body:'#3a7f70',eye:'#80ff80',horns:2,hornCol:'#a0c0b0'},
+  'Соука':{body:'#5abfa8',eye:'#80e0ff',scarf:'#304060'},
+  'Диабло':{body:'#252530',eye:'#ffd700',eye2:'#ff3030',hair:'#181820',hairStyle:'long',horns:2,hornCol:'#ffd700',wings:'demon',wingCol:'#181822'},
+  'Тестаросса':{body:'#f0f0f8',eye:'#ff3030',hair:'#ffffff',hairStyle:'long',crown:'#ff3030',wings:'demon',wingCol:'#d0d0e0'},
+  'Каррера':{body:'#f0c040',eye:'#4080ff',hair:'#ffe050',hairStyle:'spiky',horns:2,hornCol:'#ff8020',wings:'demon',wingCol:'#c08020'},
+  'Ультима':{body:'#9050c0',eye:'#ff60a0',hair:'#b070e0',hairStyle:'twintails',horns:2,hornCol:'#402060',wings:'demon',wingCol:'#603090'},
+  'Мизери':{body:'#50b070',eye:'#80ff80',hair:'#40a060',hairStyle:'long',wings:'demon',wingCol:'#206040'},
+  'Рейн':{body:'#5080d0',eye:'#80d0ff',hair:'#4070c0',hairStyle:'bob',wings:'demon',wingCol:'#204080'},
+  'Гай Кримзон':{body:'#d02030',eye:'#ffd700',hair:'#ff2030',hairStyle:'long',horns:2,hornCol:'#ffd700',wings:'demon',wingCol:'#600010',aura:'#ff2030'},
+  'Гелд':{body:'#806040',eye:'#ff8040',crown:'#a0a0b0',horns:2,hornCol:'#d0c0a0'},
+  'Кайдзин':{body:'#b89060',eye:'#fff',hair:'#503020',beard:'#503020'},
+  'Газель Дварго':{body:'#c8a070',eye:'#ffcc44',crown:'#ffd700',beard:'#302015',aura:'#ffd700'},
+  'Веста':{body:'#a88868',eye:'#80c0ff',hair:'#605040',glasses:true},
+  'Гарм':{body:'#987858',eye:'#fff',beard:'#804020'},
+  'Элен':{body:'#8ad8a8',eye:'#40a0ff',hair:'#ffe070',hairStyle:'long',elfEars:true},
+  'Фидия':{body:'#7ad0a0',eye:'#80ff80',hair:'#a0e080',hairStyle:'bob',elfEars:true},
+  'Эльмезия':{body:'#a0f0c8',eye:'#50c8dc',hair:'#e0ffff',hairStyle:'long',elfEars:true,crown:'#80ffff'},
+  'Альбис':{body:'#d0b060',eye:'#ffd700',hair:'#e0c050',hairStyle:'long',beastEars:true,crown:'#ffd700'},
+  'Суфия':{body:'#e09050',eye:'#80ff80',hair:'#f0f0f0',hairStyle:'spiky',beastEars:true},
+  'Груциус':{body:'#908070',eye:'#ffcc44',hair:'#605040',hairStyle:'spiky',beastEars:true},
+  'Карион':{body:'#e08030',eye:'#ff4040',hair:'#ff9020',hairStyle:'spiky',beastEars:true,aura:'#ff8020'},
+  'Ранга':{body:'#303850',eye:'#ffd700',hair:'#405070',hairStyle:'spiky',beastEars:true,hornStar:'#ffd700',aura:'#5080ff'},
+  'Кумара':{body:'#f0c070',eye:'#ff6080',hair:'#ffd080',hairStyle:'long',beastEars:true,tails:9},
+  'Адальман':{body:'#b0b8c8',eye:'#80ff80',crown:'#9050d0',aura:'#8040c0'},
+  'Адоль':{body:'#8090a0',eye:'#ff4040',crown:'#402060'},
+  'Альберт':{body:'#90a0b8',eye:'#60c0ff',crown:'#c0d0e0'},
+  'Вега':{body:'#c05070',eye:'#ff3030',hair:'#402030',hairStyle:'spiky',horns:2,hornCol:'#ff4060'},
+  'Кагали':{body:'#e090c0',eye:'#ffd700',hair:'#f0d090',hairStyle:'long',elfEars:true,glasses:true},
+  'Тир':{body:'#d07090',eye:'#fff',bow:'#6090ff'},
+  'Футман':{body:'#c080a0',eye:'#fff',bow:'#ff4040'},
+  'Лаплас':{body:'#7090d0',eye:'#ffd700',crown:'#304080'},
+  'Михаэль':{body:'#fff8d0',eye:'#ffd700',hair:'#fff0a0',hairStyle:'long',halo:'#ffd700',wings:'angel',wingCol:'#ffffff'},
+  'Фелдвей':{body:'#d0c0e0',eye:'#ff40ff',hair:'#ffffff',hairStyle:'long',halo:'#a040e0',wings:'angel',wingCol:'#302040'},
+  'Дино':{body:'#e0d8b0',eye:'#80c0ff',hair:'#e0d090',hairStyle:'bob',halo:'#ffe080',wings:'angel',wingCol:'#e0e0f0'},
+  'Заларио':{body:'#f0e0a0',eye:'#ff8040',hair:'#d0b070',hairStyle:'spiky',halo:'#ffd700',wings:'angel',wingCol:'#fff8dc'},
+  'Пико':{body:'#ffd0e0',eye:'#ff60a0',hair:'#ffb0c0',hairStyle:'twintails',halo:'#ff80c0',wings:'angel',wingCol:'#fff'},
+  'Гараша':{body:'#e0c090',eye:'#ffcc44',hair:'#c09060',hairStyle:'long',halo:'#ffcc44',wings:'angel',wingCol:'#fff'},
+  'Обера':{body:'#d0e0ff',eye:'#60b0ff',hair:'#a0c0ff',hairStyle:'long',halo:'#80c0ff',wings:'angel',wingCol:'#e0f0ff'},
+  'Корню':{body:'#f0d0a0',eye:'#ff4040',hair:'#d06040',hairStyle:'spiky',halo:'#ff8040',wings:'angel',wingCol:'#fff'},
+  'Хината Сакагучи':{body:'#e8d0c0',eye:'#404060',hair:'#202030',hairStyle:'bob',aura:'#e0e8ff'},
+  'Масаюки Хондзё':{body:'#f0d8c0',eye:'#60a0ff',hair:'#f0d050',hairStyle:'spiky',aura:'#ffd700'},
+  'Хлоя Обер':{body:'#f0d8d0',eye:'#5080d0',hair:'#181825',hairStyle:'long',halo:'#a0e0ff'},
+  'Леон Кромвель':{body:'#f0e0c0',eye:'#60b0ff',hair:'#fff0a0',hairStyle:'long',crown:'#ffd700',aura:'#ffe880'},
+  'Вельдора':{body:'#283850',eye:'#ffd700',hair:'#ffd700',hairStyle:'spiky',horns:2,hornCol:'#ffd700',wings:'dragon',wingCol:'#305070',aura:'#50c8dc'},
+  'Вельзард':{body:'#e0f4ff',eye:'#40a0ff',hair:'#ffffff',hairStyle:'long',horns:2,hornCol:'#a0e0ff',wings:'dragon',wingCol:'#c0f0ff',aura:'#80d0ff'},
+  'Вельгринд':{body:'#d03030',eye:'#ffd700',hair:'#3060d0',hairStyle:'long',horns:2,hornCol:'#ff8040',wings:'dragon',wingCol:'#ff5020',aura:'#ff6020'},
+  'Сарай':{body:'#60b090',eye:'#ffff80',horns:2,hornCol:'#a0ffd0',wings:'dragon',wingCol:'#409070'},
+  'Вельданава':{body:'#f0e090',eye:'#ffffff',hair:'#202040',hairStyle:'long',halo:'#fff8c0',wings:'dragon',wingCol:'#ffd700',aura:'#ffffff'},
+  'Зегион':{body:'#252535',eye:'#60d0ff',horns:1,hornCol:'#ffd700',aura:'#8080ff'},
+  'Апито':{body:'#f0c040',eye:'#40a0ff',hair:'#ffe060',hairStyle:'long',wings:'fairy',wingCol:'#fff8c0'},
+  'Рамирис':{body:'#ffe0f0',eye:'#60ff80',hair:'#ffd050',hairStyle:'twintails',wings:'fairy',wingCol:'#a0f0ff',crown:'#80ff80'},
+  'Трейни':{body:'#80d890',eye:'#40a060',hair:'#50c070',hairStyle:'long',crown:'#ff80c0'},
+  'Берретта':{body:'#d0d0d8',eye:'#ffd700',hair:'#e8e8f0',hairStyle:'long',bow:'#8040c0'},
+  'Рой':{body:'#803040',eye:'#ff3030',hair:'#302025',hairStyle:'spiky',wings:'demon',wingCol:'#401020'},
+  'Твайлайт':{body:'#d0b0c0',eye:'#ff2040',hair:'#ffffff',hairStyle:'long',crown:'#ff2040',wings:'demon',wingCol:'#301020'},
+  'Люминос':{body:'#f0e0e8',eye:'#ff2040',eye2:'#40a0ff',hair:'#e8e8f8',hairStyle:'long',bow:'#202030',aura:'#ff4080'}
+};
+
+function drawHeroAvatar(cn,shType,x,y,r,baseCol,es){
+  const v=CHAR_VIS[cn]||{};
+  const bodyCol=v.body||baseCol;
+  const t=performance.now()/400;
+  ctx.save();ctx.translate(x,y);
+
+  if(v.aura){
+    const pulse=0.35+Math.sin(t*2)*0.15;
+    ctx.fillStyle=hexA(v.aura,pulse*0.35);
+    ctx.beginPath();ctx.arc(0,0,r*1.55,0,Math.PI*2);ctx.fill();
+  }
+  if(v.tails){
+    ctx.fillStyle='#ffe890';
+    for(let i=0;i<v.tails;i++){
+      const ang=Math.PI*0.15+(i/(v.tails-1))*Math.PI*0.7+Math.sin(t+i)*0.08;
+      ctx.beginPath();ctx.ellipse(Math.cos(ang)*r*0.9,Math.sin(ang)*r*0.9,r*0.55,r*0.22,ang,0,Math.PI*2);ctx.fill();
+    }
+  }
+  const wingType=v.wings||(v.evoWings&&es>=2?'demon':null);
+  if(wingType){
+    const wCol=v.wingCol||'#ffffff';
+    const flap=Math.sin(t*3)*0.15;
+    ctx.fillStyle=wCol;ctx.strokeStyle=sh(wCol,-40);ctx.lineWidth=1.5;
+    for(const dir of [-1,1]){
+      ctx.save();ctx.scale(dir,1);ctx.rotate(flap);
+      if(wingType==='angel'){
+        ctx.beginPath();ctx.moveTo(r*0.3,-r*0.1);ctx.quadraticCurveTo(r*1.8,-r*1.1,r*1.6,r*0.2);ctx.quadraticCurveTo(r*1.0,r*0.4,r*0.3,r*0.2);ctx.fill();ctx.stroke();
+      }else if(wingType==='demon'||wingType==='dragon'){
+        ctx.beginPath();ctx.moveTo(r*0.3,-r*0.1);ctx.lineTo(r*1.7,-r*0.9);ctx.lineTo(r*1.4,0);ctx.lineTo(r*1.6,r*0.4);ctx.lineTo(r*0.9,r*0.2);ctx.lineTo(r*0.3,r*0.3);ctx.closePath();ctx.fill();ctx.stroke();
+      }else if(wingType==='fairy'){
+        ctx.globalAlpha=0.75;ctx.beginPath();ctx.ellipse(r*1.0,-r*0.3,r*0.7,r*0.3,-0.4,0,Math.PI*2);ctx.fill();ctx.stroke();ctx.globalAlpha=1;
+      }
+      ctx.restore();
+    }
+  }
+  if(v.hairStyle==='long'){
+    ctx.fillStyle=v.hair;ctx.beginPath();ctx.arc(0,-r*0.05,r*1.12,Math.PI*0.85,Math.PI*2.15);
+    ctx.lineTo(r*1.15,r*0.95);ctx.lineTo(-r*1.15,r*0.95);ctx.closePath();ctx.fill();
+  }else if(v.hairStyle==='twintails'){
+    ctx.fillStyle=v.hair;
+    ctx.beginPath();ctx.ellipse(-r*1.05,r*0.25,r*0.3,r*0.75,0.25,0,Math.PI*2);ctx.fill();
+    ctx.beginPath();ctx.ellipse(r*1.05,r*0.25,r*0.3,r*0.75,-0.25,0,Math.PI*2);ctx.fill();
+  }
+  if(v.elfEars){
+    ctx.fillStyle=bodyCol;
+    ctx.beginPath();ctx.moveTo(-r*0.85,-r*0.1);ctx.lineTo(-r*1.45,-r*0.35);ctx.lineTo(-r*0.8,r*0.15);ctx.fill();
+    ctx.beginPath();ctx.moveTo(r*0.85,-r*0.1);ctx.lineTo(r*1.45,-r*0.35);ctx.lineTo(r*0.8,r*0.15);ctx.fill();
+  }
+  if(v.beastEars){
+    ctx.fillStyle=v.hair||bodyCol;
+    ctx.beginPath();ctx.moveTo(-r*0.75,-r*0.5);ctx.lineTo(-r*0.95,-r*1.25);ctx.lineTo(-r*0.25,-r*0.8);ctx.fill();
+    ctx.beginPath();ctx.moveTo(r*0.75,-r*0.5);ctx.lineTo(r*0.95,-r*1.25);ctx.lineTo(r*0.25,-r*0.8);ctx.fill();
+  }
+  const actualShape=(cn==='Римуру Темпест'&&es>=1)?'circle':shType;
+  shape(actualShape,0,0,r,bodyCol,false);
+  if(v.hairStyle==='spiky'){
+    ctx.fillStyle=v.hair;ctx.beginPath();ctx.moveTo(-r*0.95,-r*0.2);ctx.lineTo(-r*0.7,-r*1.2);ctx.lineTo(-r*0.35,-r*0.8);
+    ctx.lineTo(0,-r*1.3);ctx.lineTo(r*0.35,-r*0.8);ctx.lineTo(r*0.7,-r*1.2);ctx.lineTo(r*0.95,-r*0.2);
+    ctx.arc(0,-r*0.1,r*0.95,0,Math.PI,true);ctx.fill();
+  }else if(v.hairStyle==='bob'||v.hairStyle==='long'||v.hairStyle==='twintails'){
+    ctx.fillStyle=v.hair;ctx.beginPath();ctx.arc(0,-0.1 * r,1.02 * r,Math.PI,Math.PI * 2);
+    ctx.lineTo(0.85 * r,-0.2 * r);ctx.lineTo(0,-0.45 * r);ctx.lineTo(-0.85 * r,-0.2 * r);ctx.closePath();ctx.fill();
+  }
+  if(v.horns){
+    ctx.fillStyle=v.hornCol||'#fff';
+    if(v.horns===1){
+      ctx.beginPath();ctx.moveTo(-0.18 * r,-0.85 * r);ctx.lineTo(0,-1.55 * r);ctx.lineTo(0.18 * r,-0.85 * r);ctx.fill();
+    }else{
+      ctx.beginPath();ctx.moveTo(-0.65 * r,-0.7 * r);ctx.lineTo(-0.95 * r,-1.45 * r);ctx.lineTo(-0.35 * r,-0.85 * r);ctx.fill();
+      ctx.beginPath();ctx.moveTo(0.65 * r,-0.7 * r);ctx.lineTo(0.95 * r,-1.45 * r);ctx.lineTo(0.35 * r,-0.85 * r);ctx.fill();
+    }
+  }
+  if(v.hornStar){
+    ctx.fillStyle=v.hornStar;ctx.beginPath();ctx.arc(0,-0.62 * r,0.16 * r,0,Math.PI * 2);ctx.fill();
+  }
+  if(v.crown){
+    ctx.fillStyle=v.crown;ctx.beginPath();
+    ctx.moveTo(-0.55 * r,-0.85 * r);ctx.lineTo(-0.55 * r,-1.35 * r);ctx.lineTo(-0.25 * r,-1.05 * r);
+    ctx.lineTo(0,-1.42 * r);ctx.lineTo(0.25 * r,-1.05 * r);ctx.lineTo(0.55 * r,-1.35 * r);ctx.lineTo(0.55 * r,-0.85 * r);ctx.closePath();ctx.fill();
+  }
+  if(v.halo){
+    ctx.strokeStyle=v.halo;ctx.lineWidth=2.5;
+    ctx.beginPath();ctx.ellipse(0,-1.35 * r,0.75 * r,0.22 * r,0,0,Math.PI * 2);ctx.stroke();
+  }
+  if(v.bow){
+    ctx.fillStyle=v.bow;
+    ctx.beginPath();ctx.moveTo(0,-0.95 * r);ctx.lineTo(-0.45 * r,-1.25 * r);ctx.lineTo(-0.35 * r,-0.8 * r);ctx.fill();
+    ctx.beginPath();ctx.moveTo(0,-0.95 * r);ctx.lineTo(0.45 * r,-1.25 * r);ctx.lineTo(0.35 * r,-0.8 * r);ctx.fill();
+  }
+  if(v.scarf){
+    ctx.fillStyle=v.scarf;ctx.fillRect(-0.85 * r,0.45 * r,1.7 * r,0.35 * r);
+    ctx.beginPath();ctx.moveTo(0.5 * r,0.6 * r);ctx.lineTo(1.1 * r,1.25 * r);ctx.lineTo(0.7 * r,1.3 * r);ctx.closePath();ctx.fill();
+  }
+  if(v.beard){
+    ctx.fillStyle=v.beard;ctx.beginPath();ctx.moveTo(-0.65 * r,0.25 * r);ctx.lineTo(0,1.25 * r);ctx.lineTo(0.65 * r,0.25 * r);ctx.closePath();ctx.fill();
+  }
+  const ex=0.34 * r,ey=-0.12 * r,er=0.14 * r;
+  ctx.fillStyle=v.eye||'#111';ctx.beginPath();ctx.arc(-ex,ey,er,0,Math.PI * 2);ctx.fill();
+  ctx.fillStyle=v.eye2||v.eye||'#111';ctx.beginPath();ctx.arc(ex,ey,er,0,Math.PI * 2);ctx.fill();
+  ctx.fillStyle='#ffffff';
+  ctx.beginPath();ctx.arc(-ex + 0.3 * er,ey - 0.3 * er,0.38 * er,0,Math.PI * 2);ctx.fill();
+  ctx.beginPath();ctx.arc(ex + 0.3 * er,ey - 0.3 * er,0.38 * er,0,Math.PI * 2);ctx.fill();
+  if(v.glasses){
+    ctx.strokeStyle='#ffffff';ctx.lineWidth=1.5;
+    ctx.strokeRect(-ex - 1.3 * er,ey - 1.1 * er,2.6 * er,2.2 * er);
+    ctx.strokeRect(ex - 1.3 * er,ey - 1.1 * er,2.6 * er,2.2 * er);
+  }
+  ctx.restore();
+}
+
+function drawHeldWeapon(p){
+  if(!p.wep||p.wep.atkType==='parry')return;
+  const w=p.wep;
+  const rCol=RANKS[w.rank]?RANKS[w.rank].c:'#ffffff';
+  const swing=p.acd>0.75?Math.sin((1 - p.acd) * 20) * 1.1:0;
+  const ang=p.aim + swing;
+  ctx.save();
+  ctx.translate(p.x + Math.cos(ang) * (p.z + 6),p.y + Math.sin(ang) * (p.z + 6));
+  ctx.rotate(ang);
+  ctx.strokeStyle=rCol;ctx.fillStyle=rCol;ctx.lineWidth=2.5;
+  if(w.atkType==='staff'||w.atkType==='wand'||w.atkType==='gravity_staff'){
+    ctx.beginPath();ctx.moveTo(-8,0);ctx.lineTo(22,0);ctx.stroke();
+    ctx.fillStyle='#ffffff';ctx.beginPath();ctx.arc(24,0,4.5,0,Math.PI * 2);ctx.fill();
+    ctx.strokeStyle=rCol;ctx.beginPath();ctx.arc(24,0,7,0,Math.PI * 2);ctx.stroke();
+  }else if(w.atkType==='bow'||w.atkType==='sniper'||w.atkType==='crossbow'){
+    ctx.beginPath();ctx.arc(0,0,14,-1.1,1.1);ctx.stroke();
+    ctx.strokeStyle='rgba(255,255,255,0.5)';ctx.lineWidth=1;
+    ctx.beginPath();ctx.moveTo(Math.cos(-1.1) * 14,Math.sin(-1.1) * 14);ctx.lineTo(Math.cos(1.1) * 14,Math.sin(1.1) * 14);ctx.stroke();
+  }else if(w.atkType==='scythe'){
+    ctx.beginPath();ctx.moveTo(-10,0);ctx.lineTo(22,0);ctx.stroke();
+    ctx.beginPath();ctx.arc(22,10,12,-0.6 * Math.PI,0.2);ctx.stroke();
+  }else if(w.atkType==='hammer'||w.atkType==='gauntlet'){
+    ctx.beginPath();ctx.moveTo(-6,0);ctx.lineTo(16,0);ctx.stroke();
+    ctx.fillRect(14,-8,9,16);
+  }else{
+    ctx.fillStyle='#ffd700';ctx.fillRect(2,-5,3,10);
+    ctx.fillStyle=rCol;ctx.beginPath();ctx.moveTo(5,-2.5);ctx.lineTo(26,0);ctx.lineTo(5,2.5);ctx.closePath();ctx.fill();
+  }
+  ctx.restore();
+}
+
+function drawBossAvatar(b){
+  const t=performance.now()/400;
+  const r=b.z;
+  const name=b.bn||'';
+  ctx.save();ctx.translate(b.x,b.y);
+  const sealR=1.95 * r;
+  ctx.save();ctx.rotate(0.4 * t);
+  ctx.strokeStyle=hexA(b.c,0.35);ctx.lineWidth=2;
+  ctx.beginPath();ctx.arc(0,0,sealR,0,Math.PI * 2);ctx.stroke();
+  ctx.beginPath();
+  for(let i=0;i<6;i++){
+    const a=(i/6) * Math.PI * 2;
+    const px=Math.cos(a) * sealR,py=Math.sin(a) * sealR;
+    if(i===0)ctx.moveTo(px,py);else ctx.lineTo(px,py);
+  }
+  ctx.closePath();ctx.stroke();ctx.restore();
+
+  const flap=Math.sin(2.5 * t) * 0.18;
+  if(name.includes('Вельдор')||name.includes('Вельгринд')||name.includes('Вельзард')||name.includes('Вельданава')){
+    for(const dir of [-1,1]){
+      ctx.save();ctx.scale(dir,1);ctx.rotate(flap);
+      ctx.fillStyle=hexA(b.c,0.75);ctx.strokeStyle='#ffffff';ctx.lineWidth=1.5;
+      ctx.beginPath();ctx.moveTo(0.4 * r,-0.2 * r);ctx.lineTo(2.3 * r,-1.3 * r);ctx.lineTo(1.8 * r,-0.3 * r);
+      ctx.lineTo(2.1 * r,0.3 * r);ctx.lineTo(1.3 * r,0.1 * r);ctx.lineTo(0.6 * r,0.6 * r);ctx.closePath();ctx.fill();ctx.stroke();ctx.restore();
+    }
+  }else if(name.includes('Михаэль')||name.includes('Фелдвей')){
+    for(let w=0;w<3;w++){
+      for(const dir of [-1,1]){
+        ctx.save();ctx.scale(dir,1);ctx.rotate(flap + (w - 1) * 0.38);
+        ctx.fillStyle=w===1?'#ffffff':hexA(b.c,0.8);
+        ctx.beginPath();ctx.moveTo(0.3 * r,0);ctx.quadraticCurveTo(2.2 * r,-0.9 * r,2.0 * r,0.3 * r);
+        ctx.quadraticCurveTo(1.2 * r,0.5 * r,0.3 * r,0.2 * r);ctx.fill();ctx.restore();
+      }
+    }
+  }else if(name.includes('Клейман')){
+    ctx.strokeStyle='rgba(220,120,255,0.5)';ctx.lineWidth=1.2;
+    for(let i=-2;i<=2;i++){
+      ctx.beginPath();ctx.moveTo(i * 0.4 * r,-0.5 * r);ctx.lineTo(i * 0.7 * r + Math.sin(t + i) * 8,-2.6 * r);ctx.stroke();
+    }
+  }else if(name.includes('Иварадж')||name.includes('Руверудж')){
+    ctx.strokeStyle=b.c;ctx.lineWidth=3;
+    for(let i=0;i<8;i++){
+      const a=(i/8) * Math.PI * 2 + 0.6 * t;
+      const len=(1.6 + Math.sin(3 * t + i) * 0.3) * r;
+      ctx.beginPath();ctx.moveTo(Math.cos(a) * 0.7 * r,Math.sin(a) * 0.7 * r);
+      ctx.quadraticCurveTo(Math.cos(a + 0.3) * 0.7 * len,Math.sin(a + 0.3) * 0.7 * len,Math.cos(a) * len,Math.sin(a) * len);ctx.stroke();
+    }
+  }
+
+  shape(b.sh,0,0,(1 + Math.sin(2 * t) * 0.05) * r,b.c,b.hf>0);
+  if(name.includes('Гельд')||name.includes('Леон')||name.includes('Вельданава')){
+    ctx.fillStyle='#ffd700';ctx.beginPath();
+    ctx.moveTo(-0.5 * r,-0.8 * r);ctx.lineTo(-0.5 * r,-1.3 * r);ctx.lineTo(-0.2 * r,-1.0 * r);
+    ctx.lineTo(0,-1.4 * r);ctx.lineTo(0.2 * r,-1.0 * r);ctx.lineTo(0.5 * r,-1.3 * r);ctx.lineTo(0.5 * r,-0.8 * r);ctx.closePath();ctx.fill();
+  }
+  if(name.includes('Хината')||name.includes('Михаэль')){
+    ctx.strokeStyle='#fff8c0';ctx.lineWidth=2.5;ctx.beginPath();ctx.ellipse(0,-1.25 * r,0.8 * r,0.24 * r,0,0,Math.PI * 2);ctx.stroke();
+  }
+  ctx.fillStyle=b.ph===2?'#ff2020':'#ffffff';
+  ctx.beginPath();ctx.arc(-0.32 * r,-0.15 * r,0.13 * r,0,Math.PI * 2);ctx.fill();
+  ctx.beginPath();ctx.arc(0.32 * r,-0.15 * r,0.13 * r,0,Math.PI * 2);ctx.fill();
+  ctx.restore();
+}
+
+class Shockwave{
+  constructor(x,y,maxR,color,life=0.35){
+    this.x=x;this.y=y;this.maxR=maxR;this.color=color;this.life=life;this.maxLife=life;
+  }
+  update(dt){this.life-=dt;}
+  draw(){
+    const p=1 - cl(this.life/this.maxLife,0,1);
+    const r=10 + (this.maxR - 10) * (1 - Math.pow(1 - p,2));
+    ctx.save();ctx.globalAlpha=(1 - p) * 0.75;ctx.strokeStyle=this.color;
+    ctx.lineWidth=Math.max(1,7 * (1 - p));ctx.beginPath();ctx.arc(this.x,this.y,r,0,Math.PI * 2);ctx.stroke();ctx.restore();
+  }
+}
+
 
 function shape(sp,x,y,r,c,fl){
   ctx.fillStyle=fl?'#fff':c;ctx.beginPath();
@@ -3707,14 +4010,10 @@ ctx.save();ctx.translate(this.x,this.y);
 ctx.globalAlpha=.3;ctx.fillStyle='#000';
 ctx.beginPath();ctx.ellipse(0,this.z*.7,this.z*.8,this.z*.3,0,0,7);ctx.fill();
 ctx.globalAlpha=1;ctx.scale(1+w,1-w);
-shape(this.sh,0,0,this.z,this.c,false);
-ctx.fillStyle='#111';
-ctx.beginPath();ctx.arc(-this.z*.35,-this.z*.15,this.z*.13,0,7);ctx.fill();
-ctx.beginPath();ctx.arc(this.z*.35,-this.z*.15,this.z*.13,0,7);ctx.fill();
-ctx.fillStyle='#fff';
-ctx.beginPath();ctx.arc(-this.z*.35+1,-this.z*.15-1,this.z*.05,0,7);ctx.fill();
-ctx.beginPath();ctx.arc(this.z*.35+1,this.z*.15-1,this.z*.05,0,7);ctx.fill();
+drawHeroAvatar(this.cn,this.sh,0,0,this.z,this.c,this.es);
 ctx.restore();
+drawHeldWeapon(this);
+
 if(this.inv>0){ctx.strokeStyle='#fff';ctx.lineWidth=2;ctx.beginPath();
 ctx.arc(this.x,this.y,this.z+4,0,7);ctx.stroke();}
 if(this.shield>0){ctx.strokeStyle='#a0c0ff';ctx.lineWidth=2;ctx.beginPath();
@@ -3766,7 +4065,7 @@ class Game {
     this.state='menu';this.keys={};this.mx=0;this.my=0;
     this.srid=null;this.sch=null;this.sloc=null;this.cnm='';
     this.chrS=0;this.chrScrl=0;this.lvc=[];this.evoShow=null;this.retTo=null;
-    this.enemies=[];this.bosses=[];this.proj=[];this.particles=[];this.ftxt=[];this.mines=[];this.lasers=[];this.pools=[];this.slashes=[];this.cosmicBeams=[];
+    this.enemies=[];this.bosses=[];this.proj=[];this.particles=[];this.ftxt=[];this.mines=[];this.lasers=[];this.pools=[];this.slashes=[];this.cosmicBeams=[];this.shockwaves=[];this.timers=[];
     this.player=null;this.loc=null;
     this.wave=1;this.wt=0;this.st=0;this.bsSpawned=new Set();this.shake=0;
     this.runTime=0;
@@ -4569,6 +4868,12 @@ class Game {
     if(this.state==='tutorial'){this.updTutorial(dt);return;}
     if(this.state==='cutscene'){this.cutsceneTimer-=dt;if(this.cutsceneTimer<=0)this.state='victory';return;}
     if(this.state!=='playing')return;
+	    if(this.timers&&this.timers.length>0){
+      for(let i=this.timers.length-1;i>=0;i--){
+        this.timers[i].t-=dt;
+        if(this.timers[i].t<=0){const fn=this.timers[i].fn;this.timers.splice(i,1);if(this.state==='playing')fn();}
+      }
+    }
     this.runTime+=dt;
     const p=this.player;if(!p)return;
     if(this.finalDelay>0)this.finalDelay=Math.max(0,this.finalDelay-dt);
@@ -4578,6 +4883,7 @@ class Game {
     for(const e of this.enemies)e.update(edt,p,this);
     for(const b of this.bosses)b.update(edt,p,this);
     for(let i=this.slashes.length-1;i>=0;i--){this.slashes[i].update(dt);if(this.slashes[i].life<=0)this.slashes.splice(i,1);}
+	if(this.shockwaves)for(let i=this.shockwaves.length-1;i>=0;i--){this.shockwaves[i].update(dt);if(this.shockwaves[i].life<=0)this.shockwaves.splice(i,1);}
     for(let i=this.proj.length-1;i>=0;i--){
       const pr=this.proj[i];pr.update(pr.fr?dt:edt);
       if(pr.echoPhase==='wait'&&pr.echoTimer<=0){
@@ -5008,7 +5314,8 @@ Game.prototype.rChar=function(){
     const hv=this.hov(x,y,390,180);
     ctx.fillStyle=hv?'rgba(40,60,90,.85)':'rgba(20,25,40,.7)';ctx.fillRect(x,y,390,180);
     ctx.strokeStyle=r.c;ctx.lineWidth=hv?3:2;ctx.strokeRect(x,y,390,180);
-    tx((i+1)+'. '+c.n,x+15,y+28,{size:19,color:'#fff'});
+    drawHeroAvatar(c.n,r.sh||'circle',x+345,y+42,22,r.c,0);
+    txClip((i+1)+'. '+c.n,x+15,y+28,295,{size:19,color:'#fff'});
     txClip(c.d,x+15,y+55,360,{size:12,color:'#a0a8b8'});
     txClip('Навык: '+c.sk+(c.sk2?' + '+c.sk2:''),x+15,y+95,360,{size:13,color:'#ffcc44'});
     const bs=Object.entries(c.b||{}).map(([k,v])=>k+':'+(v>0?'+':'')+v).join(' ');
@@ -5107,6 +5414,7 @@ Game.prototype.rGame=function(){
   if(this.lasers)for(const ls of this.lasers)ls.draw();
   if(this.cosmicBeams)for(const cb of this.cosmicBeams)cb.draw();
   for(const sl of this.slashes)sl.draw();
+  if(this.shockwaves)for(const sw of this.shockwaves)sw.draw();
   for(const pr of this.proj)pr.draw();
   for(const pt of this.particles)pt.draw();
   if(this.player)this.player.draw();
@@ -5391,7 +5699,7 @@ Game.prototype.rEvo=function(){
   ctx.fillStyle='rgba(0,0,0,.82)';ctx.fillRect(0,0,W,H);
   const e=this.evoShow;
   tx('ЭВОЛЮЦИЯ!',W/2,180,{size:54,weight:'bold',color:'#ffcc44',align:'center',glow:'#ffcc44',glowBlur:25});
-  shape(RACES[this.srid].sh||'circle',W/2,290,32,e.c||'#fff',false);
+  drawHeroAvatar(this.player?this.player.cn:'',RACES[this.srid].sh||'circle',W/2,290,32,e.c||'#fff',this.player?this.player.es:1);
   tx(e.n,W/2,370,{size:40,weight:'bold',color:e.c||'#fff',align:'center',glow:e.c||'#fff',glowBlur:18});
   if(e.b){const s=Object.entries(e.b).map(([k,v])=>k+' +'+v).join('   ');
     tx(s,W/2,430,{size:18,color:'#a0ffa0',align:'center'});}
