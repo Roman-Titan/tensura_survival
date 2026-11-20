@@ -640,7 +640,7 @@ const SKILLS={
     duration: 0.8,
     dps: 0,
     dmg: d,
-    color: '#fff0c0',
+    color: '#ffe040',
     friendly: true,
     pierce: 99,
     src: src,
@@ -1336,8 +1336,8 @@ const SPELLS=[
   {n:'Фазовый Сдвиг',d:80,mp:28,cd:5.0,sp:0,c:'#a0c0ff',t:4,ic:'wind',el:'wind',pattern:'phase'},
   {n:'Барьер Творца',d:100,mp:35,cd:8.0,sp:0,c:'#ffffff',t:4,ic:'light',el:'light',pattern:'barrier'},
     // --- Крестовые заклинания ---
-  {n:'Святой Крест',d:60,mp:16,cd:3.0,c:'#fff8c0',t:2,ic:'light',el:'light',pattern:'cross',length:900,width:28},
-  {n:'Божественный Крест',d:140,mp:28,cd:4.5,c:'#ffffff',t:4,ic:'light',el:'light',pattern:'cross',length:1500,width:40},
+  {n:'Святой Крест',d:60,mp:16,cd:3.0,c:'#ffe040',t:2,ic:'light',el:'light',pattern:'cross',length:900,width:28},
+  {n:'Божественный Крест',d:140,mp:28,cd:4.5,c:'#ffd700',t:4,ic:'light',el:'light',pattern:'cross',length:1500,width:40},
   {n:'Спутники Души',d:16,mp:0,cd:0.1,sp:0,c:'#80ffff',t:1,ic:'light',el:'light',pattern:'satellite'},
   {n:'След Ифрита',d:18,mp:0,cd:0.35,sp:0,c:'#ff5020',t:1,ic:'flame',el:'fire',pattern:'trail'},
   {n:'Аура Повелителя',d:24,mp:0,cd:0.1,sp:0,c:'#c060ff',t:2,ic:'dark',el:'dark',pattern:'aura'},
@@ -1768,15 +1768,13 @@ class Slash {
   }
   update(dt){ this.life-=dt; }
   draw(){
-    const a = cl(this.life/this.maxLife,0,1);
-    ctx.save(); ctx.translate(this.x,this.y); ctx.rotate(this.angle);
-    ctx.globalAlpha = a;
-    ctx.strokeStyle = this.color; ctx.lineWidth = 8 * a; ctx.lineCap = 'round';
-    ctx.beginPath(); ctx.arc(0, 0, this.radius, -this.arc/2, this.arc/2); ctx.stroke();
-    ctx.strokeStyle = '#ffffff'; ctx.lineWidth = 3 * a;
-    ctx.beginPath(); ctx.arc(0, 0, this.radius, -this.arc/2, this.arc/2); ctx.stroke();
-    ctx.globalAlpha = a * 0.3; ctx.fillStyle = this.color;
-    ctx.beginPath(); ctx.arc(0, 0, this.radius, -this.arc/2, this.arc/2); ctx.lineTo(0,0); ctx.fill();
+    const a = cl(this.life / this.maxLife, 0, 1);
+    ctx.save(); ctx.translate(this.x, this.y); ctx.rotate(this.angle);
+    ctx.globalAlpha = a * 0.40;
+    ctx.strokeStyle = this.color; ctx.lineWidth = 7 * a; ctx.lineCap = 'round';
+    ctx.beginPath(); ctx.arc(0, 0, this.radius, -this.arc / 2, this.arc / 2); ctx.stroke();
+    ctx.globalAlpha = a * 0.14; ctx.fillStyle = this.color;
+    ctx.beginPath(); ctx.arc(0, 0, this.radius, -this.arc / 2, this.arc / 2); ctx.lineTo(0, 0); ctx.fill();
     ctx.restore();
   }
 }
@@ -2004,17 +2002,20 @@ draw(){
       ctx.beginPath();ctx.moveTo(this.x,this.y);ctx.lineTo(endX,endY);ctx.stroke();}
     ctx.globalAlpha=1;
   } else {
-    const fadeIn=Math.min(1,this.t*6);const fadeOut=Math.min(1,(this.duration-this.t)*6);
-    const a=fadeIn*fadeOut;if(a<=0)return;
-    ctx.globalAlpha=a*0.35;ctx.strokeStyle=this.color;ctx.lineWidth=this.width*1.6;
-    ctx.beginPath();ctx.moveTo(this.x,this.y);ctx.lineTo(endX,endY);ctx.stroke();
-    ctx.globalAlpha=a*0.85;ctx.lineWidth=this.width;
-    ctx.beginPath();ctx.moveTo(this.x,this.y);ctx.lineTo(endX,endY);ctx.stroke();
-    ctx.globalAlpha=a;ctx.strokeStyle=this.color;ctx.lineWidth=this.width*0.5;
-    ctx.beginPath();ctx.moveTo(this.x,this.y);ctx.lineTo(endX,endY);ctx.stroke();
-    ctx.strokeStyle='#ffffff';ctx.lineWidth=this.width*0.18;
-    ctx.beginPath();ctx.moveTo(this.x,this.y);ctx.lineTo(endX,endY);ctx.stroke();
-    ctx.globalAlpha=1;}}}
+    const fadeIn = Math.min(1, this.t * 6);
+    const fadeOut = Math.min(1, (this.duration - this.t) * 6);
+    const baseA = fadeIn * fadeOut;
+    if (baseA <= 0) return;
+    const a = this.friendly ? baseA * 0.34 : baseA;
+    ctx.globalAlpha = a * 0.30; ctx.strokeStyle = this.color; ctx.lineWidth = this.width * 1.5;
+    ctx.beginPath(); ctx.moveTo(this.x, this.y); ctx.lineTo(endX, endY); ctx.stroke();
+    ctx.globalAlpha = a * 0.78; ctx.lineWidth = this.width;
+    ctx.beginPath(); ctx.moveTo(this.x, this.y); ctx.lineTo(endX, endY); ctx.stroke();
+    ctx.globalAlpha = a * 0.85; ctx.strokeStyle = this.friendly ? '#fff290' : '#ffffff'; ctx.lineWidth = this.width * 0.22;
+    ctx.beginPath(); ctx.moveTo(this.x, this.y); ctx.lineTo(endX, endY); ctx.stroke();
+    ctx.globalAlpha = 1;
+  }
+}}
 
 class Enemy{
 constructor(x,y,t,m){this.x=x;this.y=y;this.t=t;
@@ -2428,12 +2429,27 @@ specialUpdate(dt,p,g){
       for(let i=0;i<30;i++){const aa=i/30*6.283;
         g.particles.push(new Part(wall.x+Math.cos(aa)*wall.r,wall.y+Math.sin(aa)*wall.r,'#80c0ff'));}
       this.spData={type:'wall',wall,pulseAcc:0};}
-    if(this.spData&&this.spData.type==='wall'){this.spData.wall.timer-=dt;
+    if(this.spData&&this.spData.type==='wall'){
+      const w=this.spData.wall;
+      w.timer-=dt;
+      for(const pr of g.proj){
+        if(pr.fr && pr.alive && d2(pr.x,pr.y,w.x,w.y)<w.r * w.r){
+          pr.alive=false;
+          g.particles.push(new Part(pr.x,pr.y,'#c0f0ff'));
+        }
+      }
+      if(d2(p.x,p.y,w.x,w.y)<(w.r + p.z) * (w.r + p.z)){
+        p.slowTimer=Math.max(p.slowTimer||0,1.2);
+      }
       this.spData.pulseAcc=(this.spData.pulseAcc||0)+dt;
-      if(this.spData.pulseAcc>0.3){this.spData.pulseAcc=0;const w=this.spData.wall;
-        for(let i=0;i<15;i++){const aa=Math.random()*6.283;
+      if(this.spData.pulseAcc>0.25){this.spData.pulseAcc=0;
+        for(let i=0;i<14;i++){const aa=Math.random()*6.283;
           g.particles.push(new Part(w.x+Math.cos(aa)*w.r, w.y+Math.sin(aa)*w.r, '#80c0ff'));}}
-      if(this.spData.wall.timer<=0)this.spData=null;}
+      if(w.timer<=0){
+        bhRing(g,w.x,w.y,14,290,'#80c0ff',5,{dmg:this.atk * 0.45,lifetime:3.5});
+        this.spData=null;
+      }
+    }
     if(this.spCd2<=0){this.spCd2=8;this.attackRot=(this.attackRot||0)+1;
       const vpick=this.attackRot%3;
       if(vpick===0){g.ftxt.push(new FTxt('ЛЕДЯНАЯ СПИРАЛЬ!',this.x,this.y-60,'#80c0ff',2,18));
@@ -2683,7 +2699,7 @@ const SKILL_EVO={
 'Путешественник во времени':{next:'Йог-Сотот',startTier:4,color:'#c080ff',desc:'Бог Пространства-Времени.'},
 // Ветка 4: Свет (Михаэль/Леон)
 'Святой Луч':{next:'Кара',startTier:1,color:'#fff8c0',desc:'Святой луч.'},
-'Кара':{next:'Небесный Суд',startTier:2,color:'#fff0c0',desc:'Божественный суд.'},
+'Кара':{next:'Небесный Суд',startTier:2,color:'#ffe040',desc:'Божественный суд.'},
 'Небесный Суд':{next:'Михаэль',startTier:3,color:'#f0d060',desc:'Король Правосудия.'},
 'Михаэль':{next:'Метатрон',startTier:4,color:'#ffffff',desc:'Король Чистоты.'},
 // Ветка 5: Защита (Уриэль)
@@ -3184,9 +3200,7 @@ constructor(rid,ch,loc){
   this.x=WW/2;this.y=WH/2;this.z=15;this.hitR=10;this.aim=0;
   this.lv=1;this.xp=0;this.xpn=50;this.xpM=1;
   this.gold=0;this.kills=0;this.frag=0;
-  this.dmgAccum=0;
-  this.dpsHistory=[];
-  this.dpsTimer=0;
+  this.dmgAccum=0;this.dpsHistory=[];this.dpsTimer=0;
   this.wep=WEAPONS[0];this.arts=[];
   this.spells=[{def:SPELLS[0],cd:0}];
   this.skills={};this.slots=[null,null,null];
@@ -3205,1033 +3219,662 @@ constructor(rid,ch,loc){
   this.parryWindowMax=0.3;this.parryReflectMul=1;
   this.parryCharges=0;this.bonusParries=0;
   this.absoluteParryTimer=0;
-  this.pierceBonus=0;this.aoeMult=1;this.cdr=0;
+  this.pierceBonus=0;this.aoeMult=1;this.cdr=0;this.maxCdrCap=0.75;
+  this.projBonus=0;this.magnetMul=1;this.cursedDmgTaken=1;
+  this.forceSupreme=false;
+  this.orbitAngle=0;this.auraTick=0;this.trailTick=0;
   this.acdMul=0;this.wepKill=0;this.wepSlayUndead=0;
   this.wepSlayLiving=0;this.wepSlayDragon=0;this.wepBossBonus=0;this.wepHope=false;
   this.elpisCd=0;
-  this.ownedWeapons=[];
-  this.equippedWeapons=[null,null,null];
-  this.activeWeaponIndex=0;
-  this.weaponAbilityCd=[0,0,0];
-  this.weaponAutoCd=[0,0,0];
+  this.ownedWeapons=[];this.equippedWeapons=[null,null,null];
+  this.activeWeaponIndex=0;this.weaponAbilityCd=[0,0,0];this.weaponAutoCd=[0,0,0];
   this.enhanceCd=[0,0,0];
   this.resonanceCount=0;this.resonanceTimer=0;
   this.game=null;
   if(rid==='goblin')this.spd*=1.15;
-  if(rid==='demon'){this.hp=~~(this.hp*.9);this.atk=~~(this.atk*1.25);}
+  if(rid==='demon'){this.hp=~~(this.hp * 0.9);this.atk=~~(this.atk * 1.25);}
   if(rid==='majin')this.mult(1.10);
   if(rid==='undead')this.hpR+=1;
-  if(rid==='lizardman')this.def=~~(this.def*1.1);
+  if(rid==='lizardman')this.def=~~(this.def * 1.1);
   if(rid==='angel')this.mpR+=2;
-  if(rid==='dragon'){this.atk=~~(this.atk*1.1);this.mag=~~(this.mag*1.1);this.fm=1.3;}
-  if(rid==='elf')this.mag=~~(this.mag*1.2);
-  if(rid==='dwarf')this.def=~~(this.def*1.15);
+  if(rid==='dragon'){this.atk=~~(this.atk * 1.1);this.mag=~~(this.mag * 1.1);this.fm=1.3;}
+  if(rid==='elf')this.mag=~~(this.mag * 1.2);
+  if(rid==='dwarf')this.def=~~(this.def * 1.15);
   if(rid==='human')this.xpM+=0.10;
   if(cb.hpR)this.hpR+=(cb.hpR||0);
   this.addSk(ch.sk||'Универсальное Превращение');
   if(ch.sk2)this.addSk(ch.sk2);
-  this.crit+=this.lck*0.3;this.dod+=this.lck*0.2;this.cdmg+=this.lck*0.005;
+  this.crit+=this.lck * 0.3;this.dod+=this.lck * 0.2;this.cdmg+=this.lck * 0.005;
   if(this.wep.apply)this.wep.apply(this);
 }
-mult(m){this.maxHp=~~(this.maxHp*m);this.hp=~~(this.hp*m);
-this.maxMp=~~(this.maxMp*m);this.mp=~~(this.mp*m);
-this.atk=~~(this.atk*m);this.def=~~(this.def*m);this.mag=~~(this.mag*m);}
+mult(m){this.maxHp=~~(this.maxHp * m);this.hp=~~(this.hp * m);
+this.maxMp=~~(this.maxMp * m);this.mp=~~(this.mp * m);
+this.atk=~~(this.atk * m);this.def=~~(this.def * m);this.mag=~~(this.mag * m);}
 div(m){this.maxHp=~~(this.maxHp/m);this.hp=Math.min(this.hp,this.maxHp);
 this.maxMp=~~(this.maxMp/m);this.mp=Math.min(this.mp,this.maxMp);
 this.atk=~~(this.atk/m);this.def=~~(this.def/m);this.mag=~~(this.mag/m);}
 addSk(n){if(this.skills[n]||!SKILLS[n])return false;this.skills[n]={tier:0,cd:0,resCd:0};
 for(let i=0;i<3;i++)if(!this.slots[i]){this.slots[i]=n;return true;}return true;}
-skillHasSup(){for(const s in this.skills)if(this.skills[s].tier>=TIER_SUP)return true;return false;}
+skillHasSup(){if(this.forceSupreme)return true;for(const s in this.skills)if(this.skills[s].tier>=TIER_SUP)return true;return false;}
 hasSup(){
-  if(this.skillHasSup()) return true;
-  if(this.wep && this.wep.rank >= 4) return true;
+  if(this.skillHasSup())return true;
+  if(this.wep&&this.wep.rank>=4)return true;
   if(Array.isArray(this.equippedWeapons)){
-    for(const w of this.equippedWeapons) if(w && w.rank >= 4) return true;
+    for(const w of this.equippedWeapons)if(w&&w.rank>=4)return true;
   }
   if(Array.isArray(this.spells)){
-    for(const sp of this.spells) if(sp.def && sp.def.t >= 3) return true;
+    for(const sp of this.spells)if(sp.def&&sp.def.t>=3)return true;
   }
   return false;
 }
 hasSage(){return !!(this.skills['Великий Мудрец']||this.skills['Рафаэль']||this.skills['Сиэль']);}
 
 hurt(v,isLaser=false,attacker=null){
-  if(!isLaser && (this.inv>0||this.dodg>0||this.buffs.invuln>0))return;
+  if(!isLaser&&(this.inv>0||this.dodg>0||this.buffs.invuln>0))return;
   if(this.parryWindow>0){
-    if(this.absoluteParryTimer<=0) {
-        this.parryCharges--;
-        if(this.parryCharges <= 0) this.parryWindow=0;
+    if(this.absoluteParryTimer<=0){
+      this.parryCharges--;
+      if(this.parryCharges<=0)this.parryWindow=0;
     }
     this.parrySuccess=0.4;this.parryCd=0;
-    this.inv=0.3;this.buffs.insp=Math.max(this.buffs.insp,1.5);
-    if (attacker && attacker.dmg && this.game && this.game.parryMode) {
-        const reflectDmg = (this.atk + this.mag) * 1.5 * (this.parryReflectMul||1) * 5;
-        attacker.dmg(reflectDmg, 'supreme');
-        if (this.game) this.game.ftxt.push(new FTxt('ОТРАЖЕНО!', attacker.x, attacker.y-20, '#00ffff', 1.5, 14));
+    this.inv=0.35;this.buffs.insp=Math.max(this.buffs.insp,1.5);
+    if(this.game){
+      this.game.timeSlowTimer=Math.max(this.game.timeSlowTimer,0.45);
+      AU.sfx('parry');
+    }
+    if(attacker&&attacker.dmg&&this.game&&this.game.parryMode){
+      const reflectDmg=(this.atk + this.mag) * 1.5 * (this.parryReflectMul||1) * 5;
+      attacker.dmg(reflectDmg,'supreme');
+      if(this.game)this.game.ftxt.push(new FTxt('ОТРАЖЕНО!',attacker.x,attacker.y-20,'#00ffff',1.5,14));
     }
     return;
   }
   if(this.dod>0&&Math.random()*100<this.dod)return;
-  let d=isLaser ? v : Math.max(1,v-this.def*.5);
-  if(this.buffs.stoic>0)d*=.5;
-  if(this.shield>0){const ab=Math.min(this.shield,d);this.shield-=ab;d-=ab;if(this.shield<=0)this.buffs.shield=0;}
-  if(!isLaser) d=~~d;
-  this.hp-=d;
-  if(!isLaser) this.inv=.1;
-  if(this.game && d>=1){
-    this.game.ftxt.push(new FTxt('-'+(~~d), this.x+rnd(-25,25), this.y-30, '#ff6060', 1.0, 15));
+
+  // Послойный щит: 1 слой полностью блокирует 1 атаку (кроме потокового лазера)
+  if(this.shield>0&&!isLaser){
+    this.shield=Math.max(0,Math.floor(this.shield)-1);
+    if(this.shield<=0)this.buffs.shield=0;
+    this.inv=0.25;
+    if(this.game){
+      this.game.ftxt.push(new FTxt('🛡 СЛОЙ ('+this.shield+')',this.x,this.y-32,'#80c8ff',1.1,13));
+      castVis(this.game,this,'#80c8ff',10,this.z+10);
+    }
+    AU.sfx('sel');
+    return;
   }
-// Показываем цифру урона, чтобы игрок видел, что его бьют
-  if(this.game && d >= 1) {
-    this.game.ftxt.push(new FTxt(
-      '-'+~~d,
-      this.x + rnd(-30,30),
-      this.y - 30,
-      '#ff6060',
-      1.0,
-      16
-    ));
+
+  let d=(isLaser?v:Math.max(1,v - this.def * 0.5)) * (this.cursedDmgTaken||1);
+  if(this.buffs.stoic>0)d *= 0.5;
+  if(!isLaser)d=~~d;
+  this.hp-=d;
+  if(!isLaser)this.inv=0.1;
+  if(this.game&&d>=1){
+    this.game.ftxt.push(new FTxt('-'+(~~d),this.x+rnd(-25,25),this.y-30,'#ff6060',1.0,15));
   }
   const now=performance.now();
   if(!this._lastDmgSfx||now-this._lastDmgSfx>160){AU.sfx('damage');this._lastDmgSfx=now;}
   if(this.hp<=0){
     if(this.tear&&this.tearCd<=0){
-      this.hp=this.maxHp*.5;this.tearCd=Math.max(20,60*(1-this.cdr));
-    } else if(this.wepHope && this.elpisCd <= 0) {
-      this.hp = this.maxHp * 0.3;
-      this.elpisCd = 60;
-      this.buffs.invuln = 3;
+      this.hp=this.maxHp * 0.5;this.tearCd=Math.max(20,60 * (1 - this.cdr));
+    }else if(this.wepHope&&this.elpisCd<=0){
+      this.hp=this.maxHp * 0.3;this.elpisCd=60;this.buffs.invuln=3;
       if(this.game){
-        this.game.flash = 1;
-        this.game.shake = 20;
-        this.game.ftxt.push(new FTxt('СПАСЕНИЕ ВЕРОЙ В ПОБЕДУ!', this.x, this.y-60, '#fff8c0', 3, 24));
-        for(let i=0;i<50;i++){
-          const a = Math.random()*6.283;
-          this.game.particles.push(new Part(this.x + Math.cos(a)*50, this.y + Math.sin(a)*50, '#fff8c0'));
-        }
+        this.game.flash=1;this.game.shake=20;
+        this.game.ftxt.push(new FTxt('СПАСЕНИЕ ВЕРОЙ В ПОБЕДУ!',this.x,this.y-60,'#fff8c0',3,24));
+        castVis(this.game,this,'#fff8c0',40,70);
         AU.sfx('lvl');
       }
-    } else {
-      this.hp = 0;
-    }
+    }else{this.hp=0;}
   }
 }
 heal(a){this.hp=Math.min(this.maxHp,this.hp+a);}
-gainXp(a){a*=this.xpM;this.xp+=a;let lvls=0;
-while(this.xp>=this.xpn){this.xp-=this.xpn;this.lv++;this.xpn=Math.floor(this.xpn*1.25);
+gainXp(a){a *= this.xpM;this.xp+=a;let lvls=0;
+while(this.xp>=this.xpn){this.xp-=this.xpn;this.lv++;this.xpn=Math.floor(this.xpn * 1.25);
 this.maxHp+=15;this.hp=this.maxHp;this.maxMp+=8;this.mp=this.maxMp;this.atk+=2;lvls++;}
 return lvls;}
-near(en,bs){let best=null,bd=900*900;
+near(en,bs){let best=null,bd=1400 * 1400;
 for(const e of en){if(!e.alive)continue;const d=d2(e.x,e.y,this.x,this.y);if(d<bd){bd=d;best=e;}}
 for(const b of bs){if(!b.alive)continue;const d=d2(b.x,b.y,this.x,this.y);if(d<bd){bd=d;best=b;}}
 return best;}
 dodge(){if(this.dcd>0||this.dodg>0)return false;
-this.dcd=Math.max(0.6,1.5*(1-this.cdr));this.dodg=.25;this.inv=.4;
-this.dvx=Math.cos(this.aim)*450;this.dvy=Math.sin(this.aim)*450;return true;}
+this.dcd=Math.max(0.45,1.5 * (1 - this.cdr));this.dodg=0.25;this.inv=0.4;
+this.dvx=Math.cos(this.aim) * 450;this.dvy=Math.sin(this.aim) * 450;return true;}
 tryParry(){if(this.parryCd>0||this.parryWindow>0)return false;
-  this.parryWindow = this.parryWindowMax || 0.3;
-  this.parryCharges = 1 + this.bonusParries;
-  if (this.game && this.game.parryMode) this.parryCd = Math.max(0.1, 1.0*(1-this.cdr));
-  else this.parryCd = Math.max(1.0, 3.0*(1-this.cdr));
+  this.parryWindow=this.parryWindowMax||0.3;
+  this.parryCharges=1+this.bonusParries;
+  if(this.game&&this.game.parryMode)this.parryCd=Math.max(0.1,1.0 * (1 - this.cdr));
+  else this.parryCd=Math.max(0.6,3.0 * (1 - this.cdr));
   if(this.game)castVis(this.game,this,'#ffcc44',10,this.z+5);AU.sfx('sel');return true;}
 
-castSpell(sp, dmgMultiplier, isEnhance, g) {
-    let t = this.near(g.enemies, g.bosses);
-    if(!t) return;
-    const pa=predictAim(this.x,this.y,t,sp.def.sp||800);
-    const a=pa!==null?pa:Math.atan2(t.y-this.y,t.x-this.x);
-    const elm=elemMul(this,sp.def.el);
-    let dm=(sp.def.d*TM[sp.def.t]+this.mag*.5)*dmgMultiplier*elm;
-    let src=(this.skillHasSup() || sp.def.t >= 3) ? 'supreme' : 'normal';
-    if(isEnhance) src = 'supreme';
-
-    if (sp.def.pattern === 'bounce') {
-        const pr = new Proj(this.x, this.y, Math.cos(a)*600, Math.sin(a)*600, dm, sp.def.c, 10*(this.aoeMult||1), true, 99, src);
-        pr.bounce = true; pr.l = 5;
-        g.proj.push(pr);
-    } 
-    else if (sp.def.pattern === 'spiral') {
-        for(let i=0; i<3; i++) {
-            const pr = new Proj(this.x, this.y, Math.cos(a)*400, Math.sin(a)*400, dm, sp.def.c, 8*(this.aoeMult||1), true, 99, src);
-            pr.setCurve(2.5 * (i%2?1:-1), 3);
-            g.proj.push(pr);
-        }
-    }
-    else if (sp.def.pattern === 'pool') {
-        const pr = new Proj(this.x, this.y, Math.cos(a)*800, Math.sin(a)*800, dm, sp.def.c, 10*(this.aoeMult||1), true, 99, src);
-        pr.explR = 80*(this.aoeMult||1); pr.explDmg = 0;
-        g.proj.push(pr);
-        g.pools.push({x:t.x, y:t.y, r:100*(this.aoeMult||1), life:4, maxLife:4, dmg:dm*0.5, color:sp.def.c, friendly:true, src:src});
-    }
-    else if (sp.def.pattern === 'chain') {
-        const chainRange = 400*(this.aoeMult||1);
-        let curT = t; let hitList = new Set(); hitList.add(curT);
-        for(let i=0; i<4; i++) {
-            g.lasers.push(new Laser(curT.x, curT.y, Math.atan2(curT.y-this.y, curT.x-this.x), {
-                length: 200*(this.aoeMult||1), width: 15*(this.aoeMult||1), telegraph: 0, duration: 0.2, color: sp.def.c, friendly: true, dmg: dm, src: src
-            }));
-            let nextT = null; let minD = chainRange*chainRange;
-            for(const e of g.enemies) {
-                if(!e.alive || hitList.has(e)) continue;
-                const d = d2(curT.x, curT.y, e.x, e.y);
-                if(d < minD) { minD = d; nextT = e; }
-            }
-            if(!nextT) break;
-            g.lasers.push(new Laser(curT.x, curT.y, Math.atan2(nextT.y-curT.y, nextT.x-curT.x), {
-                length: Math.sqrt(minD), width: 8*(this.aoeMult||1), telegraph: 0, duration: 0.2, color: sp.def.c, friendly: true, dmg: dm*0.8, src: src
-            }));
-            curT = nextT; hitList.add(curT);
-        }
-        g.shake = 6;
-    }
-    else if(sp.def.laser){
-      const lsOpt={length:(sp.def.length||1800)*(this.aoeMult||1),width:(sp.def.width||22)*(this.aoeMult||1),
-        telegraph:0.1,duration:0.8,color:sp.def.c,
-        friendly:true,dmg:dm,dps:0,pierce:99,src:src,pierceBonus:this.pierceBonus||0};
-      g.lasers.push(new Laser(this.x,this.y,a,lsOpt));
-    } 
-    else if (sp.def.pattern === 'boomerang') {
-        const pr = new Proj(this.x, this.y, Math.cos(a)*600, Math.sin(a)*600, dm, sp.def.c, 10*(this.aoeMult||1), true, 99, src);
-        pr.setEcho(0.4, 0.4, 0, 0, 0, sp.def.c); 
-        pr.l = 1.0; g.proj.push(pr);
-    }
-    else if (sp.def.pattern === 'wave') {
-        g.slashes.push(new Slash(this.x, this.y, a, 150*(this.aoeMult||1), Math.PI*1.5, sp.def.c));
-        doMeleeHit(g, this, a, 150*(this.aoeMult||1), Math.PI*1.5, dm, src);
-        const pr = new Proj(this.x, this.y, Math.cos(a)*300, Math.sin(a)*300, dm*0.5, sp.def.c, 20*(this.aoeMult||1), true, 5, src);
-        pr.l = 1.2; g.proj.push(pr);
-    }
-    else if (sp.def.pattern === 'serpent') {
-        const pr = new Proj(this.x, this.y, Math.cos(a)*500, Math.sin(a)*500, dm, sp.def.c, 8*(this.aoeMult||1), true, 99, src);
-        pr.setCurve(3.5, 1.5); g.proj.push(pr);
-    }
-    else if (sp.def.pattern === 'mortar') {
-        const pr = new Proj(this.x, this.y, Math.cos(a)*400, Math.sin(a)*400, dm, sp.def.c, 10*(this.aoeMult||1), true, 0, src, (sp.def.explR||60)*(this.aoeMult||1), dm*0.6);
-        pr.l = 1.5; g.proj.push(pr);
-    }
-    else if (sp.def.pattern === 'orbital') {
-        for(let i=0; i<3; i++) {
-            const pr = new Proj(this.x, this.y, Math.cos(a)*500, Math.sin(a)*500, dm*0.6, sp.def.c, 8*(this.aoeMult||1), true, 99, src);
-            pr.setCurve(4, 2.0); g.proj.push(pr);
-        }
-    }
-    else if (sp.def.pattern === 'freeze_field') {
-        g.pools.push({x:t.x, y:t.y, r:120*(this.aoeMult||1), life:5, maxLife:5, dmg:dm*0.2, color:sp.def.c, friendly:true, src:src, slow:true});
-    }
-    else if (sp.def.pattern === 'gravity_well') {
-        const pr = new Proj(this.x, this.y, Math.cos(a)*300, Math.sin(a)*300, dm, sp.def.c, 15*(this.aoeMult||1), true, 99, src);
-        pr.explR = (sp.def.explR||100)*(this.aoeMult||1); pr.explDmg = dm*1.5; pr.l = 1.0;
-        g.proj.push(pr);
-    }
-    else if (sp.def.pattern === 'vortex') {
-        const pr = new Proj(this.x, this.y, Math.cos(a)*200, Math.sin(a)*200, dm, sp.def.c, 30*(this.aoeMult||1), true, 99, src);
-        pr.l = 2.5; g.proj.push(pr);
-        g.slashes.push(new Slash(this.x, this.y, a, 200*(this.aoeMult||1), Math.PI*2, sp.def.c));
-        doMeleeHit(g, this, a, 200*(this.aoeMult||1), Math.PI*2, dm*0.5, src);
-    }
-    else if (sp.def.pattern === 'fork') {
-        for(let i=-1; i<=1; i++) {
-            const pr = new Proj(this.x, this.y, Math.cos(a+i*0.2)*700, Math.sin(a+i*0.2)*700, dm*0.6, sp.def.c, 6*(this.aoeMult||1), true, 2, src);
-            pr.l = 1.5; g.proj.push(pr);
-        }
-    }
-    else if (sp.def.pattern === 'swarm') {
-        for(let i=0; i<20; i++) {
-            const rA = a + rnd(-0.8, 0.8);
-            const pr = new Proj(this.x, this.y, Math.cos(rA)*rnd(300,800), Math.sin(rA)*rnd(300,800), dm*0.2, sp.def.c, 4, true, 1, src);
-            pr.l = rnd(0.5, 1.2); g.proj.push(pr);
-        }
-    }
-    else if (sp.def.pattern === 'mark') {
-        const pr = new Proj(this.x, this.y, Math.cos(a)*1200, Math.sin(a)*1200, dm*1.5, sp.def.c, 8, true, 99, src);
-        pr.l = 0.6; g.proj.push(pr);
-        if(t) { t.marked = 5.0; g.ftxt.push(new FTxt('МЕТКА СМЕРТИ!', t.x, t.y-30, '#ff40ff', 2, 18)); }
-    }
-    else if (sp.def.pattern === 'snipe') {
-        laserBeam(g, this.x, this.y, a, {length: 3000, width: 15, telegraph: 0.3, duration: 0.4, dmg: dm, color:'#ffffff', friendly:true, pierce:99, src:src});
-    }
-    else if (sp.def.pattern === 'reflect') {
-        this.buffs.invuln = Math.max(this.buffs.invuln, 3.0);
-        this.shield = Math.max(this.shield, 200 + this.lv*20);
-        g.timeSlowTimer = Math.max(g.timeSlowTimer, 2.0);
-        g.ftxt.push(new FTxt('ЗЕРКАЛЬНЫЙ БАРЬЕР!', this.x, this.y-40, '#c0e0ff', 2, 18));
-    }
-    else if (sp.def.pattern === 'phase') {
-        this.inv = 1.5; this.buffs.haste = 2;
-        if(t) { this.x = t.x - Math.cos(a)*50; this.y = t.y - Math.sin(a)*50; t.dmg(dm, src); }
-        g.ftxt.push(new FTxt('ФАЗОВЫЙ СДВИГ!', this.x, this.y-40, '#a0c0ff', 2, 18));
-    }
-    else if (sp.def.pattern === 'barrier') {
-        for(let i=0; i<8; i++) {
-            const angle = i/8*Math.PI*2;
-            const pr = new Proj(this.x, this.y, Math.cos(angle)*800, Math.sin(angle)*800, dm*0.5, sp.def.c, 10, true, 5, src);
-            pr.l = 2.0; g.proj.push(pr);
-        }
-    }
-	else if (sp.def.pattern === 'cross') {
-    // Крест из 4 лучей с игроком в центре
-        laserCross(g, this.x, this.y, 4, {
-		length: (sp.def.length || 900) * (this.aoeMult||1),
-		width: (sp.def.width || 28) * (this.aoeMult||1),
-		telegraph: 0.3,
-		duration: 0.8,
-		dps: 0,
-		dmg: dm,
-		color: sp.def.c,
-		friendly: true,
-		pierce: 99,
-		src: src,
-		ownerSkill: null,
-		pierceBonus: this.pierceBonus || 0
-      });
-	}
-    else {
-      const explR=(sp.def.explR||0)*(this.aoeMult||1);
-      const explDmg=explR>0?dm*0.35:0;
-      g.proj.push(new Proj(this.x,this.y,Math.cos(a)*sp.def.sp,Math.sin(a)*sp.def.sp,dm,sp.def.c,7*(this.aoeMult||1),true,this.pierceBonus||0,src,explR,explDmg));
-    }
-}
-
-_performWeaponAttack(wep,g,t,dmgBonus){
-  const pa=predictAim(this.x,this.y,t,600);
+castSpell(sp,dmgMultiplier,isEnhance,g){
+  if(['satellite','constellation','aura','storm_aura','trail','elem_trail'].includes(sp.def.pattern))return;
+  let t=this.near(g.enemies,g.bosses);
+  if(!t)return;
+  const pa=predictAim(this.x,this.y,t,sp.def.sp||800);
   const a=pa!==null?pa:Math.atan2(t.y-this.y,t.x-this.x);
-  const cr=Math.random()*100<this.crit;
-  const cm=cr?this.cdmg:1;
-  const baseDm=(this.atk+wep.a)*cm*dmgBonus*(g.weaponMaster?1.25:1);
-  const src=(this.skillHasSup() || wep.rank>=4)?'supreme':'normal';
+  const elm=elemMul(this,sp.def.el);
+  const extra=this.projBonus||0;
+  let dm=(sp.def.d * TM[sp.def.t] + this.mag * 0.5) * dmgMultiplier * elm;
+  let src=(this.skillHasSup()||sp.def.t>=3||isEnhance)?'supreme':'normal';
   const ao=this.aoeMult||1;
-  switch(wep.atkType){
-    case 'sword':
-      if(wep.rank>=6){
-        g.slashes.push(new Slash(this.x,this.y,a,120*ao,Math.PI*2,this.c));
-        doMeleeHit(g,this,a,120*ao,Math.PI*2,baseDm,src);
-      } else if(wep.rank>=3){
-        g.slashes.push(new Slash(this.x,this.y,a,100*ao,Math.PI*1.2,this.c));
-        doMeleeHit(g,this,a,100*ao,Math.PI*1.2,baseDm,src);
-      } else {
-        g.slashes.push(new Slash(this.x,this.y,a,90*ao,Math.PI*0.8,this.c));
-        doMeleeHit(g,this,a,90*ao,Math.PI*0.8,baseDm,src);
-      }
-      break;
-    case 'katana':
-      g.slashes.push(new Slash(this.x,this.y,a,110*ao,Math.PI*0.4,this.c));
-      g.slashes.push(new Slash(this.x,this.y,a+Math.PI/2,110*ao,Math.PI*0.4,this.c));
-      doMeleeHit(g,this,a,110*ao,Math.PI*0.6,baseDm*0.8,src);
-      if(wep.rank>=5){
-        g.slashes.push(new Slash(this.x,this.y,a+Math.PI/4,110*ao,Math.PI*0.4,this.c));
-        g.slashes.push(new Slash(this.x,this.y,a-Math.PI/4,110*ao,Math.PI*0.4,this.c));
-      }
-      break;
-    case 'scythe':
-      const scyArc=wep.rank>=5?Math.PI*2:Math.PI*1.5;
-      g.slashes.push(new Slash(this.x,this.y,a,130*ao,scyArc,this.c));
-      doMeleeHit(g,this,a,130*ao,scyArc,baseDm*1.1,src);
-      break;
-    case 'dagger':
-      g.slashes.push(new Slash(this.x,this.y,a,70*ao,Math.PI*0.4,this.c));
-      doMeleeHit(g,this,a,70*ao,Math.PI*0.4,baseDm*0.8,src);
-      if(wep.rank>=4){
-        g.slashes.push(new Slash(this.x,this.y,a+0.2,70*ao,Math.PI*0.4,this.c));
-        g.slashes.push(new Slash(this.x,this.y,a-0.2,70*ao,Math.PI*0.4,this.c));
-      }
-      break;
-    case 'spear':
-      g.slashes.push(new Slash(this.x,this.y,a,170*ao,Math.PI*0.15,this.c));
-      doMeleeHit(g,this,a,170*ao,Math.PI*0.15,baseDm*1.2,src);
-      if(wep.rank>=5){
-        const prSp=new Proj(this.x,this.y,Math.cos(a)*1200,Math.sin(a)*1200,baseDm*1.5,this.c,8*ao,true,99,src);
-        prSp.l=0.5;prSp.visType='beam';g.proj.push(prSp);
-      }
-      break;
-    case 'claw':
-      g.slashes.push(new Slash(this.x,this.y,a-0.2,80*ao,Math.PI*0.3,this.c));
-      g.slashes.push(new Slash(this.x,this.y,a+0.2,80*ao,Math.PI*0.3,this.c));
-      doMeleeHit(g,this,a,80*ao,Math.PI*0.6,baseDm*0.6,src);
-      if(wep.rank>=4){
-        g.slashes.push(new Slash(this.x,this.y,a,90*ao,Math.PI*0.3,this.c));
-      }
-      break;
-    case 'hammer':
-      const hamR=wep.rank>=4?180*ao:100*ao;
-      g.slashes.push(new Slash(this.x,this.y,a,hamR,Math.PI*2,this.c));
-      doMeleeHit(g,this,a,hamR,Math.PI*2,baseDm*1.3,src);
-      g.shake=wep.rank>=4?10:4;
-      break;
-    case 'gauntlet':
-      const gauR=wep.rank>=5?150*ao:70*ao;
-      g.slashes.push(new Slash(this.x,this.y,a,gauR,Math.PI*2,this.c));
-      doMeleeHit(g,this,a,gauR,Math.PI*2,baseDm*1.5,src);
-      g.shake=wep.rank>=5?12:5;
-      break;
-    case 'bow':
-      let bCnt=1;
-      if(wep.rank>=6)bCnt=5;else if(wep.rank>=4)bCnt=3;else if(wep.rank>=2)bCnt=2;
-      const bSpd=wep.rank>=6?1500:1200;
-      for(let i=0;i<bCnt;i++){
-        const aa=a+(i-(bCnt-1)/2)*0.15;
-        const pr=new Proj(this.x,this.y,Math.cos(aa)*bSpd,Math.sin(aa)*bSpd,baseDm*1.1,this.c,4*ao,true,this.pierceBonus||0,src);
-        pr.l=1.5;pr.visType='arrow';g.proj.push(pr);
-      }
-      break;
-    case 'staff':
-      let stCnt=1;
-      if(wep.rank>=6)stCnt=5;else if(wep.rank>=4)stCnt=3;else if(wep.rank>=2)stCnt=2;
-      for(let i=0;i<stCnt;i++){
-        const aa=a+(i-(stCnt-1)/2)*0.2;
-        const prSt=new Proj(this.x,this.y,Math.cos(aa)*600,Math.sin(aa)*600,(this.atk+wep.a)*cm*dmgBonus+this.mag*0.3,this.c,8*ao,true,this.pierceBonus||0,src);
-        prSt.l=2;prSt.visType='circle';g.proj.push(prSt);
-      }
-      break;
-    case 'wand':
-      let wdCnt=1;
-      if(wep.rank>=5)wdCnt=3;else if(wep.rank>=3)wdCnt=2;
-      for(let i=0;i<wdCnt;i++){
-        const aa=a+(i-(wdCnt-1)/2)*0.1;
-        const prWd=new Proj(this.x,this.y,Math.cos(aa)*750,Math.sin(aa)*750,(this.atk+wep.a)*cm*dmgBonus*1.05+this.mag*0.4,this.c,5*ao,true,this.pierceBonus||0,src);
-        prWd.l=1.5;prWd.visType='circle';g.proj.push(prWd);
-      }
-      break;
-    case 'grimoire':
-      const prGr=new Proj(this.x,this.y,Math.cos(a)*500,Math.sin(a)*500,(this.atk+wep.a)*cm*dmgBonus+this.mag*0.8,this.c,15*ao,true,99,src);
-      prGr.l=2.5;prGr.explR=(wep.rank>=5?120:60)*ao;prGr.explDmg=prGr.dmg*0.4;prGr.visType='circle';g.proj.push(prGr);
-      break;
-    case 'stellar':
-      const cnt=wep.rank>=6?7:5;
-      const projCol=wep.rank>=6?'#fff8c0':this.c;
-      for(let i=0;i<cnt;i++){
-        const aa=a+(i-(cnt-1)/2)*0.2;
-        const prStl=new Proj(this.x,this.y,Math.cos(aa)*800,Math.sin(aa)*800,baseDm*0.75,projCol,6*ao,true,(this.pierceBonus||0)+1,'supreme');
-        prStl.l=1.5;prStl.visType='beam';g.proj.push(prStl);
-      }
-      break;
-	case 'crossbeam': {
-	  const beamLen = 800*ao;
-	  const beamW = 28*ao;
-	  laserCross(g, this.x, this.y, 4, {
-		length: beamLen,
-		width: beamW,
-		telegraph: 0.15,
-		duration: 0.6,
-		dps: 0,
-		dmg: baseDm,
-		color: '#fff8c0',
-		friendly: true,
-		pierce: 99,
-		src: src,
-		ownerSkill: 'crossbeam',
-		pierceBonus: this.pierceBonus || 0
-	  });
-	  break;
-	}
-	case 'holycross': {
-	  const beamLen = 1200*ao;
-	  const beamW = 36*ao;
-	  laserCross(g, this.x, this.y, 8, {
-		length: beamLen,
-		width: beamW,
-		telegraph: 0.15,
-		duration: 0.8,
-		dps: 0,
-		dmg: baseDm*1.2,
-		color: '#ffffff',
-		friendly: true,
-		pierce: 99,
-		src: 'supreme',
-		ownerSkill: 'holycross',
-		pierceBonus: this.pierceBonus || 0
-	  });
-	  this.hp = Math.min(this.maxHp, this.hp + this.maxHp*0.01);
-	  break;
-	}
-	case 'divinecross': {
-	  const beamLen = 1600*ao;
-	  const beamW = 48*ao;
-	  laserRotate(g, this.x, this.y, 8, 0.5, {
-		length: beamLen,
-		width: beamW,
-		telegraph: 0.15,
-		duration: 1.0,
-		dps: baseDm*0.3,
-		dmg: baseDm*1.5,
-		color: '#ffffff',
-		friendly: true,
-		pierce: 99,
-		src: 'supreme',
-		ownerSkill: 'divinecross',
-		pierceBonus: this.pierceBonus || 0
-	  });
-	  this.hp = Math.min(this.maxHp, this.hp + this.maxHp*0.015);
-	  break;
-	}
-    case 'elpis': {
-	  const beamLen=420*ao;
-	  const beamW=200*ao;
-	  const cb=new CosmicBeam(this.x,this.y,a,beamLen,beamW,baseDm*1.5,'supreme');
-	  g.cosmicBeams.push(cb);
-	  for(const e of g.enemies){
-		if(e.alive && !cb.hitIds?.has(e) && cb.hitsPoint(e.x,e.y,e.z)) e.dmg(baseDm*1.5,'supreme');
-	  }
-	  for(const b of g.bosses){
-		if(b.alive && cb.hitsPoint(b.x,b.y,b.z)) b.dmg(baseDm*1.5,'supreme');
-	  }
-	  for(let i=0;i<20;i++){
-		const aa=a+rnd(-0.4,0.4);
-		g.particles.push(new Part(this.x+Math.cos(aa)*40,this.y+Math.sin(aa)*40,'#fff8c0'));
-	  }
-	  break;
-	}
-    case 'chakram':
-      const ch = new Proj(this.x, this.y, Math.cos(a)*1000, Math.sin(a)*1000, baseDm, this.c, 10*ao, true, 99, src);
-      ch.l = 0.5;
-      ch.setEcho(0.5, 0.1, 0, 0, 0, this.c);
-      g.proj.push(ch);
-      break;
-    case 'warfan':
-      g.slashes.push(new Slash(this.x, this.y, a, 200*ao, Math.PI*1.5, this.c));
-      doMeleeHit(g, this, a, 200*ao, Math.PI*1.5, baseDm, src);
-      g.proj.push(new Proj(this.x, this.y, Math.cos(a)*400, Math.sin(a)*400, baseDm*0.5, this.c, 20*ao, true, 5, src));
-      break;
-    case 'slingshot':
-      const sl = new Proj(this.x, this.y, Math.cos(a)*600, Math.sin(a)*600, baseDm, this.c, 8*ao, true, 0, src, 80*ao, baseDm*0.5);
-      sl.l = 1.2;
-      g.proj.push(sl);
-      break;
-    case 'whip':
-      const wh = new Proj(this.x, this.y, Math.cos(a)*800, Math.sin(a)*800, baseDm, this.c, 6*ao, true, 99, src);
-      wh.setCurve(3, 0.8);
-      g.proj.push(wh);
-      break;
-    case 'crossbow':
-      const cb = new Proj(this.x, this.y, Math.cos(a)*1500, Math.sin(a)*1500, baseDm*1.5, this.c, 4*ao, true, 99, src);
-      cb.l = 0.8; cb.visType='arrow';
-      g.proj.push(cb);
-      if (t) { t.marked = 3.0; g.ftxt.push(new FTxt('МЕТКА!', t.x, t.y-20, '#ffcc44', 1.5, 14)); }
-      break;
-    case 'shield':
-      g.slashes.push(new Slash(this.x, this.y, a, 120*ao, Math.PI*2, this.c));
-      doMeleeHit(g, this, a, 120*ao, Math.PI*2, baseDm*0.5, src);
-      this.buffs.shield = Math.max(this.buffs.shield, 1.0);
-      this.shield = Math.max(this.shield, 50 + this.lv*5);
-      break;
-    case 'orbs':
-      for(let i=0; i<3; i++) {
-          const orb = new Proj(this.x, this.y, Math.cos(a)*600, Math.sin(a)*600, baseDm*0.6, this.c, 8*ao, true, 99, src);
-          orb.setCurve(4, 2);
-          g.proj.push(orb);
-      }
-      break;
-    case 'trident':
-      for(let i=-1; i<=1; i++) {
-          const tr = new Proj(this.x, this.y, Math.cos(a+i*0.15)*900, Math.sin(a+i*0.15)*900, baseDm*0.7, this.c, 5*ao, true, 2, src);
-          tr.l = 1.5;
-          g.proj.push(tr);
-      }
-      break;
-    case 'bell':
-      for(let i=0; i<15; i++) {
-          const rndA = a + rnd(-0.8, 0.8);
-          const pr = new Proj(this.x, this.y, Math.cos(rndA)*rnd(300,600), Math.sin(rndA)*rnd(300,600), baseDm*0.3, this.c, 4*ao, true, 1, src);
-          pr.l = rnd(0.5, 1.2);
-          g.proj.push(pr);
-      }
-      break;
-    case 'gravity_staff':
-      const gw = new Proj(this.x, this.y, Math.cos(a)*400, Math.sin(a)*400, baseDm, this.c, 15*ao, true, 99, src);
-      gw.l = 1.0; gw.explR = 150*ao; gw.explDmg = baseDm*1.5;
-      g.proj.push(gw);
-      break;
-    case 'ice_tome':
-      g.pools.push({x:t?t.x:this.x, y:t?t.y:this.y, r:100*ao, life:4, maxLife:4, dmg:baseDm*0.5, color:'#80c0ff', friendly:true, src:src, slow:true});
-      break;
-    case 'mirror':
-      this.buffs.invuln = Math.max(this.buffs.invuln, 0.5);
-      castVis(g, this, '#c080ff', 15, 0);
-      if (t) t.dmg(baseDm, src);
-      break;
-    case 'vortex_blade':
-      const vt = new Proj(this.x, this.y, Math.cos(a)*300, Math.sin(a)*300, baseDm, this.c, 25*ao, true, 99, src);
-      vt.l = 2.0;
-      g.proj.push(vt);
-      g.slashes.push(new Slash(this.x, this.y, a, 200*ao, Math.PI*2, this.c));
-      doMeleeHit(g, this, a, 200*ao, Math.PI*2, baseDm, src);
-      break;
-    case 'sniper':
-      laserBeam(g, this.x, this.y, a, {length: 2500*ao, width: 10*ao, telegraph: 0.2, duration: 0.3, dmg: baseDm*3, color: this.c, friendly: true, pierce: 99, src: src});
-      break;
-    case 'phantom':
-      if (t) {
-          this.x = t.x - Math.cos(a)*80;
-          this.y = t.y - Math.sin(a)*80;
-          this.inv = 0.4;
-          t.dmg(baseDm*1.8, src);
-          for(let i=0;i<10;i++) g.particles.push(new Part(t.x, t.y, this.c));
-      }
-      break;
-    case 'timepiece':
-      g.timeSlowTimer = Math.max(g.timeSlowTimer, 2);
-      for(const e of g.enemies) if(e.alive && d2(e.x,e.y,this.x,this.y) < 500*ao*500*ao) e.marked = 5;
-      for(const b of g.bosses) if(b.alive && d2(b.x,b.y,this.x,this.y) < 500*ao*500*ao) b.marked = 5;
-      break;
-    case 'ultimate_orb':
-      for(let i=0; i<6; i++) {
-          const uo = new Proj(this.x, this.y, Math.cos(i/6*6.283)*500, Math.sin(i/6*6.283)*500, baseDm*0.5, '#ffffff', 12*ao, true, 99, src);
-          uo.setCurve(i%2===0 ? 3 : -3, 3);
-          g.proj.push(uo);
-      }
-      break;
-    case 'god_weapon':
-      for(let i=-3; i<=3; i++) g.proj.push(new Proj(this.x, this.y, Math.cos(a+i*0.1)*1200, Math.sin(a+i*0.1)*1200, baseDm, '#fff8c0', 8*ao, true, 99, src));
-      laserFan(g, this.x, this.y, a, 3, 0.2, {length: 1500, width: 20, telegraph: 0.1, duration: 0.4, dmg: baseDm, color: '#ffffff', friendly: true, pierce: 99, src: src});
-      if (t) t.marked = 3;
-      break;
-  }
-  if(cr)g.ftxt.push(new FTxt('КРИТ!',this.x,this.y-25,'#ffdd44',.7,12));
-}
 
-triggerWeaponAbility(slotIdx, g) {
-  const baseCd = 8*(1-this.cdr);
-  if(Array.isArray(this.weaponAbilityCd)){
-    if(this.weaponAbilityCd[slotIdx] > 0) return;
-    this.weaponAbilityCd[slotIdx] = baseCd;
-  } else {
-    if(this.weaponAbilityCd > 0) return;
-    this.weaponAbilityCd = baseCd;
+  if(sp.def.laser||sp.def.pattern==='snipe'){
+    const count=1+extra;
+    const width=(sp.def.width||(sp.def.pattern==='snipe'?15:22)) * ao;
+    const len=(sp.def.length||1800) * ao;
+    if(count===1){
+      laserBeam(g,this.x,this.y,a,{length:len,width:width,telegraph:0.15,duration:0.6,color:sp.def.c,friendly:true,dmg:dm,pierce:99,src:src,pierceBonus:this.pierceBonus||0});
+    }else{
+      laserFan(g,this.x,this.y,a,count,0.12,{length:len,width:width,telegraph:0.15,duration:0.6,color:sp.def.c,friendly:true,dmg:dm,pierce:99,src:src,pierceBonus:this.pierceBonus||0});
+    }
+    return;
   }
-  let wep = this.equippedWeapons[slotIdx];
-  if(!wep) return;
-  let t = this.near(g.enemies, g.bosses);
-  let a = t ? Math.atan2(t.y-this.y, t.x-this.x) : this.aim;
-  let src = (this.skillHasSup() || wep.rank >= 4) ? 'supreme' : 'normal';
-  let baseDmg = (this.atk + wep.a) * 3 * (g.weaponMaster?1.25:1);
-  const ao = this.aoeMult || 1;
-  
-  switch(wep.atkType) {
-      case 'sword': 
-          g.slashes.push(new Slash(this.x, this.y, a, 150*ao, Math.PI*1.5, wep.c||'#fff'));
-          doMeleeHit(g, this, a, 150*ao, Math.PI*1.5, baseDmg, src);
-          break;
-      case 'katana':
-          g.slashes.push(new Slash(this.x, this.y, a, 250*ao, Math.PI*0.2, wep.c||'#fff'));
-          doMeleeHit(g, this, a, 250*ao, Math.PI*0.4, baseDmg*1.5, src);
-          break;
-      case 'dagger':
-          this.x = t ? t.x - Math.cos(a)*50 : this.x + Math.cos(a)*200;
-          this.y = t ? t.y - Math.sin(a)*50 : this.y + Math.sin(a)*200;
-          this.inv = 0.5;
-          doMeleeHit(g, this, a, 100*ao, Math.PI*2, baseDmg*2, src);
-          break;
-      case 'spear':
-          g.slashes.push(new Slash(this.x, this.y, a, 300*ao, Math.PI*0.1, wep.c||'#fff'));
-          doMeleeHit(g, this, a, 300*ao, Math.PI*0.1, baseDmg*2, src);
-          break;
-      case 'scythe':
-          g.slashes.push(new Slash(this.x, this.y, a, 180*ao, Math.PI*2, wep.c||'#fff'));
-          doMeleeHit(g, this, a, 180*ao, Math.PI*2, baseDmg*1.2, src);
-          break;
-      case 'hammer':
-          g.slashes.push(new Slash(this.x, this.y, a, 250*ao, Math.PI*2, wep.c||'#fff'));
-          doMeleeHit(g, this, a, 250*ao, Math.PI*2, baseDmg*1.5, src);
-          g.shake = 15;
-          break;
-      case 'gauntlet':
-          doMeleeHit(g, this, a, 150*ao, Math.PI*2, baseDmg*1.5, src);
-          g.shake = 10;
-          break;
-      case 'bow':
-          for(let i=-3; i<=3; i++) {
-              let aa = a + i*0.1;
-              let pr = new Proj(this.x, this.y, Math.cos(aa)*1400, Math.sin(aa)*1400, baseDmg, wep.c||'#fff', 6*ao, true, 99, src);
-              pr.visType = 'arrow'; pr.l = 2; g.proj.push(pr);
-          }
-          break;
-      case 'staff':
-      case 'wand':
-          for(let i=0; i<5; i++) {
-              let aa = a + rnd(-0.5, 0.5);
-              let pr = new Proj(this.x, this.y, Math.cos(aa)*800, Math.sin(aa)*800, baseDmg, wep.c||'#fff', 15*ao, true, 99, src);
-              pr.explR = 80*ao; pr.explDmg = baseDmg*0.5; g.proj.push(pr);
-          }
-          break;
-      case 'grimoire':
-          let pr = new Proj(this.x, this.y, Math.cos(a)*300, Math.sin(a)*300, baseDmg*2, wep.c||'#fff', 30*ao, true, 99, src);
-          pr.l = 3; pr.explR = 200*ao; pr.explDmg = baseDmg*2; g.proj.push(pr);
-          break;
-      case 'claw':
-          for(let i=0; i<10; i++) {
-              g.slashes.push(new Slash(this.x, this.y, a+rnd(-0.5,0.5), 120*ao, Math.PI*0.3, wep.c||'#fff'));
-          }
-          doMeleeHit(g, this, a, 120*ao, Math.PI*1.5, baseDmg*1.5, src);
-          break;
-      case 'stellar':
-          for(let i=0; i<16; i++) {
-              let aa = i/16 * Math.PI*2;
-              let pr = new Proj(this.x, this.y, Math.cos(aa)*800, Math.sin(aa)*800, baseDmg, '#fff8c0', 10*ao, true, 99, src);
-              pr.visType = 'beam'; pr.l = 2; g.proj.push(pr);
-          }
-          break;
-	  case 'crossbeam': {
-		const beamLen = 1400*ao;
-		const beamW = 44*ao;
-		laserCross(g, this.x, this.y, 4, {
-		  length: beamLen,
-		  width: beamW,
-		  telegraph: 0.3,
-		  duration: 1.2,
-		  dps: 0,
-		  dmg: baseDmg*1.5,
-		  color: '#fff8c0',
-	      friendly: true,
-		  pierce: 99,
-		  src: 'supreme',
-		  ownerSkill: 'crossbeam',
-		  pierceBonus: this.pierceBonus || 0
-		});
-		this.buffs.invuln = Math.max(this.buffs.invuln, 1.0);
-		break;
-	  }
-	  case 'holycross': {
-		const beamLen = 1600*ao;
-		const beamW = 48*ao;
-		laserCross(g, this.x, this.y, 8, {
-		  length: beamLen,
-		  width: beamW,
-		  telegraph: 0.35,
-		  duration: 1.5,
-		  dps: 0,
-		  dmg: baseDmg*2.0,
-		  color: '#ffffff',
-		  friendly: true,
-		  pierce: 99,
-		  src: 'supreme',
-		  ownerSkill: 'holycross',
-		  pierceBonus: this.pierceBonus || 0
-		});
-		this.buffs.invuln = Math.max(this.buffs.invuln, 1.5);
-		this.hp = Math.min(this.maxHp, this.hp + this.maxHp*0.05);
-		break;
-	  }
-	  case 'divinecross': {
-		const beamLen = 2200*ao;
-		const beamW = 64*ao;
-		laserRotate(g, this.x, this.y, 8, 1.2, {
-		  length: beamLen,
-		  width: beamW,
-		  telegraph: 0.4,
-		  duration: 2.5,
-		  dps: baseDmg*0.7,
-		  dmg: baseDmg*3.0,
-		  color: '#ffffff',
-		  friendly: true,
-		  pierce: 99,
-	      src: 'supreme',
-		  ownerSkill: 'divinecross',
-		  pierceBonus: this.pierceBonus || 0
-		});
-		this.buffs.invuln = Math.max(this.buffs.invuln, 2.5);
-		this.hp = Math.min(this.maxHp, this.hp + this.maxHp*0.08);
-		break;
-      }
-      case 'elpis': {
-		const beamLen=650*ao;
-		const beamW=320*ao;
-		const cb=new CosmicBeam(this.x,this.y,a,beamLen,beamW,baseDmg*3,'supreme');
-		g.cosmicBeams.push(cb);
-		for(const e of g.enemies){
-		  if(e.alive && cb.hitsPoint(e.x,e.y,e.z)) e.dmg(baseDmg*3,'supreme');
-		}
-		for(const b of g.bosses){
-		  if(b.alive && cb.hitsPoint(b.x,b.y,b.z)) b.dmg(baseDmg*3,'supreme');
-		}
-		for(let i=0;i<40;i++){
-		  const aa=a+rnd(-0.6,0.6);
-		  g.particles.push(new Part(this.x+Math.cos(aa)*60,this.y+Math.sin(aa)*60,'#c080ff'));
-		}
-		this.hp = Math.min(this.maxHp, this.hp + this.maxHp*0.03);
-		break;
-	  }
-      case 'chakram':
-          for(let i=0;i<3;i++){
-              let aa = a + (i-1)*0.3;
-              let pr = new Proj(this.x, this.y, Math.cos(aa)*900, Math.sin(aa)*900, baseDmg, wep.c||'#fff', 12*ao, true, 99, src);
-              pr.setEcho(0.5, 0.1, 0, 0, 0, wep.c||'#fff');
-              pr.l = 1.0; g.proj.push(pr);
-          }
-          break;
-      case 'warfan':
-          g.slashes.push(new Slash(this.x, this.y, a, 300*ao, Math.PI*2, wep.c||'#fff'));
-          doMeleeHit(g, this, a, 300*ao, Math.PI*2, baseDmg*1.2, src);
-          g.proj.push(new Proj(this.x, this.y, Math.cos(a)*300, Math.sin(a)*300, baseDmg*0.8, wep.c||'#fff', 30*ao, true, 99, src));
-          break;
-      case 'slingshot':
-          for(let i=0;i<3;i++){
-              let aa = a + rnd(-0.4,0.4);
-              let pr = new Proj(this.x, this.y, Math.cos(aa)*500, Math.sin(aa)*500, baseDmg*0.7, wep.c||'#fff', 10*ao, true, 0, src, 100*ao, baseDmg*0.5);
-              pr.l = 1.5; g.proj.push(pr);
-          }
-          break;
-      case 'whip':
-          for(let i=0;i<3;i++){
-              let pr = new Proj(this.x, this.y, Math.cos(a)*900, Math.sin(a)*900, baseDmg*0.7, wep.c||'#fff', 8*ao, true, 99, src);
-              pr.setCurve(2.5, 1.2); g.proj.push(pr);
-          }
-          break;
-      case 'crossbow':
-          for(let i=-2;i<=2;i++){
-              let aa = a + i*0.08;
-              let pr = new Proj(this.x, this.y, Math.cos(aa)*1800, Math.sin(aa)*1800, baseDmg*1.2, wep.c||'#fff', 4*ao, true, 99, src);
-              pr.l = 1.0; pr.visType='arrow'; g.proj.push(pr);
-          }
-          if(t) t.marked = 5;
-          break;
-      case 'shield':
-          this.buffs.shield = Math.max(this.buffs.shield, 3.0);
-          this.shield = Math.max(this.shield, 150 + this.lv*10);
-          g.slashes.push(new Slash(this.x, this.y, a, 200*ao, Math.PI*2, wep.c||'#fff'));
-          doMeleeHit(g, this, a, 200*ao, Math.PI*2, baseDmg, src);
-          break;
-      case 'orbs':
-          for(let i=0;i<6;i++){
-              let aa = i/6*Math.PI*2;
-              let pr = new Proj(this.x, this.y, Math.cos(aa)*400, Math.sin(aa)*400, baseDmg*0.8, wep.c||'#fff', 10*ao, true, 99, src);
-              pr.setCurve(3, 3.0); g.proj.push(pr);
-          }
-          break;
-      case 'trident':
-          for(let i=-3;i<=3;i++){
-              let aa = a + i*0.1;
-              let pr = new Proj(this.x, this.y, Math.cos(aa)*1000, Math.sin(aa)*1000, baseDmg*0.7, wep.c||'#fff', 6*ao, true, 99, src);
-              pr.l = 1.5; g.proj.push(pr);
-          }
-          break;
-      case 'bell':
-          for(let i=0; i<30; i++) {
-              let rndA = a + rnd(-1.2, 1.2);
-              let pr = new Proj(this.x, this.y, Math.cos(rndA)*rnd(400,900), Math.sin(rndA)*rnd(400,900), baseDmg*0.25, wep.c||'#fff', 4*ao, true, 1, src);
-              pr.l = rnd(0.6, 1.4); g.proj.push(pr);
-          }
-          break;
-      case 'gravity_staff':
-          for(let i=0;i<2;i++){
-              let aa = a + (i===0?0:Math.PI);
-              let pr = new Proj(this.x, this.y, Math.cos(aa)*400, Math.sin(aa)*400, baseDmg, wep.c||'#fff', 20*ao, true, 99, src);
-              pr.l = 1.2; pr.explR = 200*ao; pr.explDmg = baseDmg*1.5; g.proj.push(pr);
-          }
-          break;
-      case 'ice_tome':
-          g.pools.push({x:this.x, y:this.y, r:250*ao, life:6, maxLife:6, dmg:baseDmg*0.4, color:'#80c0ff', friendly:true, src:src, slow:true});
-          break;
-      case 'mirror':
-          this.buffs.invuln = Math.max(this.buffs.invuln, 2.0);
-          this.shield = Math.max(this.shield, 200 + this.lv*15);
-          break;
-      case 'vortex_blade':
-          for(let i=0;i<5;i++){
-              let aa = a + rnd(-0.4,0.4);
-              let pr = new Proj(this.x, this.y, Math.cos(aa)*200, Math.sin(aa)*200, baseDmg, wep.c||'#fff', 30*ao, true, 99, src);
-              pr.l = 3.0; g.proj.push(pr);
-          }
-          break;
-      case 'sniper':
-          laserBeam(g, this.x, this.y, a, {length: 3000*ao, width: 12*ao, telegraph: 0.15, duration: 0.3, dmg: baseDmg*4, color: wep.c||'#fff', friendly: true, pierce: 99, src: src});
-          break;
-      case 'phantom':
-          if(t){
-              this.x = t.x; this.y = t.y;
-              this.inv = 0.8;
-              t.dmg(baseDmg*3, src);
-              for(let i=0;i<20;i++) g.particles.push(new Part(t.x, t.y, wep.c||'#fff'));
-          }
-          break;
-      case 'timepiece':
-          g.timeSlowTimer = Math.max(g.timeSlowTimer, 4);
-          for(const e of g.enemies) if(e.alive) e.marked = 8;
-          for(const b of g.bosses) if(b.alive) b.marked = 8;
-          break;
-      case 'ultimate_orb':
-          for(let i=0; i<12; i++) {
-              let uo = new Proj(this.x, this.y, Math.cos(i/12*6.283)*600, Math.sin(i/12*6.283)*600, baseDmg*0.4, wep.c||'#fff', 12*ao, true, 99, src);
-              uo.setCurve(i%2===0 ? 4 : -4, 4);
-              g.proj.push(uo);
-          }
-          break;
-      case 'god_weapon':
-          for(let i=0; i<24; i++) {
-              let aa = i/24 * Math.PI*2;
-              let pr = new Proj(this.x, this.y, Math.cos(aa)*1400, Math.sin(aa)*1400, baseDmg*0.5, '#fff8c0', 8*ao, true, 99, src);
-              pr.l = 2; pr.visType='beam'; g.proj.push(pr);
-          }
-          for(const e of g.enemies) if(e.alive) e.marked = 5;
-          break;
-  }
-  AU.sfx('sec');
-  g.shake = 8;
-}
 
+  if(sp.def.pattern==='cross'){
+    laserCross(g,this.x,this.y,4+extra,{
+      length:(sp.def.length||900) * ao,width:(sp.def.width||28) * ao,
+      telegraph:0.25,duration:0.8,dmg:dm,color:sp.def.c==='#ffffff'?'#ffd700':'#ffe040',
+      friendly:true,pierce:99,src:src,pierceBonus:this.pierceBonus||0
+    });
+    return;
+  }
+
+  if(sp.def.pattern==='pool'||sp.def.pattern==='freeze_field'){
+    const isFreeze=sp.def.pattern==='freeze_field';
+    const zones=1+extra;
+    const candidates=[...g.enemies.filter(e=>e.alive),...g.bosses.filter(b=>b.alive)];
+    for(let z=0;z<zones;z++){
+      const tgt=z===0?t:(candidates.length>0?pick(candidates):t);
+      const ox=z===0?0:rnd(-90,90);
+      const oy=z===0?0:rnd(-90,90);
+      g.pools.push({
+        x:tgt.x+ox,y:tgt.y+oy,r:(isFreeze?120:100) * ao,
+        life:isFreeze?5:4,maxLife:isFreeze?5:4,
+        dmg:dm * (isFreeze?0.25:0.5),color:sp.def.c,friendly:true,src:src,slow:isFreeze
+      });
+    }
+    return;
+  }
+
+  if(sp.def.pattern==='wave'||sp.def.pattern==='vortex'){
+    const pulses=1+extra;
+    for(let pIdx=0;pIdx<pulses;pIdx++){
+      addTimer(g,pIdx * 0.16,()=>{
+        if(!this||g.state!=='playing')return;
+        const rad=(sp.def.pattern==='vortex'?200:155) * ao;
+        g.slashes.push(new Slash(this.x,this.y,a + pIdx * 0.4,rad,Math.PI * (sp.def.pattern==='vortex'?2:1.5),sp.def.c));
+doMeleeHit(g,this,a + pIdx * 0.4,rad,Math.PI * (sp.def.pattern==='vortex'?2:1.5),dm * 0.85,src);
+});
+}
+return;
+}
+if(sp.def.pattern==='chain'){
+const chainRange=400 * ao;
+let curT=t;const hitList=new Set([curT]);
+const jumps=4 + extra * 2;
+for(let i=0;i<jumps;i++){
+g.lasers.push(new Laser(curT.x,curT.y,Math.atan2(curT.y-this.y,curT.x-this.x),{
+length:180 * ao,width:14 * ao,telegraph:0,duration:0.2,color:sp.def.c,friendly:true,dmg:dm,src:src
+}));
+let nextT=null,minD=chainRange * chainRange;
+for(const e of g.enemies){
+if(!e.alive||hitList.has(e))continue;
+const d=d2(curT.x,curT.y,e.x,e.y);
+if(d<minD){minD=d;nextT=e;}
+}
+if(!nextT)break;
+g.lasers.push(new Laser(curT.x,curT.y,Math.atan2(nextT.y-curT.y,nextT.x-curT.x),{
+length:Math.sqrt(minD),width:8 * ao,telegraph:0,duration:0.2,color:sp.def.c,friendly:true,dmg:dm * 0.85,src:src
+}));
+curT=nextT;hitList.add(curT);
+}
+return;
+}
+if(sp.def.pattern==='swarm'){
+const count=16 + extra * 8;
+for(let i=0;i<count;i++){
+const rA=a+rnd(-0.85,0.85);
+const pr=new Proj(this.x,this.y,Math.cos(rA) * rnd(320,820),Math.sin(rA) * rnd(320,820),dm * 0.25,sp.def.c,4 * ao,true,1+(this.pierceBonus||0),src);
+pr.l=rnd(0.5,1.2);g.proj.push(pr);
+}
+return;
+}
+if(sp.def.pattern==='orbital'){
+const count=3+extra;
+for(let i=0;i<count;i++){
+const pr=new Proj(this.x,this.y,Math.cos(a + i * 0.3) * 500,Math.sin(a + i * 0.3) * 500,dm * 0.6,sp.def.c,8 * ao,true,99,src);
+pr.setCurve(4,2.0);g.proj.push(pr);
+}
+return;
+}
+if(sp.def.pattern==='reflect'){
+this.buffs.invuln=Math.max(this.buffs.invuln,3.0);
+this.shield=Math.max(this.shield,3);
+g.timeSlowTimer=Math.max(g.timeSlowTimer,2.0);
+g.ftxt.push(new FTxt('ЗЕРКАЛЬНЫЙ БАРЬЕР!',this.x,this.y-40,'#c0e0ff',2,18));
+return;
+}
+if(sp.def.pattern==='phase'){
+this.inv=1.5;this.buffs.haste=2;
+if(t){this.x=t.x - Math.cos(a) * 50;this.y=t.y - Math.sin(a) * 50;t.dmg(dm,src);}
+g.ftxt.push(new FTxt('ФАЗОВЫЙ СДВИГ!',this.x,this.y-40,'#a0c0ff',2,18));
+return;
+}
+if(sp.def.pattern==='barrier'){
+const cnt=8 + extra * 2;
+for(let i=0;i<cnt;i++){
+const angle=i/cnt * Math.PI * 2;
+const pr=new Proj(this.x,this.y,Math.cos(angle) * 800,Math.sin(angle) * 800,dm * 0.5,sp.def.c,10 * ao,true,5,src);
+pr.l=2.0;g.proj.push(pr);
+}
+return;
+}
+const totalCount=(sp.def.pattern==='fork'?3:1)+extra;
+const spread=0.13;
+for(let i=0;i<totalCount;i++){
+const aa=a+(i-(totalCount-1)/2) * spread;
+const spd=sp.def.sp||550;
+const explR=(sp.def.explR||0) * ao;
+const explDmg=explR>0?dm * 0.4:0;
+const pr=new Proj(this.x,this.y,Math.cos(aa) * spd,Math.sin(aa) * spd,dm,sp.def.c,7 * ao,true,(this.pierceBonus||0)+(sp.def.pattern==='bounce'?99:0),src,explR,explDmg);
+if(sp.def.pattern==='bounce'){pr.bounce=true;pr.l=5;}
+else if(sp.def.pattern==='spiral'){pr.setCurve(2.6 * (i%2?1:-1),3);}
+else if(sp.def.pattern==='serpent'){pr.setCurve(3.5 * (i%2?1:-1),1.6);}
+else if(sp.def.pattern==='boomerang'){pr.setEcho(0.45,0.35,0,0,0,sp.def.c);pr.l=1.0;}
+else if(sp.def.pattern==='gravity_well'){pr.explR=(sp.def.explR||110) * ao;pr.explDmg=dm * 1.5;pr.l=1.0;}
+else if(sp.def.pattern==='mark'&&t){t.marked=5.0;}
+g.proj.push(pr);
+}
+}
+_performWeaponAttack(wep,g,t,dmgBonus){
+const pa=predictAim(this.x,this.y,t,600);
+const a=pa!==null?pa:Math.atan2(t.y-this.y,t.x-this.x);
+const cr=Math.random()*100<this.crit;
+const cm=cr?this.cdmg:1;
+const baseDm=(this.atk + wep.a) * cm * dmgBonus * (g.weaponMaster?1.25:1);
+const src=(this.skillHasSup()||wep.rank>=4)?'supreme':'normal';
+const ao=this.aoeMult||1;
+const extra=this.projBonus||0;
+switch(wep.atkType){
+case 'sword':
+if(wep.rank>=6){g.slashes.push(new Slash(this.x,this.y,a,120 * ao,Math.PI * 2,this.c));doMeleeHit(g,this,a,120 * ao,Math.PI * 2,baseDm,src);}
+else if(wep.rank>=3){g.slashes.push(new Slash(this.x,this.y,a,100 * ao,Math.PI * 1.2,this.c));doMeleeHit(g,this,a,100 * ao,Math.PI * 1.2,baseDm,src);}
+else{g.slashes.push(new Slash(this.x,this.y,a,90 * ao,Math.PI * 0.8,this.c));doMeleeHit(g,this,a,90 * ao,Math.PI * 0.8,baseDm,src);}
+break;
+case 'katana':
+g.slashes.push(new Slash(this.x,this.y,a,110 * ao,Math.PI * 0.4,this.c));
+g.slashes.push(new Slash(this.x,this.y,a+Math.PI/2,110 * ao,Math.PI * 0.4,this.c));
+doMeleeHit(g,this,a,110 * ao,Math.PI * 0.6,baseDm * 0.8,src);
+break;
+case 'scythe':{
+const scyArc=wep.rank>=5?Math.PI * 2:Math.PI * 1.5;
+g.slashes.push(new Slash(this.x,this.y,a,130 * ao,scyArc,this.c));
+doMeleeHit(g,this,a,130 * ao,scyArc,baseDm * 1.1,src);
+break;}
+case 'dagger':
+g.slashes.push(new Slash(this.x,this.y,a,70 * ao,Math.PI * 0.4,this.c));
+doMeleeHit(g,this,a,70 * ao,Math.PI * 0.4,baseDm * 0.8,src);
+break;
+case 'spear':
+g.slashes.push(new Slash(this.x,this.y,a,170 * ao,Math.PI * 0.15,this.c));
+doMeleeHit(g,this,a,170 * ao,Math.PI * 0.15,baseDm * 1.2,src);
+if(wep.rank>=5){
+const prSp=new Proj(this.x,this.y,Math.cos(a) * 1200,Math.sin(a) * 1200,baseDm * 1.5,this.c,8 * ao,true,99,src);
+prSp.l=0.5;prSp.visType='beam';g.proj.push(prSp);
+}
+break;
+case 'claw':
+g.slashes.push(new Slash(this.x,this.y,a-0.2,80 * ao,Math.PI * 0.3,this.c));
+g.slashes.push(new Slash(this.x,this.y,a+0.2,80 * ao,Math.PI * 0.3,this.c));
+doMeleeHit(g,this,a,80 * ao,Math.PI * 0.6,baseDm * 0.6,src);
+break;
+case 'hammer':
+case 'gauntlet':{
+const rAoe=(wep.rank>=4?180:100) * ao;
+g.slashes.push(new Slash(this.x,this.y,a,rAoe,Math.PI * 2,this.c));
+doMeleeHit(g,this,a,rAoe,Math.PI * 2,baseDm * 1.35,src);
+g.shake=wep.rank>=4?10:4;
+break;}
+case 'bow':{
+let bCnt=(wep.rank>=6?5:(wep.rank>=4?3:(wep.rank>=2?2:1)))+extra;
+const bSpd=wep.rank>=6?1500:1200;
+for(let i=0;i<bCnt;i++){
+const aa=a+(i-(bCnt-1)/2) * 0.14;
+const pr=new Proj(this.x,this.y,Math.cos(aa) * bSpd,Math.sin(aa) * bSpd,baseDm * 1.1,this.c,4 * ao,true,this.pierceBonus||0,src);
+pr.l=1.5;pr.visType='arrow';g.proj.push(pr);
+}
+break;}
+case 'staff':
+case 'wand':{
+let stCnt=(wep.rank>=6?5:(wep.rank>=4?3:(wep.rank>=2?2:1)))+extra;
+for(let i=0;i<stCnt;i++){
+const aa=a+(i-(stCnt-1)/2) * 0.16;
+const prSt=new Proj(this.x,this.y,Math.cos(aa) * 650,Math.sin(aa) * 650,baseDm + this.mag * 0.35,this.c,7 * ao,true,this.pierceBonus||0,src);
+prSt.l=1.8;g.proj.push(prSt);
+}
+break;}
+case 'grimoire':{
+const prGr=new Proj(this.x,this.y,Math.cos(a) * 500,Math.sin(a) * 500,baseDm + this.mag * 0.8,this.c,15 * ao,true,99,src,(wep.rank>=5?120:60) * ao,baseDm * 0.4);
+prGr.l=2.5;g.proj.push(prGr);
+break;}
+case 'stellar':{
+const cnt=(wep.rank>=6?7:5)+extra;
+const projCol=wep.rank>=6?'#fff8c0':this.c;
+for(let i=0;i<cnt;i++){
+const aa=a+(i-(cnt-1)/2) * 0.18;
+const prStl=new Proj(this.x,this.y,Math.cos(aa) * 800,Math.sin(aa) * 800,baseDm * 0.75,projCol,6 * ao,true,(this.pierceBonus||0)+1,'supreme');
+prStl.l=1.5;prStl.visType='beam';g.proj.push(prStl);
+}
+break;}
+case 'crossbeam':
+case 'holycross':
+case 'divinecross':{
+const rays=(wep.atkType==='crossbeam'?4:8)+extra;
+laserCross(g,this.x,this.y,rays,{
+length:(wep.atkType==='divinecross'?1600:1000) * ao,width:32 * ao,
+telegraph:0.15,duration:0.65,dmg:baseDm * 1.2,color:'#ffe040',friendly:true,pierce:99,src:src
+});
+break;}
+case 'elpis':{
+const cb=new CosmicBeam(this.x,this.y,a,420 * ao,200 * ao,baseDm * 1.5,'supreme');
+g.cosmicBeams.push(cb);
+for(const e of g.enemies)if(e.alive&&cb.hitsPoint(e.x,e.y,e.z))e.dmg(baseDm * 1.5,'supreme');
+for(const b of g.bosses)if(b.alive&&cb.hitsPoint(b.x,b.y,b.z))b.dmg(baseDm * 1.5,'supreme');
+break;}
+default:{
+const pr=new Proj(this.x,this.y,Math.cos(a) * 800,Math.sin(a) * 800,baseDm,this.c,7 * ao,true,(this.pierceBonus||0)+2,src);
+pr.l=1.5;g.proj.push(pr);
+break;}
+}
+if(cr)g.ftxt.push(new FTxt('КРИТ!',this.x,this.y-25,'#ffdd44',0.7,12));
+}
+triggerWeaponAbility(slotIdx,g){
+const baseCd=8 * (1 - this.cdr);
+if(Array.isArray(this.weaponAbilityCd)){
+if(this.weaponAbilityCd[slotIdx]>0)return;
+this.weaponAbilityCd[slotIdx]=baseCd;
+}else{
+if(this.weaponAbilityCd>0)return;
+this.weaponAbilityCd=baseCd;
+}
+const wep=this.equippedWeapons[slotIdx];if(!wep)return;
+const t=this.near(g.enemies,g.bosses);
+const a=t?Math.atan2(t.y-this.y,t.x-this.x):this.aim;
+const src=(this.skillHasSup()||wep.rank>=4)?'supreme':'normal';
+const baseDmg=(this.atk + wep.a) * 3 * (g.weaponMaster?1.25:1);
+const ao=this.aoeMult||1;
+g.slashes.push(new Slash(this.x,this.y,a,220 * ao,Math.PI * 2,RANKS[wep.rank].c));
+doMeleeHit(g,this,a,220 * ao,Math.PI * 2,baseDmg,src);
+for(let i=0;i<12;i++){
+const aa=i/12 * Math.PI * 2;
+const pr=new Proj(this.x,this.y,Math.cos(aa) * 900,Math.sin(aa) * 900,baseDmg * 0.6,RANKS[wep.rank].c,8 * ao,true,99,src);
+pr.l=1.5;g.proj.push(pr);
+}
+AU.sfx('sec');g.shake=8;
+}
 update(dt,k,g){
-  this.game=g;
-  this.dpsTimer+=dt;
-  if(this.dpsTimer>=1){
-    this.dpsHistory.push(this.dmgAccum);
-    if(this.dpsHistory.length>5)this.dpsHistory.shift();
-    this.dmgAccum=0;
-    this.dpsTimer-=1;
-  }
-  if(this.parryWindow>0)this.parryWindow-=dt;
-  if(this.absoluteParryTimer>0)this.absoluteParryTimer-=dt;
-  if(this.parryCd>0)this.parryCd-=dt;
-  if(this.parrySuccess>0)this.parrySuccess-=dt;
-  if(this.parrySuccess>0&&!this._parryShown){this._parryShown=true;AU.sfx('dodge');g.shake=6;
-    castVis(g,this,'#ffff80',20,this.z+15);castVis(g,this,'#ffffff',8,this.z+5);}
-  if(this.parrySuccess<=0)this._parryShown=false;
-  this.slow=Math.max(0,this.slow-dt);
-  if(this.slowTimer>0)this.slowTimer-=dt;
-  const resSkills=Object.keys(this.skills).filter(sk=>!this.slots.includes(sk));
-  this.resonanceCount=resSkills.length;
-  let dmgBonus=1+0.03*this.resonanceCount;
-  if(this.buffs.insp>0)dmgBonus*=1.2;if(this.buffs.res>0)dmgBonus*=1.5;
-  if(this.buffs.luck>0)dmgBonus*=1.3;if(this.buffs.satanael>0)dmgBonus*=1.5;
-  if(this.buffs.azatot>0)dmgBonus*=2;
-  if(this.rid==='ogre'&&this.hp<this.maxHp*0.5)dmgBonus*=1.2;
-  let dx=0,dy=0;
-  if(k['w']||k['arrowup'])dy--;if(k['s']||k['arrowdown'])dy++;
-  if(k['a']||k['arrowleft'])dx--;if(k['d']||k['arrowright'])dx++;
-  if(this.dodg>0){this.x+=this.dvx*dt;this.y+=this.dvy*dt;this.dodg-=dt;}
-  else if(dx||dy){let sp=this.spd*62;if(this.buffs.haste>0)sp*=1.4;if(this.slow>0)sp*=0.55;
-  const L=Math.sqrt(dx*dx+dy*dy);this.x+=dx/L*sp*dt;this.y+=dy/L*sp*dt;this.aim=Math.atan2(dy,dx);}
-  this.x=cl(this.x,this.z,WW-this.z);this.y=cl(this.y,this.z,WH-this.z);
-  this.inv=Math.max(0,this.inv-dt);this.acd=Math.max(0,this.acd-dt);
-  this.mcd=Math.max(0,this.mcd-dt);this.dcd=Math.max(0,this.dcd-dt);
-  this.tearCd=Math.max(0,this.tearCd-dt);
-  this.elpisCd=Math.max(0,this.elpisCd-dt);
-  if(this.enhanceCd){for(let i=0;i<3;i++)this.enhanceCd[i]=Math.max(0,this.enhanceCd[i]-dt);}
-  if(Array.isArray(this.weaponAbilityCd)){
-    for(let i=0;i<this.weaponAbilityCd.length;i++)this.weaponAbilityCd[i]=Math.max(0,this.weaponAbilityCd[i]-dt);
-  } else if(this.weaponAbilityCd){
-    this.weaponAbilityCd=Math.max(0,this.weaponAbilityCd-dt);
-  }
-  if(Array.isArray(this.weaponAutoCd)){
-    for(let i=0;i<this.weaponAutoCd.length;i++)this.weaponAutoCd[i]=Math.max(0,this.weaponAutoCd[i]-dt);
-  }
-  this.apcd=Math.max(0,this.apcd-dt);
-  for(const b in this.buffs)this.buffs[b]=Math.max(0,this.buffs[b]-dt);
-  if(this.buffs.shield<=0&&this.shield>0)this.shield=0;
-  for(const s in this.skills)if(this.skills[s].cd>0)this.skills[s].cd-=dt;
-  for(const sp of this.spells)if((sp.cd||0)>0)sp.cd-=dt;
-  if(this.autoPotion&&this.hasSage()&&this.hp<this.maxHp*0.25&&this.apcd<=0){
-    const heal=this.maxHp*0.15;this.hp=Math.min(this.maxHp,this.hp+heal);
-    this.apcd=Math.max(1.5,5*(1-this.cdr));
-    g.ftxt.push(new FTxt('Мудрец: +'+~~heal+' HP',this.x,this.y-35,'#a0ffa0',1.5,14));}
-  const t=this.near(g.enemies,g.bosses);
-  
-  if(t && !g.magicMaster && !g.parryMode){
-    const calcAcd=()=>{
-      const baseAcd=(this.rid==='beastman')?0.8:1.0;
-      let rawAcd=this.buffs.haste>0?baseAcd*0.7:baseAcd;
-      if(this.buffs.satanael>0)rawAcd*=0.7;
-      rawAcd*=(1-this.acdMul);
-      return Math.max(0.15,rawAcd*(1-this.cdr));
-    };
-    if(g.weaponMaster){
-      for(let slotIdx=0;slotIdx<3;slotIdx++){
-        const wep=this.equippedWeapons[slotIdx];
-        if(!wep)continue;
-        if(this.weaponAutoCd[slotIdx]>0)continue;
-        this._performWeaponAttack(wep,g,t,dmgBonus);
-        this.weaponAutoCd[slotIdx]=calcAcd();
-      }
-    } else if(this.acd<=0){
-      this._performWeaponAttack(this.wep,g,t,dmgBonus);
-      this.acd=calcAcd();
-    }
-  }
-
-  if(this.spells.length && !g.weaponMaster && !g.parryMode){
-    const ready=this.spells.filter(sp=>(sp.cd||0)<=0&&this.mp>=sp.def.mp);
-    if(ready.length&&t){let sp;const frac=this.mp/this.maxMp;
-      if(frac<0.3){sp=ready.reduce((a,b)=>a.def.mp<=b.def.mp?a:b);}
-      else if(frac>0.7){sp=ready.reduce((a,b)=>a.def.mp>=b.def.mp?a:b);}
-      else{sp=pick(ready);}
-      if(this.buffs.satanael<=0)this.mp-=sp.def.mp;
-      sp.cd=sp.def.cd*(1-this.cdr);
-      this.castSpell(sp, 1, false, g);
-    }}
-  const bonusRegen=(this.buffs.regen||0)*0.5;this.regen+=dt;
-  if(this.regen>=1){this.regen-=1;
-  let effMpR=this.mpR+(this.lv*0.25)+(this.maxMp*0.01)+(this.loc.m.mp||0);
-  if(g.magicMaster)effMpR*=2;
-  this.mp=Math.min(this.maxMp,this.mp+effMpR+bonusRegen);
-  this.hp=Math.min(this.maxHp,this.hp+this.hpR+this.maxHp*this.hpRegenPct+bonusRegen);}
-  if(this.resonanceCount>0){
-    for(const rk of resSkills){const rsk=this.skills[rk];if(rsk&&rsk.resCd>0)rsk.resCd-=dt;}
-    this.resonanceTimer-=dt;
-    if(this.resonanceTimer<=0){const rt=this.near(g.enemies,g.bosses);
-      if(rt){const ready=resSkills.filter(rk=>{const rsk=this.skills[rk];return rsk&&(rsk.resCd||0)<=0&&SKILLS[rk];});
-        if(ready.length>0){const safe=ready.filter(rk=>{
-            if(rk==='Тёмная Стрела'&&this.hp<this.maxHp*0.5)return false;
-            if(rk==='Судный День'&&this.skills[rk].tier<TIER_SUP)return false;
-            if(g.lasers&&g.lasers.some(l=>l.ownerSkill===rk&&l.alive))return false;
-            return true;});
-          if(safe.length>0){const rk=pick(safe);if(!rk)return;
-            const rsk=this.skills[rk];const rdef=SKILLS[rk];
-            rsk.resCd=rdef.cd*4*(1-this.cdr);
-            this.resonanceTimer=Math.max(0.5,1.5*(1-this.cdr));
-            rdef.n=rk;rdef.el=SKILL_ELEM[rk];rdef.cast(g,this,rt);
-            g.ftxt.push(new FTxt('◈ '+rk,this.x,this.y-55,'#a0c0ff',1.4,12));AU.sfx('sel');}}}}
-    }
+this.game=g;
+this.dpsTimer+=dt;
+if(this.dpsTimer>=1){
+this.dpsHistory.push(this.dmgAccum);
+if(this.dpsHistory.length>5)this.dpsHistory.shift();
+this.dmgAccum=0;this.dpsTimer-=1;
 }
-
-draw(){const t=performance.now()/500;const w=Math.sin(t*3)*.1;
+if(this.parryWindow>0)this.parryWindow-=dt;
+if(this.absoluteParryTimer>0)this.absoluteParryTimer-=dt;
+if(this.parryCd>0)this.parryCd-=dt;
+if(this.parrySuccess>0)this.parrySuccess-=dt;
+if(this.parrySuccess>0&&!this._parryShown){this._parryShown=true;AU.sfx('parry');g.shake=6;
+castVis(g,this,'#ffff80',20,this.z+15);castVis(g,this,'#ffffff',8,this.z+5);}
+if(this.parrySuccess<=0)this._parryShown=false;
+this.slow=Math.max(0,this.slow-dt);
+if(this.slowTimer>0)this.slowTimer-=dt;
+const resSkills=Object.keys(this.skills).filter(sk=>!this.slots.includes(sk));
+this.resonanceCount=resSkills.length;
+let dmgBonus=1 + 0.03 * this.resonanceCount;
+if(this.buffs.insp>0)dmgBonus*=1.2;if(this.buffs.res>0)dmgBonus*=1.5;
+if(this.buffs.luck>0)dmgBonus*=1.3;if(this.buffs.satanael>0)dmgBonus*=1.5;
+if(this.buffs.azatot>0)dmgBonus*=2;
+if(this.rid==='ogre'&&this.hp<this.maxHp * 0.5)dmgBonus*=1.2;
+let dx=0,dy=0;
+if(k['w']||k['arrowup'])dy--;if(k['s']||k['arrowdown'])dy++;
+if(k['a']||k['arrowleft'])dx--;if(k['d']||k['arrowright'])dx++;
+if(this.dodg>0){this.x+=this.dvx * dt;this.y+=this.dvy * dt;this.dodg-=dt;}
+else if(dx||dy){
+let sp=this.spd * 62;if(this.buffs.haste>0)sp*=1.4;if(this.slow>0)sp*=0.55;
+const L=Math.sqrt(dx * dx + dy * dy);this.x+=dx/L * sp * dt;this.y+=dy/L * sp * dt;this.aim=Math.atan2(dy,dx);
+}
+this.x=cl(this.x,this.z,WW-this.z);this.y=cl(this.y,this.z,WH-this.z);
+this.inv=Math.max(0,this.inv-dt);this.acd=Math.max(0,this.acd-dt);
+this.mcd=Math.max(0,this.mcd-dt);this.dcd=Math.max(0,this.dcd-dt);
+this.tearCd=Math.max(0,this.tearCd-dt);this.elpisCd=Math.max(0,this.elpisCd-dt);
+if(this.enhanceCd){for(let i=0;i<3;i++)this.enhanceCd[i]=Math.max(0,this.enhanceCd[i]-dt);}
+if(Array.isArray(this.weaponAbilityCd)){
+for(let i=0;i<this.weaponAbilityCd.length;i++)this.weaponAbilityCd[i]=Math.max(0,this.weaponAbilityCd[i]-dt);
+}
+if(Array.isArray(this.weaponAutoCd)){
+for(let i=0;i<this.weaponAutoCd.length;i++)this.weaponAutoCd[i]=Math.max(0,this.weaponAutoCd[i]-dt);
+}
+this.apcd=Math.max(0,this.apcd-dt);
+for(const b in this.buffs)this.buffs[b]=Math.max(0,this.buffs[b]-dt);
+if(this.buffs.shield<=0&&this.shield>0)this.shield=0;
+for(const s in this.skills)if(this.skills[s].cd>0)this.skills[s].cd-=dt;
+for(const sp of this.spells)if((sp.cd||0)>0)sp.cd-=dt;
+if(this.autoPotion&&this.hasSage()&&this.hp<this.maxHp * 0.25&&this.apcd<=0){
+const heal=this.maxHp * 0.15;this.hp=Math.min(this.maxHp,this.hp+heal);
+this.apcd=Math.max(1.5,5 * (1 - this.cdr));
+g.ftxt.push(new FTxt('Мудрец: +'+~~heal+' HP',this.x,this.y-35,'#a0ffa0',1.5,14));
+}
+// Орбитальные заклинания (Спутники Души / Созвездие Вельданавы)
+const orbSpell=this.spells.find(s=>s.def.pattern==='satellite'||s.def.pattern==='constellation');
+if(orbSpell){
+const isEvo=orbSpell.def.pattern==='constellation';
+const count=(isEvo?6:4)+(this.projBonus||0);
+const orbitR=(isEvo?135:95) * (this.aoeMult||1);
+this.orbitAngle+=(isEvo?3.4:2.4) * dt;
+const dmg=(orbSpell.def.d + this.mag * 0.45) * dt * 5 * dmgBonus;
+const sType=(isEvo||this.skillHasSup())?'supreme':'normal';
+for(let i=0;i<count;i++){
+const a=this.orbitAngle+(i/count) * Math.PI * 2;
+const sx=this.x + Math.cos(a) * orbitR,sy=this.y + Math.sin(a) * orbitR;
+for(const e of g.enemies)if(e.alive&&d2(sx,sy,e.x,e.y)<(e.z + 18) * (e.z + 18))e.dmg(dmg,sType);
+for(const b of g.bosses)if(b.alive&&d2(sx,sy,b.x,b.y)<(b.z + 18) * (b.z + 18))b.dmg(dmg,sType);
+}
+}
+// Новое действие «Аура Повелителя» / «Гнев Штормового Дракона»: силовое поле подавления + разряды молний
+const auraSpell=this.spells.find(s=>s.def.pattern==='aura'||s.def.pattern==='storm_aura');
+if(auraSpell){
+const isEvo=auraSpell.def.pattern==='storm_aura';
+const tickRate=Math.max(0.18,0.45 * (1 - (this.projBonus||0) * 0.12));
+this.auraTick+=dt;
+if(this.auraTick>=tickRate){
+this.auraTick=0;
+const aR=(isEvo?230:165) * (this.aoeMult||1);
+const aDmg=(auraSpell.def.d + this.mag * 0.6) * dmgBonus;
+const sType=(isEvo||this.skillHasSup())?'supreme':'normal';
+const inRange=[];
+for(const e of g.enemies){
+if(e.alive&&d2(this.x,this.y,e.x,e.y)<aR * aR){
+e.dmg(aDmg,sType);
+e.slowTimer=Math.max(e.slowTimer||0,0.6);
+if(!e._auraWeak){e._auraWeak=true;e.atk*=0.85;}
+inRange.push(e);
+}
+}
+for(const b of g.bosses){
+if(b.alive&&d2(this.x,this.y,b.x,b.y)<aR * aR){
+b.dmg(aDmg,sType);
+inRange.push(b);
+}
+}
+const bolts=(isEvo?3:1)+(this.projBonus||0);
+for(let k=0;k<Math.min(bolts,inRange.length);k++){
+const tgt=inRange[k];
+g.lasers.push(new Laser(this.x,this.y,Math.atan2(tgt.y-this.y,tgt.x-this.x),{
+length:Math.sqrt(d2(this.x,this.y,tgt.x,tgt.y)),width:isEvo?10:6,
+telegraph:0,duration:0.14,color:isEvo?'#50c8dc':'#c060ff',friendly:true,dmg:aDmg * 0.5,src:sType
+}));
+}
+}
+}
+// След при движении (След Ифрита / Стихийный Разлом)
+const trailSpell=this.spells.find(s=>s.def.pattern==='trail'||s.def.pattern==='elem_trail');
+if(trailSpell&&(dx||dy)){
+this.trailTick+=dt;
+if(this.trailTick>=0.28){
+this.trailTick=0;
+const isEvo=trailSpell.def.pattern==='elem_trail';
+const zones=1+Math.min(2,this.projBonus||0);
+for(let z=0;z<zones;z++){
+g.pools.push({
+x:this.x+rnd(-25,25),y:this.y+rnd(-25,25),
+r:(isEvo?75:55) * (this.aoeMult||1),
+life:isEvo?3.5:2.5,maxLife:isEvo?3.5:2.5,
+dmg:(trailSpell.def.d + this.mag * 0.4) * dmgBonus,
+color:isEvo?'#80e0ff':'#ff5020',friendly:true,
+src:(isEvo||this.skillHasSup())?'supreme':'normal',slow:isEvo
+});
+}
+}
+}
+const t=this.near(g.enemies,g.bosses);
+if(t&&!g.magicMaster&&!g.parryMode){
+const calcAcd=()=>{
+const baseAcd=(this.rid==='beastman')?0.8:1.0;
+let rawAcd=this.buffs.haste>0?baseAcd * 0.7:baseAcd;
+if(this.buffs.satanael>0)rawAcd*=0.7;
+rawAcd *= (1 - this.acdMul);
+return Math.max(0.15,rawAcd * (1 - this.cdr));
+};
+if(g.weaponMaster){
+for(let slotIdx=0;slotIdx<3;slotIdx++){
+const wep=this.equippedWeapons[slotIdx];
+if(!wep||this.weaponAutoCd[slotIdx]>0)continue;
+this._performWeaponAttack(wep,g,t,dmgBonus);
+this.weaponAutoCd[slotIdx]=calcAcd();
+}
+}else if(this.acd<=0){
+this._performWeaponAttack(this.wep,g,t,dmgBonus);
+this.acd=calcAcd();
+}
+}
+if(this.spells.length&&!g.weaponMaster&&!g.parryMode){
+const ready=this.spells.filter(sp=>(sp.cd||0)<=0&&this.mp>=sp.def.mp&&!['satellite','constellation','aura','storm_aura','trail','elem_trail'].includes(sp.def.pattern));
+if(ready.length&&t){
+let sp;const frac=this.mp/this.maxMp;
+if(frac<0.3)sp=ready.reduce((a,b)=>a.def.mp<=b.def.mp?a:b);
+else if(frac>0.7)sp=ready.reduce((a,b)=>a.def.mp>=b.def.mp?a:b);
+else sp=pick(ready);
+if(this.buffs.satanael<=0)this.mp-=sp.def.mp;
+sp.cd=Math.max(0.15,sp.def.cd * (1 - this.cdr));
+this.castSpell(sp,1,false,g);
+}
+}
+const bonusRegen=(this.buffs.regen||0) * 0.5;this.regen+=dt;
+if(this.regen>=1){
+this.regen-=1;
+let effMpR=this.mpR + (this.lv * 0.25) + (this.maxMp * 0.01) + (this.loc.m.mp||0);
+if(g.magicMaster)effMpR*=2;
+this.mp=Math.min(this.maxMp,this.mp+effMpR+bonusRegen);
+this.hp=Math.min(this.maxHp,this.hp+this.hpR + this.maxHp * this.hpRegenPct + bonusRegen);
+}
+if(this.resonanceCount>0){
+for(const rk of resSkills){const rsk=this.skills[rk];if(rsk&&rsk.resCd>0)rsk.resCd-=dt;}
+this.resonanceTimer-=dt;
+if(this.resonanceTimer<=0){
+const rt=this.near(g.enemies,g.bosses);
+if(rt){
+const ready=resSkills.filter(rk=>{const rsk=this.skills[rk];return rsk&&(rsk.resCd||0)<=0&&SKILLS[rk];});
+if(ready.length>0){
+const safe=ready.filter(rk=>{
+if(rk==='Тёмная Стрела'&&this.hp<this.maxHp * 0.5)return false;
+if(rk==='Судный День'&&this.skills[rk].tier<TIER_SUP)return false;
+if(g.lasers&&g.lasers.some(l=>l.ownerSkill===rk&&l.alive))return false;
+return true;
+});
+if(safe.length>0){
+const rk=pick(safe);if(!rk)return;
+const rsk=this.skills[rk];const rdef=SKILLS[rk];
+rsk.resCd=rdef.cd * 4 * (1 - this.cdr);
+this.resonanceTimer=Math.max(0.5,1.5 * (1 - this.cdr));
+rdef.n=rk;rdef.el=SKILL_ELEM[rk];rdef.cast(g,this,rt);
+g.ftxt.push(new FTxt('◈ '+rk,this.x,this.y-55,'#a0c0ff',1.4,12));AU.sfx('sel');
+}
+}
+}
+}
+}
+}
+draw(){
+const t=performance.now()/500;const w=Math.sin(t * 3) * 0.1;
+// Визуал «Ауры Повелителя» / «Гнева Штормового Дракона»: вращающиеся полупрозрачные рунические дуги вокруг героя
+const auraSpell=this.spells.find(s=>s.def.pattern==='aura'||s.def.pattern==='storm_aura');
+if(auraSpell){
+const isEvo=auraSpell.def.pattern==='storm_aura';
+const aR=(isEvo?230:165) * (this.aoeMult||1);
+const col=isEvo?'#50c8dc':'#c060ff';
+ctx.save();
+ctx.translate(this.x,this.y);
+ctx.fillStyle=hexA(col,0.04);
+ctx.beginPath();ctx.arc(0,0,aR,0,Math.PI * 2);ctx.fill();
+ctx.rotate(t * (isEvo?1.8:1.1));
+ctx.strokeStyle=hexA(col,0.38);ctx.lineWidth=2.5;
+for(let i=0;i<4;i++){
+const sa=i * (Math.PI/2);
+ctx.beginPath();ctx.arc(0,0,aR,sa,sa + 0.95);ctx.stroke();
+}
+ctx.rotate(-t * 2.2);
+ctx.strokeStyle=hexA(col,0.25);ctx.lineWidth=1.5;
+ctx.beginPath();ctx.arc(0,0,aR * 0.68,0,Math.PI * 2);ctx.stroke();
+ctx.restore();
+}
+// Орбитальные сферы (Спутники Души / Созвездие Вельданавы)
+const orbSpell=this.spells.find(s=>s.def.pattern==='satellite'||s.def.pattern==='constellation');
+if(orbSpell){
+const isEvo=orbSpell.def.pattern==='constellation';
+const count=(isEvo?6:4)+(this.projBonus||0);
+const orbitR=(isEvo?135:95) * (this.aoeMult||1);
+const pts=[];
+for(let i=0;i<count;i++){
+const a=this.orbitAngle+(i/count) * Math.PI * 2;
+pts.push({x:this.x + Math.cos(a) * orbitR,y:this.y + Math.sin(a) * orbitR});
+}
+if(isEvo&&pts.length>1){
+ctx.strokeStyle='rgba(255,230,100,0.32)';ctx.lineWidth=1.5;
+ctx.beginPath();
+for(let i=0;i<pts.length;i++){
+if(i===0)ctx.moveTo(pts[i].x,pts[i].y);else ctx.lineTo(pts[i].x,pts[i].y);
+}
+ctx.closePath();ctx.stroke();
+}
+for(const pt of pts){
+ctx.fillStyle=isEvo?'rgba(255,235,120,0.65)':'rgba(128,255,255,0.65)';
+ctx.beginPath();ctx.arc(pt.x,pt.y,isEvo?8:6,0,Math.PI * 2);ctx.fill();
+}
+}
 ctx.save();ctx.translate(this.x,this.y);
-ctx.globalAlpha=.3;ctx.fillStyle='#000';
-ctx.beginPath();ctx.ellipse(0,this.z*.7,this.z*.8,this.z*.3,0,0,7);ctx.fill();
+ctx.globalAlpha=0.3;ctx.fillStyle='#000';
+ctx.beginPath();ctx.ellipse(0,this.z * 0.7,this.z * 0.8,this.z * 0.3,0,0,7);ctx.fill();
 ctx.globalAlpha=1;ctx.scale(1+w,1-w);
 drawHeroAvatar(this.cn,this.sh,0,0,this.z,this.c,this.es);
 ctx.restore();
 drawHeldWeapon(this);
-
-if(this.inv>0){ctx.strokeStyle='#fff';ctx.lineWidth=2;ctx.beginPath();
-ctx.arc(this.x,this.y,this.z+4,0,7);ctx.stroke();}
-if(this.shield>0){ctx.strokeStyle='#a0c0ff';ctx.lineWidth=2;ctx.beginPath();
-ctx.arc(this.x,this.y,this.z+8,0,7);ctx.stroke();}
-if(this.slow>0){ctx.strokeStyle='#80c0ff';ctx.lineWidth=2;ctx.beginPath();
-ctx.arc(this.x,this.y,this.z+12,0,7);ctx.stroke();}
-if(this.buffs.invuln>0){
-  ctx.strokeStyle='#ffffff';ctx.lineWidth=3;ctx.beginPath();
-  ctx.arc(this.x,this.y,this.z+15,0,7);ctx.stroke();
-  const w=0.6+Math.sin(performance.now()/100)*0.4;
-  ctx.strokeStyle='rgba(255,255,255,'+w+')';ctx.lineWidth=2;ctx.beginPath();
-  ctx.arc(this.x,this.y,this.z+20,0,7);ctx.stroke();}
-if(this.buffs.azatot>0){const w=0.5+Math.sin(performance.now()/150)*0.3;
-  ctx.strokeStyle='rgba(192,128,255,'+w+')';ctx.lineWidth=2;ctx.beginPath();
-  ctx.arc(this.x,this.y,this.z+22,0,7);ctx.stroke();}
-const hbp=1.5+Math.sin(performance.now()/150)*0.5;
-const hbShift=lum(this.c)>128?-60:60;const hbCol=sh(this.c,hbShift);
-const hbPulse=0.5+Math.sin(performance.now()/150)*0.2;
-ctx.strokeStyle=hexA(hbCol,hbPulse);ctx.lineWidth=1.5;
-ctx.beginPath();ctx.arc(this.x,this.y,this.hitR+hbp+2,0,7);ctx.stroke();
-ctx.fillStyle=hexA(this.c,0.55);ctx.beginPath();ctx.arc(this.x,this.y,this.hitR,0,7);ctx.fill();
-ctx.fillStyle=hexA(hbCol,0.85);ctx.beginPath();ctx.arc(this.x,this.y,this.hitR*0.45,0,7);ctx.fill();
-if(this.parryWindow>0){const w=0.6+Math.sin(performance.now()/60)*0.4;
-  const pR = this.z + this.hitR * (this.aoeMult||1) * 2.5;
-  ctx.strokeStyle='rgba(255,220,80,'+w+')';ctx.lineWidth=4;
-  ctx.beginPath();ctx.arc(this.x,this.y,pR,0,7);ctx.stroke();
-  ctx.strokeStyle='rgba(255,255,255,'+(w*0.6)+')';ctx.lineWidth=2;
-  ctx.beginPath();ctx.arc(this.x,this.y,pR+8,0,7);ctx.stroke();
-  ctx.fillStyle='rgba(255,220,80,'+(w*0.15)+')';
-  ctx.beginPath();ctx.arc(this.x,this.y,pR,0,7);ctx.fill();}
-if(this.parrySuccess>0){const t=this.parrySuccess/0.4;
-  ctx.globalAlpha=t;ctx.strokeStyle='#ffff80';ctx.lineWidth=4;
-  ctx.beginPath();ctx.arc(this.x,this.y,this.z+15+(1-t)*35,0,7);ctx.stroke();
-  ctx.globalAlpha=t*0.6;ctx.strokeStyle='#ffffff';ctx.lineWidth=2;
-  ctx.beginPath();ctx.arc(this.x,this.y,this.z+8+(1-t)*20,0,7);ctx.stroke();ctx.globalAlpha=1;}
-if(this.wepHope){const t=performance.now()/600;const pulse=0.5+Math.sin(t)*0.3;
-  ctx.strokeStyle='rgba(255,248,192,'+pulse+')';ctx.lineWidth=2.5;
-  ctx.beginPath();ctx.arc(this.x,this.y,this.z+28+Math.sin(t*2)*4,0,7);ctx.stroke();
-  ctx.strokeStyle='rgba(255,255,255,'+(pulse*0.6)+')';ctx.lineWidth=1.5;
-  ctx.beginPath();ctx.arc(this.x,this.y,this.z+35+Math.sin(t*2+1)*6,0,7);ctx.stroke();
-  for(let i=0;i<3;i++){const a=t*1.2+i*2.094;const r=this.z+22;
-    ctx.fillStyle='rgba(255,248,192,'+pulse+')';
-    ctx.beginPath();ctx.arc(this.x+Math.cos(a)*r,this.y+Math.sin(a)*r,2,0,7);ctx.fill();}}
+if(this.inv>0){ctx.strokeStyle='#fff';ctx.lineWidth=2;ctx.beginPath();ctx.arc(this.x,this.y,this.z+4,0,7);ctx.stroke();}
+if(this.shield>0){
+const layers=Math.min(5,Math.floor(this.shield));
+for(let s=0;s<layers;s++){
+ctx.strokeStyle='rgba(130,200,255,'+(0.45 + s * 0.12)+')';
+ctx.lineWidth=2;
+ctx.beginPath();ctx.arc(this.x,this.y,this.z + 7 + s * 4,0,Math.PI * 2);ctx.stroke();
+}
+}
+if(this.slow>0){ctx.strokeStyle='#80c0ff';ctx.lineWidth=2;ctx.beginPath();ctx.arc(this.x,this.y,this.z+12,0,7);ctx.stroke();}
+if(this.buffs.invuln>0){ctx.strokeStyle='#ffffff';ctx.lineWidth=3;ctx.beginPath();ctx.arc(this.x,this.y,this.z+15,0,7);ctx.stroke();}
+if(this.parryWindow>0){
+const pR=this.z + this.hitR * (this.aoeMult||1) * 2.5;
+ctx.strokeStyle='rgba(255,220,80,0.85)';ctx.lineWidth=4;ctx.beginPath();ctx.arc(this.x,this.y,pR,0,7);ctx.stroke();
+}
 }
 }
 
@@ -4256,7 +3899,7 @@ class Game {
     this.pendingSkipGold=0;
     this.runRecorded=false;
     this.weaponMaster=false;this.magicMaster=false;this.infiniteMode=false;this.parryMode=false;this.pendingMode='normal';
-    this.raceScroll=0;this.charScroll=0;
+    this.raceScroll=0;this.charScroll=0;this.locScroll=0;
     this.camX=0;this.camY=0;
     this.last=performance.now();
     this.bind();requestAnimationFrame(t=>this.loop(t));
@@ -4289,12 +3932,65 @@ class Game {
       const maxScroll = Math.max(0, Math.ceil(r.ch.length/3) * 195 - 200);
       this.charScroll = Math.max(0, Math.min(this.charScroll + d*0.5, maxScroll));
     }
+    if(this.state==='location_select'){
+      const maxScroll = Math.max(0, Math.ceil(LOCS.length/2) * 125 - (H - 135));
+      this.locScroll = Math.max(0, Math.min(this.locScroll + d*0.5, maxScroll));
+    }
   }
   
   startHistory(){
     this.historyMode=true;this.pendingMode='history';this.srid='slime';this.sch=RACES.slime.ch[0];this.sloc=LOCS[0];this.startRun();AU.sfx('sel');
   }
-  
+ 
+   findReadySynthesis(){
+    const p=this.player;if(!p)return null;
+    for(const syn of SYNTHESIS){
+      const r1=syn.req.at(0),r2=syn.req.at(1);
+      if(syn.type==='skill'&&!this.weaponMaster&&!this.magicMaster&&!this.parryMode){
+        if(p.skills[r1]&&p.skills[r2]&&!p.skills[syn.result]&&p.frag>=(syn.cost||0))return syn;
+      }else if(syn.type==='art'){
+        if(p.arts.some(a=>a.n===r1)&&p.arts.some(a=>a.n===r2)&&!p.arts.some(a=>a.n===syn.result.n))return syn;
+      }else if(syn.type==='spell'&&!this.weaponMaster&&!this.parryMode){
+        if(p.spells.some(s=>s.def.n===r1)&&p.spells.some(s=>s.def.n===r2)&&!p.spells.some(s=>s.def.n===syn.result.n))return syn;
+      }
+    }
+    return null;
+  }
+
+  applySynthesis(syn){
+    const p=this.player;if(!p||!syn)return;
+    const r1=syn.req.at(0),r2=syn.req.at(1);
+    if(syn.type==='skill'){
+      if(syn.cost)p.frag-=syn.cost;
+      const s1=p.slots.indexOf(r1),s2=p.slots.indexOf(r2);
+      delete p.skills[r1];delete p.skills[r2];
+      if(s1!==-1)p.slots[s1]=null;
+      if(s2!==-1)p.slots[s2]=null;
+      p.skills[syn.result]={tier:syn.tier,cd:0,resCd:0};
+      if(s1!==-1)p.slots[s1]=syn.result;
+      else if(s2!==-1)p.slots[s2]=syn.result;
+      else p.addSk(syn.result);
+      if(syn.bonusSkill&&!p.skills[syn.bonusSkill]){
+        p.addSk(syn.bonusSkill);p.skills[syn.bonusSkill].tier=4;
+        this.ftxt.push(new FTxt('ПРОБУЖДЕНИЕ: '+syn.bonusSkill+'!',p.x,p.y-95,'#ffffff',3.5,22));
+      }
+      this.flash=0.85;
+      this.ftxt.push(new FTxt('✦ СИНТЕЗ: '+syn.result+'!',p.x,p.y-60,syn.color,3,24));
+      AU.sfx('sec');
+    }else if(syn.type==='art'){
+      p.arts=p.arts.filter(a=>a.n!==r1&&a.n!==r2);
+      p.arts.push(syn.result);syn.result.e(p);
+      this.ftxt.push(new FTxt('✦ СИНТЕЗ: '+syn.result.n,p.x,p.y-60,syn.color,3,22));
+      AU.sfx('evo');
+    }else if(syn.type==='spell'){
+      p.spells=p.spells.filter(s=>s.def.n!==r1&&s.def.n!==r2);
+      p.spells.push({def:syn.result,cd:0});
+      if(this.magicMaster)p.spells.sort((a,b)=>b.def.t-a.def.t);
+      this.ftxt.push(new FTxt('✦ СИНТЕЗ: '+syn.result.n,p.x,p.y-60,syn.color,3,22));
+      AU.sfx('evo');
+    }
+  }
+
   md(b){
     const mx=this.mx,my=this.my;
     if(this.state==='menu'){
@@ -4340,8 +4036,9 @@ class Game {
       }
     }
     else if(this.state==='location_select'){
+      if(my<95||my>H-40)return;
       for(let i=0;i<LOCS.length;i++){
-        const col=i%2,row=~~(i/2);const x=60+col*620,y=110+row*125;
+        const col=i%2,row=~~(i/2);const x=60+col*620,y=105+row*125-this.locScroll;
         if(mx>=x&&mx<=x+580&&my>=y&&my<=y+110){this.sloc=LOCS[i];this.startRun();AU.sfx('sel');return;}
       }
     }
@@ -4465,8 +4162,11 @@ class Game {
       else if(e.key.length===1&&this.cnm.length<20&&/[a-zA-Zа-яА-Я0-9 ]/.test(e.key))this.cnm+=e.key;
     }
     else if(this.state==='location_select'){
-      const n=parseInt(k);
-      if(!isNaN(n)&&n>=1&&n<=LOCS.length){this.sloc=LOCS[n-1];this.startRun();}
+      let idx=-1;
+      if(k==='0')idx=9;
+      else if(k==='-')idx=10;
+      else{const n=parseInt(k);if(!isNaN(n)&&n>=1&&n<=9)idx=n-1;}
+      if(idx>=0&&idx<LOCS.length){this.sloc=LOCS[idx];this.startRun();AU.sfx('sel');}
       else if(k==='escape')this.state='character_select';
     }
     else if(this.state==='playing'){
@@ -4854,6 +4554,12 @@ class Game {
     for(let i=pool.length-1;i>0;i--){const j=~~(Math.random()*(i+1));[pool[i],pool[j]]=[pool[j],pool[i]];}
     const evoIdx=pool.findIndex(x=>x.k==='evoSk');
     if(evoIdx>1){[pool[1],pool[evoIdx]]=[pool[evoIdx],pool[1]];}
+    const readySyn=this.findReadySynthesis();
+    if(readySyn){
+      const resName=typeof readySyn.result==='string'?readySyn.result:readySyn.result.n;
+      const costTxt=readySyn.cost>0?' ('+readySyn.cost+' оск.)':'';
+      pool.unshift({n:'✦ СИНТЕЗ: '+readySyn.req.at(0)+' + '+readySyn.req.at(1)+' → '+resName+costTxt,k:'synth',syn:readySyn});
+    }
     this.lvc=pool.slice(0,Math.min(3,pool.length));AU.sfx('lvl');
   }
   
@@ -4891,6 +4597,7 @@ class Game {
       case 'parryDmg': p.parryReflectMul = (p.parryReflectMul||1) + 0.25; break;
       case 'parryRange': p.aoeMult += 0.5; break;
       case 'parryCharge': p.bonusParries += 1; break;
+	  case 'synth':this.applySynthesis(c.syn);break;
     }
     this.state='playing';
     if(this.pendingLv>0)this.pendingLv--;
@@ -5516,19 +5223,37 @@ Game.prototype.rCnm=function(){
 Game.prototype.rLoc=function(){
   this.bg('#0a0a12');
   tx('ВЫБЕРИТЕ ЛОКАЦИЮ',W/2,35,{size:28,weight:'bold',color:'#e6e6f0',align:'center'});
-  tx(this.sch.n+' ('+RACES[this.srid].n+')',W/2,68,{size:13,color:'#a0a8b8',align:'center'});
-  for(let i=0;i<LOCS.length;i++){const l=LOCS[i];const col=i%2,row=~~(i/2);
-    const x=60+col*620,y=110+row*125;const hv=this.hov(x,y,580,110);
+  tx(this.sch.n+' ('+RACES[this.srid].n+')  •  Колесо мыши — прокрутка',W/2,68,{size:13,color:'#a0a8b8',align:'center'});
+  const startY=95,visH=H-135;
+  const maxScroll=Math.max(0,Math.ceil(LOCS.length/2) * 125 - visH);
+  if(this.locScroll>maxScroll)this.locScroll=maxScroll;
+
+  ctx.save();ctx.beginPath();ctx.rect(0,startY,W,visH);ctx.clip();
+  for(let i=0;i<LOCS.length;i++){
+    const l=LOCS[i];const col=i%2,row=~~(i/2);
+    const x=60+col*620,y=105+row*125-this.locScroll;
+    if(y+110<startY||y>startY+visH)continue;
+    const hv=this.hov(x,y,580,110)&&this.my>=startY&&this.my<=startY+visH;
     ctx.fillStyle=hv?'rgba(40,60,90,.85)':'rgba(20,25,40,.7)';ctx.fillRect(x,y,580,110);
-    ctx.strokeStyle='#5070a0';ctx.lineWidth=hv?3:2;ctx.strokeRect(x,y,580,110);
+    ctx.strokeStyle=l.m.chaos?'#c060ff':'#5070a0';ctx.lineWidth=hv?3:2;ctx.strokeRect(x,y,580,110);
     ctx.fillStyle=l.bg;ctx.fillRect(x+10,y+10,60,60);
-    tx((i+1)+'. '+l.n,x+80,y+28,{size:19,color:'#fff'});
+    const keyHint=i<9?(i+1):(i===9?'0':'-');
+    tx('['+keyHint+'] '+l.n,x+80,y+28,{size:19,color:l.m.chaos?'#e090ff':'#fff'});
     txClip(l.d,x+80,y+52,485,{size:11,color:'#a0a8b8'});
     const labels={eh:'HP',ea:'ATK',es:'SPD',mp:'MP',chaos:'CHAOS'};
     const ms=Object.entries(l.m).map(([k,v])=>{const lb=labels[k]||k;
       if(k==='chaos')return '☠ '+lb;if(k==='mp')return lb+' +'+v;return lb+' ×'+v;}).join(' · ');
-    txClip(ms,x+80,y+82,485,{size:10,color:l.m.chaos?'#c060ff':'#ffcc44'});}
-  tx('ESC — назад',W/2,H-15,{size:12,color:'#606878',align:'center'});
+    txClip(ms,x+80,y+82,485,{size:10,color:l.m.chaos?'#c060ff':'#ffcc44'});
+  }
+  ctx.restore();
+
+  if(maxScroll>0){
+    ctx.fillStyle='rgba(0,0,0,.5)';ctx.fillRect(W-25,startY,10,visH);
+    const thumbH=Math.max(40,(visH/(visH+maxScroll)) * visH);
+    const thumbY=startY+(this.locScroll/maxScroll) * (visH - thumbH);
+    ctx.fillStyle='#50c8dc';ctx.fillRect(W-25,thumbY,10,thumbH);
+  }
+  tx('1-9, 0, - или клик — выбор   •   ESC — назад',W/2,H-15,{size:12,color:'#606878',align:'center'});
 };
 
 Game.prototype.rChr=function(){
@@ -5849,6 +5574,7 @@ function optionInfo(c,p){
     case 'parryDmg': return {desc:'Урон отражения', info:'Множитель: x' + (p.parryReflectMul||1).toFixed(2) + ' → x' + ((p.parryReflectMul||1)+0.25).toFixed(2), color:'#ff6060'};
     case 'parryRange': return {desc:'Радиус парирования', info:'AoE: ×' + p.aoeMult.toFixed(2) + ' → ×' + (p.aoeMult+0.5).toFixed(2), color:'#80e0ff'};
     case 'parryCharge': return {desc:'Заряды парирования', info:'Позволяет парировать ' + (1 + (p.bonusParries||0) + 1) + ' атаки подряд за одно нажатие', color:'#00ffff'};
+	case 'synth':return {desc:c.syn.desc,info:'Синтез: '+c.syn.req.at(0)+' + '+c.syn.req.at(1)+(c.syn.cost?' ('+c.syn.cost+' оск.)':''),color:c.syn.color||'#ffd700'};
   }
   return {desc:'',info:'',color:'#fff'};
 }
