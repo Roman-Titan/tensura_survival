@@ -122,7 +122,67 @@ const THEMES = {
   'Хината Сакагучи':{ elems: ['light', 'time'], arts: ['Осколок Хроноса'] }
 };
 
-const AU={c:null,m:null,f:null,en:true,init:false,tr:null,t:null,_pendingMusic:null,step:0,
+const MEDIA = {
+  music: {
+    // Положи mp3/ogg файлы в папку assets рядом с index.html (имена строчными буквами!)
+    // menu: 'assets/menu.mp3',
+    // combat: 'assets/combat.mp3',
+    // boss: 'assets/boss.mp3',
+    // dragon: 'assets/dragon.mp3',
+    // final: 'assets/final.mp3'
+  },
+  sprites: {
+    // Примеры подключения спрайтов героев и боссов:
+    // 'Римуру Темпест': 'assets/rimuru.png',
+    // 'Вельдора': 'assets/veldora.png',
+    // 'Милим Нава': 'assets/milim.png'
+  },
+  videos: {
+    // Видео со звуком для кат-сцен (mp4/webm до 50 МБ для GitHub):
+    // ending: 'assets/ending.mp4',
+    // menuBg: 'assets/menu_bg.mp4'
+  },
+  _imgCache: {},
+  _vidCache: {},
+  getSprite(name) {
+    const src = this.sprites[name];
+    if (!src) return null;
+    if (!this._imgCache[src]) {
+      const img = new Image();
+      img.src = src;
+      this._imgCache[src] = img;
+    }
+    const img = this._imgCache[src];
+    return (img.complete && img.naturalWidth > 0) ? img : null;
+  },
+  playVideo(key, loop = false, onEnd = null) {
+    const src = this.videos[key];
+    if (!src) return null;
+    let vid = this._vidCache[key];
+    if (!vid) {
+      vid = document.createElement('video');
+      vid.src = src;
+      vid.playsInline = true;
+      this._vidCache[key] = vid;
+    }
+    vid.loop = loop;
+    vid.muted = false;
+    vid.volume = 0.75;
+    vid.currentTime = 0;
+    vid.onended = () => { if (onEnd) onEnd(); };
+    vid.play().catch(() => {
+      vid.muted = true;
+      vid.play().catch(() => {});
+    });
+    return vid;
+  },
+  stopVideo(key) {
+    const vid = this._vidCache[key];
+    if (vid) { vid.pause(); vid.currentTime = 0; }
+  }
+};
+
+const AU={c:null,m:null,f:null,en:true,init:false,tr:null,t:null,_pendingMusic:null,step:0,bgmAudio:null,
 i(){if(this.init)return;try{const A=window.AudioContext||window.webkitAudioContext;
 this.c=new A();this.m=this.c.createGain();this.m.gain.value=0.38;
 this.f=this.c.createBiquadFilter();this.f.type='lowpass';this.f.frequency.value=1400;
@@ -130,7 +190,11 @@ this.f.connect(this.m);this.m.connect(this.c.destination);this.init=true;
 if(this.c.state==='suspended')this.c.resume();
 if(this._pendingMusic){const pm=this._pendingMusic;this._pendingMusic=null;this.music(pm);}}
 catch(e){this.en=false;}},
-setMuffle(muffled){if(!this.f||!this.c)return;try{this.f.frequency.setTargetAtTime(muffled?380:1400,this.c.currentTime,0.08);}catch(e){}},
+setMuffle(muffled){
+  if(this.bgmAudio)this.bgmAudio.volume=muffled?0.15:0.45;
+  if(!this.f||!this.c)return;
+  try{this.f.frequency.setTargetAtTime(muffled?380:1400,this.c.currentTime,0.08);}catch(e){}
+},
 n(freq,dur,vol,tp,detune=0){if(!this.en||!this.c)return;try{const now=this.c.currentTime;
 const o=this.c.createOscillator(),g=this.c.createGain();
 o.type=tp||'sine';o.frequency.setValueAtTime(freq,now);if(detune)o.detune.setValueAtTime(detune,now);
@@ -156,9 +220,19 @@ else if(n==='sec'){for(let i=0;i<6;i++)setTimeout(()=>this.n(200*Math.pow(1.15,i
 else if(n==='absorb'){this.n(140,0.3,0.14,'sawtooth');setTimeout(()=>this.n(90,0.4,0.12,'triangle'),120);}
 else if(n==='slow'){this.n(600,0.4,0.08,'sine');setTimeout(()=>this.n(300,0.6,0.08,'sine'),150);}},
 music(tp){
-  if(!this.init||!this.en){this._pendingMusic=tp;return;}
+  if(!this.en){this._pendingMusic=tp;return;}
   if(this.tr===tp)return;
   this.stop();this.tr=tp;this.step=0;
+  if(MEDIA.music[tp]){
+    try{
+      const a=new Audio(MEDIA.music[tp]);
+      a.loop=true;a.volume=0.45;
+      a.play().catch(()=>{});
+      this.bgmAudio=a;
+      return;
+    }catch(e){}
+  }
+  if(!this.init){this._pendingMusic=tp;return;}
   const tracks={
     menu:{seq:[261.6,329.6,392.0,493.9,523.3,493.9,392.0,329.6],bass:[130.8,130.8,164.8,164.8,196.0,196.0,164.8,164.8],dur:360,wave:'triangle'},
     combat:{seq:[220.0,261.6,329.6,293.7,220.0,246.9,293.7,349.2],bass:[110.0,110.0,130.8,130.8,98.0,98.0,110.0,110.0],dur:220,wave:'triangle'},
@@ -175,7 +249,12 @@ music(tp){
     this.step++;
   },cfg.dur);
 },
-stop(){if(this.t)clearInterval(this.t);this.t=null;this.tr=null;}};
+stop(){
+  if(this.t)clearInterval(this.t);
+  this.t=null;this.tr=null;
+  if(this.bgmAudio){try{this.bgmAudio.pause();this.bgmAudio.currentTime=0;}catch(e){}this.bgmAudio=null;}
+}};
+
 
 
 const TI=['Обычный','Экстра','Уникальный','Высший','Божественный'];
@@ -363,48 +442,69 @@ ch:[
 
 function fan(desc,cd,cnt,spread,dmg,color,r,pierce,el){return{desc,cd,el,cast(g,p,t){
   const tier=p.skills[this.n].tier;
+  const extra=p.projBonus||0;
   let dB=1+0.03*(p.resonanceCount||0);
   if(p.buffs.insp>0)dB*=1.2;if(p.buffs.res>0)dB*=1.5;
   if(p.buffs.luck>0)dB*=1.3;if(p.buffs.satanael>0)dB*=1.5;if(p.buffs.azatot>0)dB*=2;
   if(p.rid==='ogre'&&p.hp<p.maxHp*0.5)dB*=1.2;
   const cr=Math.random()*100<p.crit;const cm=cr?p.cdmg:1;
   const elm=elemMul(p,el);
-  const d=(dmg*TM[tier]+p.atk)*dB*cm*elm;
-  const src=tier>=TIER_SUP?'supreme':'normal';
+  const d=(dmg * TM[tier] + p.atk) * dB * cm * elm;
+  const sType=(tier>=TIER_SUP||p.forceSupreme)?'supreme':'normal';
   const pc=(pierce||0)+(p.pierceBonus||0);
   const pa=predictAim(p.x,p.y,t,640);const a0=pa!==null?pa:p.aim;
-  const spreadMul=Math.min(6.283/spread,p.aoeMult||1);const sp=spread*spreadMul;
-  const rSize=r*(p.aoeMult||1);
-  for(let i=0;i<cnt;i++){const a=a0+(i-(cnt-1)/2)*sp;
-    g.proj.push(new Proj(p.x,p.y,Math.cos(a)*640,Math.sin(a)*640,d,color,rSize,true,pc,src));}
+  const total=cnt+extra;
+  const spreadMul=Math.min(6.283/spread,p.aoeMult||1);const sp=spread * spreadMul;
+  const rSize=r * (p.aoeMult||1);
+  for(let i=0;i<total;i++){const a=a0+(i-(total-1)/2) * sp;
+    g.proj.push(new Proj(p.x,p.y,Math.cos(a) * 640,Math.sin(a) * 640,d,color,rSize,true,pc,sType));}
   for(let i=0;i<8;i++)g.particles.push(new Part(p.x,p.y,color));}};}
+
 function burst(desc,cd,dmg,color,r,el){return{desc,cd,el,cast(g,p){
   const tier=p.skills[this.n].tier;
-  let dB=1+0.03*(p.resonanceCount||0);
-  if(p.buffs.insp>0)dB*=1.2;if(p.buffs.res>0)dB*=1.5;
-  if(p.buffs.luck>0)dB*=1.3;if(p.buffs.satanael>0)dB*=1.5;if(p.buffs.azatot>0)dB*=2;
-  if(p.rid==='ogre'&&p.hp<p.maxHp*0.5)dB*=1.2;
-  const cr=Math.random()*100<p.crit;const cm=cr?p.cdmg:1;
-  const elm=elemMul(p,el);
-  const d=(dmg*TM[tier]+p.mag)*dB*cm*elm;
-  const R=r*(p.aoeMult||1);
-  for(const e of g.enemies)if(e.alive&&d2(e.x,e.y,p.x,p.y)<R*R)e.dmg(d,src(tier));
-  for(const b of g.bosses)if(b.alive&&d2(b.x,b.y,p.x,p.y)<R*R)b.dmg(d,src(tier));
-  for(let i=0;i<20;i++){const a=i/20*6.283;
-    g.particles.push(new Part(p.x+Math.cos(a)*R*.85,p.y+Math.sin(a)*R*.85,color));}}};}
+  const extra=p.projBonus||0;
+  const pulses=1+extra;
+  for(let pulse=0;pulse<pulses;pulse++){
+    addTimer(g,pulse * 0.16,()=>{
+      if(!p||g.state!=='playing')return;
+      let dB=1+0.03*(p.resonanceCount||0);
+      if(p.buffs.insp>0)dB*=1.2;if(p.buffs.res>0)dB*=1.5;
+      if(p.buffs.luck>0)dB*=1.3;if(p.buffs.satanael>0)dB*=1.5;if(p.buffs.azatot>0)dB*=2;
+      if(p.rid==='ogre'&&p.hp<p.maxHp*0.5)dB*=1.2;
+      const cr=Math.random()*100<p.crit;const cm=cr?p.cdmg:1;
+      const elm=elemMul(p,el);
+      const d=(dmg * TM[tier] + p.mag) * dB * cm * elm * (pulse===0?1:0.75);
+      const R=r * (p.aoeMult||1);
+      const sType=(tier>=TIER_SUP||p.forceSupreme)?'supreme':'normal';
+      for(const e of g.enemies)if(e.alive&&d2(e.x,e.y,p.x,p.y)<R * R)e.dmg(d,sType);
+      for(const b of g.bosses)if(b.alive&&d2(b.x,b.y,p.x,p.y)<R * R)b.dmg(d,sType);
+      if(g.shockwaves)g.shockwaves.push(new Shockwave(p.x,p.y,R,color,0.32));
+      for(let i=0;i<16;i++){const a=i/16 * 6.283;
+        g.particles.push(new Part(p.x + Math.cos(a) * R * 0.85,p.y + Math.sin(a) * R * 0.85,color));}
+    });
+  }
+}};}
+
 function shot(desc,cd,dmg,color,pierce,speed,el){return{desc,cd,el,cast(g,p,t){
   const tier=p.skills[this.n].tier;
+  const extra=p.projBonus||0;
   let dB=1+0.03*(p.resonanceCount||0);
   if(p.buffs.insp>0)dB*=1.2;if(p.buffs.res>0)dB*=1.5;
   if(p.buffs.luck>0)dB*=1.3;if(p.buffs.satanael>0)dB*=1.5;if(p.buffs.azatot>0)dB*=2;
   if(p.rid==='ogre'&&p.hp<p.maxHp*0.5)dB*=1.2;
   const cr=Math.random()*100<p.crit;const cm=cr?p.cdmg:1;
   const elm=elemMul(p,el);
-  const d=(dmg*TM[tier]+p.mag)*dB*cm*elm;
+  const d=(dmg * TM[tier] + p.mag) * dB * cm * elm;
   const spd=speed||800;
-  const pa=predictAim(p.x,p.y,t,spd);const a=pa!==null?pa:p.aim;
+  const pa=predictAim(p.x,p.y,t,spd);const a0=pa!==null?pa:p.aim;
   const pc=(pierce||0)+(p.pierceBonus||0);
-  g.proj.push(new Proj(p.x,p.y,Math.cos(a)*spd,Math.sin(a)*spd,d,color,6*(p.aoeMult||1),true,pc,src(tier)));}};}
+  const sType=(tier>=TIER_SUP||p.forceSupreme)?'supreme':'normal';
+  const total=1+extra;
+  for(let i=0;i<total;i++){
+    const a=a0+(i-(total-1)/2) * 0.12;
+    g.proj.push(new Proj(p.x,p.y,Math.cos(a) * spd,Math.sin(a) * spd,d,color,6 * (p.aoeMult||1),true,pc,sType));
+  }
+}};}
 function src(tier){return tier>=TIER_SUP?'supreme':'normal';}
 function predictAim(px,py,t,projSpeed){if(!t)return null;
   const spdPx=t.isBoss?(t.ph===1?70:100):(t.spd||0)*62;
@@ -1079,7 +1179,8 @@ const SKILLS={
 'Трансформация Клинка':{desc:'Оружие становится телом. Серия мощных ударов.',cd:6,cast(g,p){
   const t=p.skills[this.n].tier;const E=elemMul(p,this.el);
   const d=(100*TM[t]+p.atk*3)*E;
-  const a=p.aim;
+  const tgt=p.near(g.enemies,g.bosses);
+  const a=tgt?Math.atan2(tgt.y-p.y,tgt.x-p.x):p.aim;
   g.slashes.push(new Slash(p.x,p.y,a,200*(p.aoeMult||1),Math.PI*1.5,'#ffffff'));
   doMeleeHit(g,p,a,200*(p.aoeMult||1),Math.PI*1.5,d,'supreme');
   for(let i=0;i<3;i++){setTimeout(()=>{
@@ -1173,7 +1274,9 @@ const SKILLS={
   p.buffs.luck=Math.max(p.buffs.luck,5);
   g.ftxt.push(new FTxt('СОЗДАТЕЛЬ НАСТРОЕНИЯ!',p.x,p.y-50,'#a0c0ff',2.5,22));
   castVis(g,p,'#a0c0ff',40,400);
-}}
+}},
+'Стихийный Коллапс':{ult:true,desc:'Высший синтез. Конус пламени + абсолютная заморозка.',cd:6,cast(g,p,t){const tier=p.skills[this.n].tier;const extra=p.projBonus||0;const dFire=(45 * TM[tier] + p.atk + p.mag) * elemMul(p,'fire');const dIce=(55 * TM[tier] + p.mag * 1.5) * elemMul(p,'ice');const pa=predictAim(p.x,p.y,t,680);const a0=pa!==null?pa:p.aim;const cnt=9+extra;for(let i=0;i<cnt;i++){const a=a0+(i-(cnt-1)/2) * 0.11;const pr=new Proj(p.x,p.y,Math.cos(a) * 680,Math.sin(a) * 680,dFire,'#ff5020',9 * (p.aoeMult||1),true,4+(p.pierceBonus||0),'supreme');pr.explR=45 * (p.aoeMult||1);pr.explDmg=dFire * 0.4;g.proj.push(pr);}const R=220 * (p.aoeMult||1);for(const e of g.enemies)if(e.alive&&d2(e.x,e.y,p.x,p.y)<R * R){e.dmg(dIce,'supreme');e.slowTimer=Math.max(e.slowTimer||0,4);}for(const b of g.bosses)if(b.alive&&d2(b.x,b.y,p.x,p.y)<R * R){b.dmg(dIce,'supreme');b.slowTimer=Math.max(b.slowTimer||0,2);}castVis(g,p,'#80d0ff',30,R * 0.85);castVis(g,p,'#ff6020',20,0);g.ftxt.push(new FTxt('СТИХИЙНЫЙ КОЛЛАПС!',p.x,p.y-50,'#a0e0ff',2.2,20));g.shake=10;}}
+
 };
 
 const SPELLS=[
@@ -1235,6 +1338,11 @@ const SPELLS=[
     // --- Крестовые заклинания ---
   {n:'Святой Крест',d:60,mp:16,cd:3.0,c:'#fff8c0',t:2,ic:'light',el:'light',pattern:'cross',length:900,width:28},
   {n:'Божественный Крест',d:140,mp:28,cd:4.5,c:'#ffffff',t:4,ic:'light',el:'light',pattern:'cross',length:1500,width:40},
+  {n:'Спутники Души',d:16,mp:0,cd:0.1,sp:0,c:'#80ffff',t:1,ic:'light',el:'light',pattern:'satellite'},
+  {n:'След Ифрита',d:18,mp:0,cd:0.35,sp:0,c:'#ff5020',t:1,ic:'flame',el:'fire',pattern:'trail'},
+  {n:'Аура Повелителя',d:24,mp:0,cd:0.1,sp:0,c:'#c060ff',t:2,ic:'dark',el:'dark',pattern:'aura'},
+  {n:'Кольцо Чёрного Пламени',d:32,mp:12,cd:2.8,sp:0,c:'#ff3060',t:2,ic:'flame',el:'fire',pattern:'wave'}
+
 ];
 
 const RANKS=[
@@ -1357,7 +1465,64 @@ const ARTS=[
 {n:'Сердце гор',d:'+25% урона землёй',e:p=>p.em=1.25},{n:'Святой символ',d:'+25% урона светом',e:p=>p.lm=1.25},
 {n:'Печать тьмы',d:'+25% урона тьмой',e:p=>p.dm=1.25},{n:'Песочные часы Хроноса',d:'+25% урона временем',e:p=>p.tm=1.25},
 {n:'Диадема разума',d:'+25% урона разумом',e:p=>p.mm=1.25},{n:'Око хаоса',d:'+25% урона хаосом',e:p=>p.cm=1.25},
-{n:'Пустотный кристалл',d:'+25% урона пустотой',e:p=>p.vm=1.25},{n:'Призма стихий',d:'+10% ко всем стихиям и атрибутам',e:p=>p.elemAll*=1.1}
+{n:'Пустотный кристалл',d:'+25% урона пустотой',e:p=>p.vm+=.25},{n:'Призма стихий',d:'+10% ко всем стихиям и атрибутам',e:p=>p.elemAll*=1.1},
+{n:'Магнитный Кристалл Дваргона',d:'+80% радиус магнита магикул, +10% опыта',e:p=>{p.magnetMul=(p.magnetMul||1)+0.8;p.xpM+=0.1;}},
+{n:'Дневник Римуру',d:'+2 переброса (Reroll), +20% опыта',e:p=>{if(p.game)p.game.rerolls=(p.game.rerolls||0)+2;p.xpM+=0.2;}},
+{n:'Меч Сидзуэ Идзавы',d:'+25% огонь, +15% крит-урон',e:p=>{p.fm+=0.25;p.cdmg+=0.15;}},
+{n:'Сфера Манаса',d:'+1% крит. урона за каждый 1% CDR',e:p=>{p.cdmg+=p.cdr;}},
+{n:'Корона Слизи',d:'+25% AoE, +1 снаряд ко всему',e:p=>{p.aoeMult+=0.25;p.projBonus=(p.projBonus||0)+1;}},
+{n:'Осколок Звёздного Короля',d:'+20% ко всем стихиям, +1 пробитие',e:p=>{p.elemAll*=1.2;p.pierceBonus+=1;}}
+];
+
+const CURSED_ARTS=[
+{n:'Сердце Клеймана',cursed:true,d:'ПРОКЛЯТИЕ: +75% к магии и урону, но -25% макс. HP',e:p=>{p.mag=~~(p.mag * 1.75);p.elemAll*=1.35;p.maxHp=Math.max(50,~~(p.maxHp * 0.75));p.hp=Math.min(p.hp,p.maxHp);}},
+{n:'Корона Тирана (Гай)',cursed:true,d:'ПРОКЛЯТИЕ: +60% урон и +15% крит, но +15% входящий урон',e:p=>{p.atk=~~(p.atk * 1.6);p.mag=~~(p.mag * 1.6);p.crit+=15;p.cursedDmgTaken=(p.cursedDmgTaken||1) * 1.15;}},
+{n:'Клинок Безумия Милим',cursed:true,d:'ПРОКЛЯТИЕ: +100% крит-урон и +25% скор. атаки, но защита -50%',e:p=>{p.cdmg+=1.0;p.acdMul=(p.acdMul||0)+0.25;p.def=~~(p.def * 0.5);}},
+{n:'Печать Вельзевула',cursed:true,d:'ПРОКЛЯТИЕ: +12% вампиризм и +80% магнит, но реген HP отключён',e:p=>{p.vamp+=0.12;p.magnetMul=(p.magnetMul||1)+0.8;p.hpRegenPct=0;p.hpR=0;}},
+{n:'Апокриф Времени (Хлоя)',cursed:true,d:'ПРОКЛЯТИЕ: -25% КД для всего (кап 85%), но -20% макс. HP',e:p=>{p.maxCdrCap=0.85;p.cdr=Math.min(0.85,p.cdr+0.25);p.maxHp=Math.max(50,~~(p.maxHp * 0.8));p.hp=Math.min(p.hp,p.maxHp);}}
+];
+
+const SYNTHESIS=[
+  {type:'skill',req:['Вельзевул','Рафаэль'],result:'Азатот',bonusSkill:'Сиэль',tier:4,cost:6,color:'#ff80ff',desc:'БОЖЕСТВЕННЫЙ СИНТЕЗ: Создаёт «Азатота» + пробуждает разум «Сиэль»!'},
+  {type:'skill',req:['Хроно-Разлом','Агастья'],result:'Йог-Сотот',tier:4,cost:6,color:'#c080ff',desc:'БОЖЕСТВЕННЫЙ СИНТЕЗ: Владыка Пространства-Времени.'},
+  {type:'skill',req:['Плодородие','Уриэль'],result:'Шуб-Ниггурат',tier:4,cost:5,color:'#80ff80',desc:'БОЖЕСТВЕННЫЙ СИНТЕЗ: Изобилие жизни и абсолютный барьер Уриэля.'},
+  {type:'skill',req:['Мефисто','Асмодей'],result:'Ньярлатотеп',tier:4,cost:6,color:'#ff40ff',desc:'БОЖЕСТВЕННЫЙ СИНТЕЗ: Владыка Хаоса.'},
+  {type:'skill',req:['Аматэрасу','Сатанаэль'],result:'Ктугха',tier:4,cost:6,color:'#ff4000',desc:'БОЖЕСТВЕННЫЙ СИНТЕЗ: Бог Божественного Пламени.'},
+  {type:'skill',req:['Гавриил','Абсолютный Ноль'],result:'Ктулху',tier:4,cost:6,color:'#a0e0ff',desc:'БОЖЕСТВЕННЫЙ СИНТЕЗ: Бог Божественного Льда.'},
+  {type:'skill',req:['Вельдора','Индра'],result:'Ваю',tier:4,cost:6,color:'#80ffff',desc:'БОЖЕСТВЕННЫЙ СИНТЕЗ: Небесный Ветер.'},
+  {type:'skill',req:['Хастур','Дыхание Дракона'],result:'Ажи Дахака',tier:4,cost:5,color:'#ff8040',desc:'БОЖЕСТВЕННЫЙ СИНТЕЗ: Злой Дракон.'},
+  {type:'skill',req:['Ажи Дахака','Вельдора'],result:'Бахамут',tier:4,cost:6,color:'#ffa040',desc:'БОЖЕСТВЕННЫЙ СИНТЕЗ: Король Мифических Зверей.'},
+  {type:'skill',req:['Михаэль','Небесный Суд'],result:'Метатрон',tier:4,cost:6,color:'#ffffff',desc:'БОЖЕСТВЕННЫЙ СИНТЕЗ: Король Чистоты.'},
+  {type:'skill',req:['Уриэль','Свет Творения'],result:'Сариэль',tier:4,cost:6,color:'#fff8c0',desc:'БОЖЕСТВЕННЫЙ СИНТЕЗ: Король Надежды.'},
+  {type:'skill',req:['Люцифер','Астарот'],result:'Ноденс',tier:4,cost:6,color:'#c0c0ff',desc:'БОЖЕСТВЕННЫЙ СИНТЕЗ: Бог Бездны.'},
+  {type:'skill',req:['Гнев Демона','Цукиёми'],result:'Сусаноо',tier:4,cost:6,color:'#ff2020',desc:'БОЖЕСТВЕННЫЙ СИНТЕЗ: Король Тирании.'},
+  {type:'skill',req:['Сефирот','Deus Ex Machina'],result:'Вечный',tier:4,cost:6,color:'#ffffff',desc:'БОЖЕСТВЕННЫЙ СИНТЕЗ: Бесконечность.'},
+  {type:'skill',req:['Истинный Герой','Король Фортуны'],result:'Фортуна',tier:4,cost:6,color:'#ffd700',desc:'БОЖЕСТВЕННЫЙ СИНТЕЗ: Колесо Судьбы.'},
+  {type:'skill',req:['Фортуна','Цукиёми'],result:'Яоёродзу',tier:4,cost:6,color:'#a0c0ff',desc:'БОЖЕСТВЕННЫЙ СИНТЕЗ: Проводник.'},
+  {type:'skill',req:['Гравитационная Сфера','Спираль Света'],result:'Терра Матер',tier:4,cost:6,color:'#b09060',desc:'БОЖЕСТВЕННЫЙ СИНТЕЗ: Король Космоса.'},
+  {type:'skill',req:['Шуб-Ниггурат','Гурман'],result:'Просерпина',tier:4,cost:6,color:'#ff80c0',desc:'БОЖЕСТВЕННЫЙ СИНТЕЗ: Королева Поклонения.'},
+  {type:'skill',req:['Божественный Лазер','Сурья'],result:'Космический Вихрь',tier:4,cost:6,color:'#ffffff',desc:'БОЖЕСТВЕННЫЙ СИНТЕЗ: Сверхновая.'},
+  {type:'skill',req:['Самаэль','Ледяная Тюрьма'],result:'Бельфегор',tier:4,cost:5,color:'#80ff80',desc:'БОЖЕСТВЕННЫЙ СИНТЕЗ: Король Лени.'},
+  {type:'skill',req:['Мамон','Вампиризм'],result:'Амон',tier:4,cost:5,color:'#ffd700',desc:'БОЖЕСТВЕННЫЙ СИНТЕЗ: Король Алчности.'},
+  {type:'skill',req:['Разрушение','Тёмное Пламя'],result:'Абаддон',tier:4,cost:5,color:'#ff2020',desc:'БОЖЕСТВЕННЫЙ СИНТЕЗ: Король Истребления.'},
+  {type:'skill',req:['Гримуар','Создатель Настроения'],result:'Хамель',tier:4,cost:6,color:'#ffffff',desc:'БОЖЕСТВЕННЫЙ СИНТЕЗ: Король Великолепия.'},
+  {type:'skill',req:['Множественное Оружие','Карта Мира'],result:'Агастья',tier:4,cost:6,color:'#ffcc44',desc:'БОЖЕСТВЕННЫЙ СИНТЕЗ: Книга Пророчеств.'},
+  {type:'skill',req:['Пламя Ада','Ледяная Тюрьма'],result:'Стихийный Коллапс',tier:3,cost:3,color:'#80e0ff',desc:'ВЫСШИЙ СИНТЕЗ: Конус из 9 взрывных огненных шаров + ледяная тюрьма вокруг.'},
+  {type:'spell',req:['Спутники Души','Звёздный луч'],result:{n:'Созвездие Вельданавы',d:65,mp:0,cd:0.1,sp:0,c:'#fff8c0',t:4,ic:'light',el:'light',pattern:'constellation'},color:'#fff8c0',desc:'6 звёздных сфер вращаются вокруг героя и соединяются лазерными лучами!'},
+  {type:'spell',req:['Аура Повелителя','Буря'],result:{n:'Гнев Штормового Дракона',d:75,mp:0,cd:0.1,sp:0,c:'#50c8dc',t:4,ic:'wind',el:'wind',pattern:'storm_aura'},color:'#50c8dc',desc:'Расширенная аура повелителя, непрерывно бьющая молниями по площади!'},
+  {type:'spell',req:['След Ифрита','Ледяная лужа'],result:{n:'Стихийный Разлом',d:85,mp:0,cd:0.3,sp:0,c:'#a0e0ff',t:4,ic:'flame',el:'fire',pattern:'elem_trail'},color:'#a0e0ff',desc:'Оставляет при движении зоны вечного пламени и льда.'},
+  {type:'spell',req:['Огненный шар','Режущий ветер'],result:{n:'Огненный Вихрь (Чёрное Пламя)',d:65,mp:14,cd:1.5,sp:620,c:'#ff4020',t:3,ic:'flame',el:'fire',pattern:'spiral',explR:75},color:'#ff6030',desc:'3 пронзающих огненных вихря по спирали со взрывом при попадании.'},
+  {type:'spell',req:['Ледяное копьё','Молния'],result:{n:'Кристальная Гроза',d:75,mp:16,cd:1.8,sp:900,c:'#80e0ff',t:3,ic:'water',el:'ice',pattern:'chain'},color:'#80e0ff',desc:'Цепная ледяная молния, поражающая до 5 целей.'},
+  {type:'spell',req:['Святой луч','Тёмная стрела'],result:{n:'Аннигиляция Света и Тьмы',d:120,mp:20,cd:2.5,c:'#d080ff',t:4,ic:'dark',el:'void',laser:true,width:32,length:2000,pierce:99},color:'#d080ff',desc:'Широкий пронзающий луч пустоты (supreme-урон).'},
+  {type:'spell',req:['Метеор','Землетрясение'],result:{n:'Катаклизм Планеты',d:140,mp:24,cd:3.0,sp:450,c:'#ff8040',t:4,ic:'earth',el:'fire',pattern:'mortar',explR:160},color:'#ff8040',desc:'Гигантский метеоритный удар с радиусом взрыва 160px.'},
+  {type:'art',req:['Кольцо огня','Ледяное сердце'],result:{n:'Корона Ифрита и Левиафана',d:'+35% огонь и лёд, +15% CDR',e:p=>{p.fm+=0.10;p.im+=0.10;p.cdr=Math.min(p.maxCdrCap||0.75,p.cdr+0.15);}},color:'#80e0ff',desc:'Объединяет огонь и лёд, ускоряя перезарядку всех умений.'},
+  {type:'art',req:['Печать Вельдора','Амулет мудреца'],result:{n:'Ядро Истинного Дракона',d:'+20% ко всем статам и +20% ветер',e:p=>{p.mult(1.2);p.wm+=0.20;}},color:'#50c8dc',desc:'Сохраняет бонус опыта (+55% XP) и усиливает все характеристики.'},
+  {type:'art',req:['Антимагическая маска','Плащ теней'],result:{n:'Маска Покорителя Миров',d:'+0.15с окно парирования, +15% уклонения',e:p=>{p.parryWindowMax+=0.15;p.dod+=15;}},color:'#ffffff',desc:'Легендарная маска Сидзуэ. Увеличивает окно парирования и уклонение.'},
+  {type:'art',req:['Клык дракона','Клинок души'],result:{n:'Реликвия Алого Лотоса',d:'+15% шанс крита, +35% крит. урон',e:p=>{p.crit+=15;p.cdmg+=0.35;}},color:'#ff4040',desc:'Многократно усиливает критические атаки.'},
+  {type:'art',req:['Сердце леса','Амулет вампира'],result:{n:'Семя Древа Сефирот',d:'+150 HP, +5 HP/с, +10% вампиризм',e:p=>{p.maxHp+=150;p.hp+=150;p.hpR+=5;p.vamp+=0.10;}},color:'#80ff80',desc:'Дарует колоссальную живучесть и регенерацию в бою.'},
+  {type:'art',req:['Осколок Бездны','Сердце Бури'],result:{n:'Сингулярность Хаоса',d:'+3 пробития, +35% радиус AoE',e:p=>{p.pierceBonus+=3;p.aoeMult+=0.35;}},color:'#c080ff',desc:'Пронзает любые построения врагов и расширяет зоны поражения.'},
+  {type:'art',req:['Святой символ','Печать тьмы'],result:{n:'Весы Сумеречного Бога',d:'+35% свет и тьма, +15% ко всем стихиям',e:p=>{p.lm+=0.10;p.dm+=0.10;p.elemAll*=1.15;}},color:'#ffcc44',desc:'Гармония Света и Тьмы. Усиливает все стихии.'},
+  {type:'art',req:['Магнитный Кристалл Дваргона','Дневник Римуру'],result:{n:'Сфера Манаса Сиэль',d:'+120% магнит, +30% опыт, +1 снаряд',e:p=>{p.magnetMul=(p.magnetMul||1)+1.2;p.xpM+=0.30;p.projBonus=(p.projBonus||0)+1;}},color:'#80ffff',desc:'Мгновенный сбор магикул и +1 снаряд ко всему!'}
 ];
 
 const ET=[
@@ -2750,6 +2915,11 @@ const CHAR_VIS={
 };
 
 function drawHeroAvatar(cn,shType,x,y,r,baseCol,es){
+  const spr=MEDIA.getSprite(cn);
+  if(spr){
+    ctx.drawImage(spr,x - r * 1.4,y - r * 1.4,r * 2.8,r * 2.8);
+    return;
+  }
   const v=CHAR_VIS[cn]||{};
   const bodyCol=v.body||baseCol;
   const t=performance.now()/400;
@@ -2894,6 +3064,11 @@ function drawBossAvatar(b){
   const t=performance.now()/400;
   const r=b.z;
   const name=b.bn||'';
+  const spr=MEDIA.getSprite(name.replace(' [Пробуждённый]',''));
+  if(spr){
+    ctx.drawImage(spr,b.x - r * 1.6,b.y - r * 1.6,r * 3.2,r * 3.2);
+    return;
+  }
   ctx.save();ctx.translate(b.x,b.y);
   const sealR=1.95 * r;
   ctx.save();ctx.rotate(0.4 * t);
