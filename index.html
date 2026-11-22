@@ -74,7 +74,7 @@ function castVis(g,p,c,n,r){n=n||15;
 
 const SK='tensura_save_master';
 const SV={
-  d:{bw:0,bl:1,tk:0,tg:0,runs:0,ach:{}},
+  d:{bw:0,bl:1,tk:0,tg:0,bt:0,bwt:0,runs:0,ach:{}},
   load(){
     try{
       let r=localStorage.getItem(SK);
@@ -92,8 +92,18 @@ const SV={
     try{ localStorage.setItem(SK, JSON.stringify(this.d)); }catch(e){}
   },
   unlock(n){if(!this.d.ach[n]){this.d.ach[n]=1;this.save();return true;}return false;},
-  upd(r){this.d.runs++;this.d.bw=Math.max(this.d.bw,r.wave);this.d.bl=Math.max(this.d.bl,r.level);
-  this.d.tk+=r.kills;this.d.tg+=r.gold;this.save();}
+  upd(r){
+    this.d.runs++;
+    this.d.bw=Math.max(this.d.bw,r.wave);
+    this.d.bl=Math.max(this.d.bl,r.level);
+    this.d.tk+=r.kills;
+    this.d.tg+=r.gold;
+    if(r.time>0)this.d.bt=Math.max(this.d.bt||0,r.time);
+    if(r.win&&r.time>0){
+      if(!this.d.bwt||r.time<this.d.bwt)this.d.bwt=r.time;
+    }
+    this.save();
+  }
 };
 SV.load();
 
@@ -593,13 +603,13 @@ const SKILLS={
 'Стойкость':{desc:'-50% урона 4 сек.',cd:10,cast(g,p){p.buffs.stoic=4;g.ftxt.push(new FTxt('СТОЙКОСТЬ!',p.x,p.y-40,'#60a0ff',2,18));castVis(g,p,'#60a0ff',20,60);}},
 'Водяная Струя':fan('Ледяные иглы.',3.5,3,.2,28,'#60a8ff',6,4,'ice'),
 'Тёмная Стрела':{desc:'10% HP → взрыв тьмы.',cd:8,cast(g,p){const t=p.skills[this.n].tier;const c=p.maxHp*.1;if(p.hp<=c+1)return;p.hp-=c;const tsR=160*(p.aoeMult||1);const E=elemMul(p,this.el);for(const e of g.enemies)if(e.alive&&d2(e.x,e.y,p.x,p.y)<tsR*tsR)e.dmg((80*TM[t]+p.mag*2)*E);for(const b of g.bosses)if(b.alive&&d2(b.x,b.y,p.x,p.y)<tsR*tsR)b.dmg((80*TM[t]+p.mag*2)*E,src(t));g.particles.push(...[...Array(30)].map(()=>new Part(p.x,p.y,'#c860c0')));}},
-'Многослойный Барьер':{desc:'Барьер 5 сек.',cd:12,cast(g,p){p.buffs.shield=5;p.shield=100+p.lv*12;g.ftxt.push(new FTxt('МНОГОСЛОЙНЫЙ БАРЬЕР!',p.x,p.y-40,'#a0c0ff',2,18));castVis(g,p,'#a0c0ff',24,70);}},
+'Многослойный Барьер':{desc:'Барьер 5 сек.',cd:12,cast(g,p){p.buffs.shield=5;p.addShield(1+Math.floor(p.skills[this.n].tier/2),false);g.ftxt.push(new FTxt('МНОГОСЛОЙНЫЙ БАРЬЕР!',p.x,p.y-40,'#a0c0ff',2,18));castVis(g,p,'#a0c0ff',24,70);}},
 'Гравитационная Сфера':burst('Взрыв вокруг.',5,50,'#ffcc44',140),'Режущий Ветер':shot('Стрела ветра.',2.5,22,'#7ad0a0',6,900),
 'Ускорение Мысли':{desc:'Ускорение 5 сек.',cd:10,cast(g,p){p.buffs.haste=5;g.ftxt.push(new FTxt('УСКОРЕНИЕ МЫСЛИ!',p.x,p.y-40,'#80d0ff',2,18));castVis(g,p,'#80d0ff',15,0);}},
 'Клинок Бури':{desc:'Мощный удар.',cd:3,cast(g,p,t){if(!t)return;const tr=p.skills[this.n].tier;t.dmg((45*TM[tr]+p.atk*2)*elemMul(p,this.el),src(tr));g.ftxt.push(new FTxt('КЛИНОК БУРИ!',t.x,t.y-40,'#80d0ff',1.8,16));castVis(g,p,'#80d0ff',10,0);for(let i=0;i<8;i++)g.particles.push(new Part(t.x,t.y,'#80d0ff'));}},
 'Святой Луч':shot('Луч света.',3.5,40,'#f0e8b0',5,700,'light'),'Дыхание Дракона':fan('Дыхание дракона.',5,9,.1,55,'#ff6030',10,3,'fire'),'Громовой Удар':shot('Молния.',3,50,'#ffff80',3,950),'Ледяная Тюрьма':burst('Оглушение.',6,30,'#80c0ff',120,'ice'),'Тектонический Сдвиг':burst('Мощный удар.',7,70,'#a06040',170),
 'Проклятие':{desc:'-ATK врагов.',cd:8,cast(g,p){const t=p.skills[this.n].tier;const m=Math.max(0,1-t*.1);const crR=160*(p.aoeMult||1);for(const e of g.enemies)if(e.alive&&d2(e.x,e.y,p.x,p.y)<crR*crR)e.atk*=m;for(const b of g.bosses)if(b.alive&&d2(b.x,b.y,p.x,p.y)<crR*crR)b.atk*=m;g.ftxt.push(new FTxt('ПРОКЛЯТИЕ!',p.x,p.y-40,'#a040a0',2,16));}},
-'Священный Барьер':{desc:'Барьер 6 сек.',cd:10,cast(g,p){p.buffs.shield=6;p.shield=150+p.lv*15;g.ftxt.push(new FTxt('СВЯЩЕННЫЙ БАРЬЕР!',p.x,p.y-40,'#fff8c0',2,18));castVis(g,p,'#fff8c0',24,70);}},
+'Священный Барьер':{desc:'Барьер 6 сек.',cd:10,cast(g,p){p.buffs.shield=6;p.addShield(1+Math.floor(p.skills[this.n].tier/2),false);g.ftxt.push(new FTxt('СВЯЩЕННЫЙ БАРЬЕР!',p.x,p.y-40,'#fff8c0',2,18));castVis(g,p,'#fff8c0',24,70);}},
 'Пространственное Перемещение':{desc:'Телепорт к цели.',cd:7,cast(g,p,t){if(!t)return;const tr=p.skills[this.n].tier;t.dmg((40*TM[tr]+p.atk)*elemMul(p,this.el),src(tr));g.ftxt.push(new FTxt('ПЕРЕМЕЩЕНИЕ!',p.x,p.y-40,'#80d0ff',1.8,16));castVis(g,p,'#80d0ff',15,0);for(let i=0;i<10;i++)g.particles.push(new Part(t.x,t.y,'#80d0ff'));}},
 'Огненный Шторм':fan('Град огня.',6,10,6.283,35,'#ff6030',6,0,'fire'),
 'Вампиризм':{desc:'Вампиризм 8 сек.',cd:12,cast(g,p){p.buffs.vamp=8;g.ftxt.push(new FTxt('ВАМПИРИЗМ!',p.x,p.y-40,'#c04040',2,18));castVis(g,p,'#c04040',20,0);}},
@@ -609,7 +619,7 @@ const SKILLS={
 'Разрушение':{desc:'Игнор защиты.',cd:10,cast(g,p,t){if(!t)return;const tr=p.skills[this.n].tier;t.dmg((90*TM[tr]+p.atk*3)*elemMul(p,this.el),src(tr));g.ftxt.push(new FTxt('РАЗРУШЕНИЕ!',t.x,t.y-40,'#ff6060',2,18));castVis(g,p,'#ff6060',12,0);for(let i=0;i<15;i++)g.particles.push(new Part(t.x,t.y,'#ff6060'));}},
 'Свет Творения':{desc:'Лечение и урон.',cd:12,cast(g,p){const t=p.skills[this.n].tier;const E=elemMul(p,this.el);p.hp=Math.min(p.maxHp,p.hp+100+t*50);const stR=160*(p.aoeMult||1);for(const e of g.enemies)if(e.alive&&d2(e.x,e.y,p.x,p.y)<stR*stR)e.dmg(60*TM[t]*E);for(const b of g.bosses)if(b.alive&&d2(b.x,b.y,p.x,p.y)<stR*stR)b.dmg(60*TM[t]*E,src(t));g.ftxt.push(new FTxt('СВЕТ ТВОРЕНИЯ!',p.x,p.y-40,'#fff8c0',2.2,20));castVis(g,p,'#fff8c0',30,stR);}},
 'Бездна':burst('Поглощение.',15,200,'#200040',200),
-'Уриэль':{ult:true,desc:'Ультимативный навык Добродетели.',cd:12,cast(g,p){const t=p.skills[this.n].tier;const E=elemMul(p,this.el);p.hp=Math.min(p.maxHp,p.hp+200*TM[t]);p.buffs.shield=8;p.shield=300+p.lv*20;const urR=200*(p.aoeMult||1);for(const e of g.enemies)if(e.alive&&d2(e.x,e.y,p.x,p.y)<urR*urR)e.dmg(80*TM[t]*E);for(const b of g.bosses)if(b.alive&&d2(b.x,b.y,p.x,p.y)<urR*urR)b.dmg(80*TM[t]*E,src(t));g.ftxt.push(new FTxt('УРИЭЛЬ: БЛАГОСЛОВЕНИЕ!',p.x,p.y-40,'#fff8c0',2.5,22));castVis(g,p,'#fff8c0',40,urR);}},
+'Уриэль':{ult:true,desc:'Ультимативный навык Добродетели.',cd:12,cast(g,p){const t=p.skills[this.n].tier;const E=elemMul(p,this.el);p.hp=Math.min(p.maxHp,p.hp+200*TM[t]);p.buffs.shield=8;p.addShield(3+Math.floor(t/2),true);const urR=200*(p.aoeMult||1);for(const e of g.enemies)if(e.alive&&d2(e.x,e.y,p.x,p.y)<urR*urR)e.dmg(80*TM[t]*E);for(const b of g.bosses)if(b.alive&&d2(b.x,b.y,p.x,p.y)<urR*urR)b.dmg(80*TM[t]*E,src(t));g.ftxt.push(new FTxt('УРИЭЛЬ: БЛАГОСЛОВЕНИЕ!',p.x,p.y-40,'#fff8c0',2.5,22));castVis(g,p,'#fff8c0',40,urR);}},
 'Сатанаэль':{ult:true,desc:'Повелитель Гнева. 8 сек: +50% урона, +30% скорости атаки.',cd:20,cast(g,p){p.buffs.satanael=8;p.mp=p.maxMp;g.ftxt.push(new FTxt('РЕАКТОР МАГИКУЛ!',p.x,p.y-40,'#ff4040',2.5,22));for(let i=0;i<25;i++)g.particles.push(new Part(p.x,p.y,'#ff4040'));}},
 'Фауст':{ult:true,desc:'Ультимативный навык Вельдоры.',cd:8,cast(g,p){const t=p.skills[this.n].tier;const faR=250*(p.aoeMult||1);for(const e of g.enemies)if(e.alive&&d2(e.x,e.y,p.x,p.y)<faR*faR)e.atk*=0.5;for(const b of g.bosses)if(b.alive&&d2(b.x,b.y,p.x,p.y)<faR*faR)b.atk*=0.5;g.ftxt.push(new FTxt('АНАЛИЗ ФАУСТА!',p.x,p.y-40,'#50c8dc',2,18));castVis(g,p,'#50c8dc',30,faR);}},
 'Искажение Времени':{desc:'Замедляет время.',cd:7,cast(g,p){p.buffs.haste=3;g.timeSlowTimer=Math.max(g.timeSlowTimer,1.5);g.ftxt.push(new FTxt('ВРЕМЯ ИСКАЖЕНО!',p.x,p.y-40,'#a0e0ff',2,18));castVis(g,p,'#a0e0ff',20,80);}},
@@ -620,8 +630,8 @@ const SKILLS={
 'Штормовое Крыло':{desc:'Удар штормовым ветром.',cd:4,cast(g,p,t){if(!t)return;const d=(30*TM[p.skills[this.n].tier]+p.mag*.5)*elemMul(p,this.el);t.dmg(d,'normal');for(let i=0;i<5;i++)g.particles.push(new Part(t.x,t.y,'#80d0ff'));}},
 'Громовой Шторм':{desc:'Мощный раскат грома.',cd:5,cast(g,p){const d=(60*TM[p.skills[this.n].tier]+p.mag)*elemMul(p,this.el);for(const e of g.enemies)if(e.alive&&d2(e.x,e.y,p.x,p.y)<200*200)e.dmg(d,'normal');for(const b of g.bosses)if(b.alive&&d2(b.x,b.y,p.x,p.y)<200*200)b.dmg(d,'normal');g.shake=6;g.ftxt.push(new FTxt('ГРОМОВОЙ ШТОРМ!',p.x,p.y-40,'#ffff80',2,18));castVis(g,p,'#ffff80',25,200);}},
 'Каменная Кожа':{desc:'Укрепляет защиту.',cd:8,cast(g,p){p.buffs.stoic=3;g.ftxt.push(new FTxt('КАМЕННАЯ КОЖА!',p.x,p.y-40,'#b09060',2,18));castVis(g,p,'#b09060',15,0);}},
-'Железная Воля':{desc:'Стойкость к урону.',cd:10,cast(g,p){p.buffs.stoic=5;p.shield=50+p.lv*5;g.ftxt.push(new FTxt('ЖЕЛЕЗНАЯ ВОЛЯ!',p.x,p.y-40,'#a0c0ff',2,18));castVis(g,p,'#a0c0ff',20,70);}},
-'Несокрушимая Стена':{desc:'Мощный барьер.',cd:12,cast(g,p){p.buffs.shield=8;p.shield=200+p.lv*15;g.ftxt.push(new FTxt('НЕСОКРУШИМАЯ СТЕНА!',p.x,p.y-40,'#a0c0ff',2.2,20));castVis(g,p,'#a0c0ff',32,90);}},
+'Железная Воля':{desc:'Стойкость к урону.',cd:10,cast(g,p){p.buffs.stoic=5;p.addShield(1+Math.floor(p.skills[this.n].tier/2),false);g.ftxt.push(new FTxt('ЖЕЛЕЗНАЯ ВОЛЯ!',p.x,p.y-40,'#a0c0ff',2,18));castVis(g,p,'#a0c0ff',20,70);}},
+'Несокрушимая Стена':{desc:'Мощный барьер.',cd:12,cast(g,p){p.buffs.shield=8;p.addShield(2+Math.floor(p.skills[this.n].tier/2),false);g.ftxt.push(new FTxt('НЕСОКРУШИМАЯ СТЕНА!',p.x,p.y-40,'#a0c0ff',2.2,20));castVis(g,p,'#a0c0ff',32,90);}},
 'Кара':{desc:'Карающий свет.',cd:4,cast(g,p,t){if(!t)return;const d=(25*TM[p.skills[this.n].tier]+p.mag*.4)*elemMul(p,this.el);t.dmg(d,'normal');g.ftxt.push(new FTxt('КАРА!',t.x,t.y-40,'#fff8c0',1.8,16));castVis(g,p,'#fff8c0',8,0);for(let i=0;i<8;i++)g.particles.push(new Part(t.x,t.y,'#fff8c0'));}},
 'Божественная Кара':{desc:'Усиленный свет.',cd:6,cast(g,p){const d=(50*TM[p.skills[this.n].tier]+p.mag*.8)*elemMul(p,this.el);for(const e of g.enemies)if(e.alive&&d2(e.x,e.y,p.x,p.y)<150*150)e.dmg(d,'normal');for(const b of g.bosses)if(b.alive&&d2(b.x,b.y,p.x,p.y)<150*150)b.dmg(d,'normal');g.ftxt.push(new FTxt('БОЖЕСТВЕННАЯ КАРА!',p.x,p.y-40,'#fff0c0',2,18));castVis(g,p,'#fff0c0',20,150);}},
 'Небесный Суд':{desc:'Святой крест. 4 луча света.',cd:8,cast(g,p,t){
@@ -683,20 +693,20 @@ const SKILLS={
 'Регенерация':{desc:'Восстанавливает здоровье.',cd:5,cast(g,p){const heal=30+15*p.skills[this.n].tier;p.hp=Math.min(p.maxHp,p.hp+heal);g.ftxt.push(new FTxt('+'+~~heal+' HP',p.x,p.y-40,'#80ff80',1.5,14));castVis(g,p,'#80ff80',10,0);}},
 'Живучесть':{desc:'Усиленная регенерация.',cd:6,cast(g,p){const heal=60+20*p.skills[this.n].tier;p.hp=Math.min(p.maxHp,p.hp+heal);g.ftxt.push(new FTxt('+'+~~heal+' HP',p.x,p.y-40,'#60ff60',1.8,16));castVis(g,p,'#60ff60',15,0);}},
 'Плодородие':{desc:'Массовое восстановление.',cd:8,cast(g,p){const heal=100+30*p.skills[this.n].tier;p.hp=Math.min(p.maxHp,p.hp+heal);p.buffs.regen=5;g.ftxt.push(new FTxt('+'+~~heal+' HP · Реген!',p.x,p.y-40,'#80ff80',2,18));castVis(g,p,'#80ff80',25,80);}},
-'Шуб-Ниггурат':{ult:true,desc:'Лавкрафтовский навык.',cd:14,cast(g,p){const t=p.skills[this.n].tier;const E=elemMul(p,this.el);p.hp=p.maxHp;p.mp=p.maxMp;p.buffs.shield=12;p.shield=500+p.lv*30;for(const e of g.enemies)if(e.alive)e.dmg(100*TM[t]*E,'supreme');for(const b of g.bosses)if(b.alive)b.dmg(100*TM[t]*E,'supreme');g.ftxt.push(new FTxt('ШУБ-НИГГУРАТ: ИЗОБИЛИЕ!',p.x,p.y-40,'#80ff80',2.5,24));castVis(g,p,'#80ff80',50,120);}},
+'Шуб-Ниггурат':{ult:true,desc:'Лавкрафтовский навык.',cd:14,cast(g,p){const t=p.skills[this.n].tier;const E=elemMul(p,this.el);p.hp=p.maxHp;p.mp=p.maxMp;p.buffs.shield=12;p.addShield(3+Math.floor(t/2),true);for(const e of g.enemies)if(e.alive)e.dmg(100*TM[t]*E,'supreme');for(const b of g.bosses)if(b.alive)b.dmg(100*TM[t]*E,'supreme');g.ftxt.push(new FTxt('ШУБ-НИГГУРАТ: ИЗОБИЛИЕ!',p.x,p.y-40,'#80ff80',2.5,24));castVis(g,p,'#80ff80',50,120);}},
 'Математик':{desc:'Ускорение мысли.',cd:8,cast(g,p){p.buffs.haste=4;p.crit=Math.min(100,p.crit+3);g.ftxt.push(new FTxt('МАТЕМАТИК: АНАЛИЗ!',p.x,p.y-40,'#a0c0ff',2,18));castVis(g,p,'#a0c0ff',15,60);}},
 'Король Фортуны':{desc:'Высший навык удачи.',cd:12,cast(g,p){p.buffs.luck=10;p.buffs.haste=5;const E=elemMul(p,this.el);for(const e of g.enemies)if(e.alive)e.dmg(150*TM[p.skills[this.n].tier]*E,'supreme');for(const b of g.bosses)if(b.alive)b.dmg(150*TM[p.skills[this.n].tier]*E,'supreme');g.ftxt.push(new FTxt('КОРОЛЬ ФОРТУНЫ!',p.x,p.y-40,'#ffd700',3,22));castVis(g,p,'#ffd700',50,100);}},
 'Узурпатор':{desc:'Крадёт силы врагов.',cd:7,cast(g,p,t){if(!t)return;const tr=p.skills[this.n].tier;t.dmg((40*TM[tr]+p.atk*2)*elemMul(p,this.el),src(tr));if(t.atk)p.atk=~~(p.atk+Math.min(5,t.atk*0.05));g.ftxt.push(new FTxt('УЗУРПАТОР!',p.x,p.y-40,'#c080ff',2,16));castVis(g,p,'#c080ff',15,0);for(let i=0;i<10;i++)g.particles.push(new Part(t.x,t.y,'#c080ff'));}},
 'Избранный':{desc:'Пассивная удача.',cd:6,cast(g,p){p.buffs.luck=6;g.ftxt.push(new FTxt('ИЗБРАННЫЙ!',p.x,p.y-40,'#ffd700',2,18));castVis(g,p,'#ffd700',15,0);}},
 'Путешественник во времени':{desc:'Замедляет время.',cd:10,cast(g,p){p.buffs.haste=3;g.timeSlowTimer=Math.max(g.timeSlowTimer,2);g.ftxt.push(new FTxt('ВРЕМЯ ОСТАНОВЛЕНО!',p.x,p.y-40,'#c080ff',2,18));castVis(g,p,'#c080ff',20,80);}},
-'Разумное Существо':{desc:'Лечит и даёт щит.',cd:10,cast(g,p){const heal=80+p.lv*10;p.hp=Math.min(p.maxHp,p.hp+heal);p.mp=Math.min(p.maxMp,p.mp+heal*0.5);p.buffs.shield=6;p.shield=150+p.lv*12;p.buffs.insp=5;g.ftxt.push(new FTxt('РАЗУМНОЕ СУЩЕСТВО!',p.x,p.y-40,'#ff80c0',2,18));castVis(g,p,'#ff80c0',25,80);}},
+'Разумное Существо':{desc:'Лечит и даёт щит.',cd:10,cast(g,p){const heal=80+p.lv*10;p.hp=Math.min(p.maxHp,p.hp+heal);p.mp=Math.min(p.maxMp,p.mp+heal*0.5);p.buffs.shield=6;p.addShield(1+Math.floor(p.skills[this.n].tier/2),false);p.buffs.insp=5;g.ftxt.push(new FTxt('РАЗУМНОЕ СУЩЕСТВО!',p.x,p.y-40,'#ff80c0',2,18));castVis(g,p,'#ff80c0',25,80);}},
 'Ярость Огра':{desc:'Прилив силы.',cd:9,cast(g,p){const t=p.skills[this.n].tier;const d=(p.atk*1.5)*TM[t];const R=150*(p.aoeMult||1);for(const e of g.enemies)if(e.alive&&d2(e.x,e.y,p.x,p.y)<R*R)e.dmg(d,'normal');for(const b of g.bosses)if(b.alive&&d2(b.x,b.y,p.x,p.y)<R*R)b.dmg(d,'normal');p.buffs.insp=6;p.buffs.haste=5;p.hp=Math.min(p.maxHp,p.hp+p.maxHp*0.15);g.ftxt.push(new FTxt('ЯРОСТЬ ОГРА!',p.x,p.y-40,'#ff6060',2,20));castVis(g,p,'#ff6060',25,R);}},
 'Гнев Демона':{ult:true,desc:'Прилив разрушительной ярости.',cd:11,cast(g,p){const t=p.skills[this.n].tier;const E=elemMul(p,this.el);const d=((p.atk*2.5)*TM[t]+p.mag*.5)*E;const R=180*(p.aoeMult||1);for(const e of g.enemies)if(e.alive&&d2(e.x,e.y,p.x,p.y)<R*R){e.dmg(d,'normal');p.hp=Math.min(p.maxHp,p.hp+d*0.08);}for(const b of g.bosses)if(b.alive&&d2(b.x,b.y,p.x,p.y)<R*R){b.dmg(d,'normal');p.hp=Math.min(p.maxHp,p.hp+d*0.08);}p.buffs.insp=5;p.buffs.haste=4;g.ftxt.push(new FTxt('ГНЕВ ДЕМОНА!',p.x,p.y-40,'#ff2020',2.2,20));for(let i=0;i<25;i++)g.particles.push(new Part(p.x,p.y,'#ff2020'));}},
 'Аналитик':{desc:'Снижает ATK врагов.',cd:8,cast(g,p){const R=250*(p.aoeMult||1);for(const e of g.enemies)if(e.alive&&d2(e.x,e.y,p.x,p.y)<R*R)e.atk*=0.7;for(const b of g.bosses)if(b.alive&&d2(b.x,b.y,p.x,p.y)<R*R)b.atk*=0.7;p.buffs.insp=4;g.ftxt.push(new FTxt('АНАЛИТИК!',p.x,p.y-40,'#a0c0ff',2,18));castVis(g,p,'#a0c0ff',25,R);}},
 'Наследник':{desc:'Ригур ведёт за собой.',cd:10,cast(g,p){p.buffs.haste=5;p.buffs.insp=3;g.ftxt.push(new FTxt('ВПЕРЁД!',p.x,p.y-40,'#80ff80',2,18));castVis(g,p,'#80ff80',20,70);}},
 'Теневая Ниндзя':{desc:'Удар из тени.',cd:6,cast(g,p,t){if(!t)return;const tr=p.skills[this.n].tier;p.x=t.x-rnd(50,100);p.y=t.y-rnd(50,100);t.dmg((60*TM[tr]+p.atk*1.5)*elemMul(p,this.el),src(tr));g.particles.push(...[...Array(12)].map(()=>new Part(p.x,p.y,'#404060')));}},
 'Героический Король':{desc:'Сила героя.',cd:9,cast(g,p,t){if(!t)return;const tr=p.skills[this.n].tier;t.dmg((100*TM[tr]+p.atk*3)*elemMul(p,this.el),src(tr));p.buffs.stoic=4;g.ftxt.push(new FTxt('УДАР КОРОЛЯ!',p.x,p.y-40,'#ffd700',2,20));castVis(g,p,'#ffd700',20,0);for(let i=0;i<20;i++)g.particles.push(new Part(t.x,t.y,'#ffd700'));}},
-'Щит Стража':{desc:'Прикрывает союзника.',cd:12,cast(g,p){p.buffs.shield=8;p.shield=200+p.lv*15;g.ftxt.push(new FTxt('ЗАЩИТА КАБАЛА!',p.x,p.y-40,'#a0c0ff',2,18));castVis(g,p,'#a0c0ff',25,80);}},
+'Щит Стража':{desc:'Прикрывает союзника.',cd:12,cast(g,p){p.buffs.shield=8;p.addShield(2+Math.floor(p.skills[this.n].tier/2),false);g.ftxt.push(new FTxt('ЗАЩИТА КАБАЛА!',p.x,p.y-40,'#a0c0ff',2,18));castVis(g,p,'#a0c0ff',25,80);}},
 'Ярость Зверя':{desc:'Боевое безумие.',cd:10,cast(g,p){p.buffs.insp=6;p.buffs.haste=4;const d=(p.atk*1.8)*TM[p.skills[this.n].tier];for(const e of g.enemies)if(e.alive&&d2(e.x,e.y,p.x,p.y)<200*200)e.dmg(d,'normal');for(const b of g.bosses)if(b.alive&&d2(b.x,b.y,p.x,p.y)<200*200)b.dmg(d,'normal');g.ftxt.push(new FTxt('ЯРОСТЬ ЗВЕРЯ!',p.x,p.y-40,'#ff8040',2,18));castVis(g,p,'#ff8040',25,200);}},
 'Крылья Тьмы':{desc:'Тьма и клинок.',cd:7,cast(g,p,t){if(!t)return;const tr=p.skills[this.n].tier;const E=elemMul(p,this.el);t.dmg((70*TM[tr]+p.atk*2)*E,src(tr));for(const e of g.enemies)if(e.alive&&d2(e.x,e.y,t.x,t.y)<100*100)e.dmg(40*TM[tr]*E,src(tr));g.particles.push(...[...Array(15)].map(()=>new Part(t.x,t.y,'#8040a0')));}},
 'Тёмное Пламя':fan('Конус тёмного огня.',5,7,.12,35,'#8040c0',8,2,'fire'),
@@ -777,7 +787,7 @@ const SKILLS={
   const t=p.skills[this.n].tier;
   p.hp=p.maxHp;p.mp=p.maxMp;
   p.buffs.haste=8;p.buffs.stoic=8;p.buffs.insp=8;p.buffs.luck=8;
-  p.shield=Math.max(p.shield,500+p.lv*30);p.buffs.shield=10;
+  p.addShield(3+Math.floor(t/2),true);
   g.ftxt.push(new FTxt('СЕФИРОТ: ДРЕВО ЖИЗНИ!',p.x,p.y-50,'#80ff80',2.5,22));
   castVis(g,p,'#80ff80',60,150);
 }},
@@ -1233,7 +1243,7 @@ const SKILLS={
   const d=(120*TM[t]+p.mag*2.5)*E;
   for(const e of g.enemies)if(e.alive&&d2(e.x,e.y,p.x,p.y)<350*350)e.dmg(d,'supreme');
   for(const b of g.bosses)if(b.alive&&d2(b.x,b.y,p.x,p.y)<350*350)b.dmg(d,'supreme');
-  p.shield=Math.max(p.shield,200+p.lv*20);
+  p.addShield(2+Math.floor(p.skills[this.n].tier/2),false);
   p.buffs.shield=Math.max(p.buffs.shield,8);
   p.buffs.insp=Math.max(p.buffs.insp,5);
   p.buffs.res=Math.max(p.buffs.res||0,5);
@@ -1254,7 +1264,7 @@ const SKILLS={
   }
   p.buffs.invuln=6;
   p.hp=p.maxHp;p.mp=p.maxMp;
-  p.shield=Math.max(p.shield,400+p.lv*25);p.buffs.shield=10;
+  p.addShield(3+Math.floor(t/2),true);
   g.ftxt.push(new FTxt('ХАМЕЛЬ: ВЕЛИКОЛЕПИЕ!',p.x,p.y-60,'#ffffff',3,26));
   castVis(g,p,'#ffffff',80,0);
 }},
@@ -1661,7 +1671,18 @@ ${r.d}
 '🦋 Эволюции':Object.values(RACES).map(r=>`${r.n}:
   • ${r.evo.map(e=>e.n+' (Ур.'+e.lv+')').join('\n  • ')}`).join('\n\n'),
 
-'✨ Навыки':Object.entries(SKILLS).map(([n,s])=>`${n}: ${s.desc} (КД: ${s.cd}с)`).join('\n\n')+'\n\n[!] ТИРЫ: '+TI.join(' → ')+'\nУсиление до Высшего — 4 осколка. До Божественного — 7 осколков.',
+'✨ Навыки':Object.entries(SKILLS).map(([n,s])=>`${n}: ${s.desc} (КД: ${s.cd}с)`).join('\n\n')+
+'\n\n==============================\n[!] ТИРЫ НАВЫКОВ: '+TI.join(' → ')+
+'\nУсиление до Высшего — 4 осколка. До Божественного — 7 осколков.\n\n'+
+'⚗️ РЕЦЕПТЫ СИНТЕЗА (FUSION):\n'+
+'Собрав два нужных компонента, вы получите золотую карточку Синтеза при повышении уровня:\n\n'+
+SYNTHESIS.map(syn=>{
+  const r1=syn.req.at(0),r2=syn.req.at(1);
+  const resName=typeof syn.result==='string'?syn.result:syn.result.n;
+  const tag=syn.type==='skill'?'[Навык]':(syn.type==='spell'?'[Магия]':'[Артефакт]');
+  const cost=syn.cost?' ('+syn.cost+' оск.)':'';
+  return `✦ ${tag} ${r1} + ${r2} → ${resName}${cost}\n   ${syn.desc}`;
+}).join('\n\n'),
 
 '🔮 Магия':SPELLS.map(s=>`${s.n} — ${s.d} урона (MP: ${s.mp}, КД: ${s.cd}с)${s.laser?' [Лазер]':''}${s.pattern?' ['+s.pattern+']':''}`).join('\n')+'\n\n[!] Реген маны: 3 + (0.25 × Уровень) + 1% от макс. MP в секунду.',
 
@@ -3211,7 +3232,7 @@ constructor(rid,ch,loc){
   this.inv=0;this.acd=0;this.mcd=0;this.dcd=0;this.dodg=0;
   this.dvx=0;this.dvy=0;
   this.buffs={insp:0,stoic:0,haste:0,shield:0,vamp:0,res:0,regen:0,luck:0,satanael:0,invuln:0,azatot:0};
-  this.shield=0;this.regen=0;this.vamp=0;this.dod=0;
+  this.shield=0;this.divineShield=false;this.regen=0;this.vamp=0;this.dod=0;
   this.fm=1;this.im=1;this.wm=1;this.em=1;this.lm=1;this.dm=1;
   this.tm=1;this.mm=1;this.cm=1;this.vm=1;this.elemAll=1;
   this.slow=0;this.slowTimer=0;this.autoPotion=true;this.apcd=0;
@@ -3294,11 +3315,30 @@ hurt(v,isLaser=false,attacker=null){
   // Послойный щит: 1 слой полностью блокирует 1 атаку (кроме потокового лазера)
   if(this.shield>0&&!isLaser){
     this.shield=Math.max(0,Math.floor(this.shield)-1);
-    if(this.shield<=0)this.buffs.shield=0;
-    this.inv=0.25;
+    const wasDivine=this.divineShield;
+    if(this.shield<=0){this.buffs.shield=0;this.divineShield=false;}
+    this.inv=wasDivine?0.45:0.25;
     if(this.game){
-      this.game.ftxt.push(new FTxt('🛡 СЛОЙ ('+this.shield+')',this.x,this.y-32,'#80c8ff',1.1,13));
-      castVis(this.game,this,'#80c8ff',10,this.z+10);
+      if(wasDivine){
+        const rWave=180 * (this.aoeMult||1);
+        const wDmg=(this.atk + this.mag) * 1.4;
+        for(const e of this.game.enemies){
+          if(e.alive&&d2(e.x,e.y,this.x,this.y)<rWave * rWave){
+            e.dmg(wDmg,'supreme');
+            const ang=Math.atan2(e.y-this.y,e.x-this.x);
+            e.x=cl(e.x + Math.cos(ang) * 70,30,WW-30);
+            e.y=cl(e.y + Math.sin(ang) * 70,30,WH-30);
+          }
+        }
+        for(const b of this.game.bosses){
+          if(b.alive&&d2(b.x,b.y,this.x,this.y)<rWave * rWave)b.dmg(wDmg,'supreme');
+        }
+        this.game.ftxt.push(new FTxt('✦ КОНТР-ВОЛНА ('+this.shield+')',this.x,this.y-34,'#ffd700',1.2,14));
+        castVis(this.game,this,'#ffd700',18,rWave * 0.7);
+      }else{
+        this.game.ftxt.push(new FTxt('🛡 СЛОЙ ('+this.shield+')',this.x,this.y-32,'#80c8ff',1.1,13));
+        castVis(this.game,this,'#80c8ff',10,this.z+10);
+      }
     }
     AU.sfx('sel');
     return;
@@ -3329,6 +3369,10 @@ hurt(v,isLaser=false,attacker=null){
   }
 }
 heal(a){this.hp=Math.min(this.maxHp,this.hp+a);}
+addShield(layers,divine=false){
+  this.shield=Math.max(this.shield,Math.min(6,Math.floor(layers)));
+  if(divine)this.divineShield=true;
+}
 gainXp(a){a *= this.xpM;this.xp+=a;let lvls=0;
 while(this.xp>=this.xpn){this.xp-=this.xpn;this.lv++;this.xpn=Math.floor(this.xpn * 1.25);
 this.maxHp+=15;this.hp=this.maxHp;this.maxMp+=8;this.mp=this.maxMp;this.atk+=2;lvls++;}
@@ -3905,7 +3949,7 @@ for(let i=0;i<this.weaponAutoCd.length;i++)this.weaponAutoCd[i]=Math.max(0,this.
 }
 this.apcd=Math.max(0,this.apcd-dt);
 for(const b in this.buffs)this.buffs[b]=Math.max(0,this.buffs[b]-dt);
-if(this.buffs.shield<=0&&this.shield>0)this.shield=0;
+if(this.buffs.shield<=0&&this.shield>0){this.shield=0;this.divineShield=false;}
 for(const s in this.skills)if(this.skills[s].cd>0)this.skills[s].cd-=dt;
 for(const sp of this.spells)if((sp.cd||0)>0)sp.cd-=dt;
 if(this.autoPotion&&this.hasSage()&&this.hp<this.maxHp * 0.25&&this.apcd<=0){
@@ -4617,7 +4661,14 @@ class Game {
     
   recordRun(){
     if(this.player && !this.runRecorded){
-      SV.upd({wave:this.wave,level:this.player.lv,kills:this.player.kills,gold:this.player.gold});
+      SV.upd({
+        wave:this.wave,
+        level:this.player.lv,
+        kills:this.player.kills,
+        gold:this.player.gold,
+        time:this.runTime,
+        win:!!this.victory
+      });
       this.runRecorded=true;
     }
   }
@@ -5229,13 +5280,21 @@ class Game {
       if(ls.hostile&&!p.dodg&&p.buffs.invuln<=0){
         if(ls.hitsPoint(p.x,p.y,p.hitR)){
           if(p.dod>0&&Math.random()*100<p.dod){}
-          else{let dmg=(ls.dps>0?ls.dps*dt:0);
+          else{
+            let dmg=(ls.dps>0?ls.dps * 4.5 * dt:0);
             if(ls.dps<=0&&ls.hitIds.has(p)){dmg=0;}
             else if(ls.dps<=0){dmg=ls.dmg;ls.hitIds.add(p);}
             if(dmg>0){
               dmg*=(1-Math.min(0.5,p.res*0.01));
               p.hurt(dmg, true);
-              if(Math.random()<0.3)this.particles.push(new Part(p.x,p.y,ls.color));
+              p._laserDmgAcc=(p._laserDmgAcc||0)+dmg;
+              p._laserPopupCd=(p._laserPopupCd||0)-dt;
+              if(p._laserDmgAcc>=1&&p._laserPopupCd<=0){
+                this.ftxt.push(new FTxt('-'+(~~p._laserDmgAcc),p.x+rnd(-20,20),p.y-32,'#ff5050',0.9,15));
+                p._laserDmgAcc=0;
+                p._laserPopupCd=0.22;
+              }
+              if(Math.random()<0.35)this.particles.push(new Part(p.x,p.y,ls.color));
             }
           }
         }
@@ -5354,7 +5413,9 @@ Game.prototype.rMenu=function(){
   ctx.strokeStyle='#a0a0ff';ctx.lineWidth=2;ctx.strokeRect(W/2-180,400,360,60);
   tx('📜 ХРОНИКИ МИРА',W/2,438,{size:22,weight:'bold',color:hvChr?'#a0a0ff':'#fff',align:'center',glow:hvChr?'#a0a0ff':null,glowBlur:12});
 
-  tx('Лучшая волна: '+SV.d.bw+'  •  Убийств: '+SV.d.tk,W/2,H-90,{size:13,color:'#606878',align:'center'});
+  const bestTimeTxt=SV.d.bt>0?'  •  Макс. время: '+fmtTime(SV.d.bt):'';
+  const bestWinTxt=SV.d.bwt>0?'  •  Рекорд победы: '+fmtTime(SV.d.bwt):'';
+  tx('Лучшая волна: '+SV.d.bw+'  •  Убийств: '+SV.d.tk+bestTimeTxt+bestWinTxt,W/2,H-90,{size:13,color:'#606878',align:'center'});
   tx('WASD — движение  Q/E/R — навыки  Space — уворот  F/ПКМ — парирование  V — авто-зелье',W/2,H-50,{size:12,color:'#606878',align:'center'});
 };
 
@@ -6002,8 +6063,8 @@ Game.prototype.rCutscene=function(){
       ctx.lineTo(W/2+Math.cos(angle)*r2,H/2-40+Math.sin(angle)*r2);ctx.stroke();}
     ctx.globalAlpha=1;}
   const textLines=[
-    {l:0.3,t:'Иварадж поглощает Вельданаву и Руверудж...',c:'#ff40a0'},
-    {l:1.5,t:'Но Римуру поглощает самого Ивараджа.',c:'#c080ff'},
+    {l:0.3,t:'Иварадж поглощает Вельданаву, порождая Руверудж...',c:'#ff40a0'},
+    {l:1.5,t:'Но Римуру поглощает саму Руверудж.',c:'#c080ff'},
     {l:2.7,t:'Четыре Истинных Дракона обрели покой...',c:'#50c8dc'},
     {l:3.7,t:'Слизь стал Богом Пустоты.',c:'#ffcc44'}];
   for(let i=0;i<textLines.length;i++){const tl=textLines[i];
@@ -6040,17 +6101,18 @@ Game.prototype.rVictory=function(){
   tx('✦ ИСТИННЫЙ ФИНАЛ ✦',W/2,320,{size:48,weight:'bold',color:'#ffcc44',align:'center',glow:'#ffcc44',glowBlur:40*glow});
   tx('Хроники Истинных Драконов завершены',W/2,365,{size:20,color:'#a0c0ff',align:'center'});
   const lines=[
-    'Иварадж поглотил Вельданаву и Руверудж — но Римуру поглотил их обоих.',
+    'Иварадж поглотила Вельданаву — но Римуру поглотил получившуюся Руверудж.',
     'Четыре Истинных Дракона обрели покой в его клинке.',
     'Слизь, ставшая Повелителем Монстров, поднялась до Бога Пустоты.',
-    '','Вельдора наконец свободен. Вельзард и Вельгринд вернулись на Север.',
-    'Милим Нава улыбается. Леон, Ламирис, Диабло — все живы.',
+    '','Вельдора продолжает жить в Темпесте. Вельзард вернулась на Север, а Вельгринд — в Восточную Империю.',
+    'Милим Нава улыбается. Леон, Рамирис, Диабло — все живы.',
     'Темпест стоит. Мир Тенсуры — тоже.','',
-    'И где-то далеко, в другом мире, Миками Сатору больше не один.'];
+    'И где-то далеко, в другом мире, Сатору Миками больше не один.'];
   let ly=410;
   for(const line of lines){txFit(line,W/2,ly,W-80,{size:14,color:line.startsWith('—')?'#ffcc44':'#e6e6f0',align:'center'},10);ly+=26;}
-  tx('Уровень '+p.lv+'   •   Волна 50   •   Убийств '+p.kills+'   •   Артефактов '+p.arts.length,W/2,H-110,{size:14,color:'#a0a8b8',align:'center'});
-  tx('⏱ Время прохождения: '+fmtTime(this.runTime),W/2,H-140,{size:18,weight:'bold',color:'#80c0ff',align:'center'});
+  const recWin=SV.d.bwt>0?'  (Рекорд: '+fmtTime(SV.d.bwt)+')':'';
+  tx('Уровень '+p.lv+'   •   Волна '+this.wave+'   •   Убийств '+p.kills+'   •   Артефактов '+p.arts.length,W/2,H-110,{size:14,color:'#a0a8b8',align:'center'});
+  tx('⏱ Время прохождения: '+fmtTime(this.runTime)+recWin,W/2,H-140,{size:18,weight:'bold',color:'#80c0ff',align:'center'});
   tx('Секретных побед: '+(SV.d.secWins||1),W/2,H-85,{size:12,color:'#ffcc44',align:'center'});
   const hv=this.hov(W/2-200,H-55,400,40);
   ctx.fillStyle=hv?'rgba(50,80,110,.9)':'rgba(30,45,65,.8)';
