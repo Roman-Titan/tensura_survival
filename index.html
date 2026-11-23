@@ -4175,6 +4175,9 @@ class Game {
     this.srid=null;this.sch=null;this.sloc=null;this.cnm='';
     this.chrS=0;this.chrScrl=0;this.lvc=[];this.evoShow=null;this.retTo=null;
     this.enemies=[];this.bosses=[];this.proj=[];this.particles=[];this.ftxt=[];this.mines=[];this.lasers=[];this.pools=[];this.slashes=[];this.cosmicBeams=[];this.shockwaves=[];this.timers=[];
+    this.props=[];this.propTimer=6;this.orbs=[];this.chests=[];this.bossArena=null;
+    this.rerolls=3;this.chestChoices=null;this.chestCursed=false;
+    this.swarmEvent=null;this.swarmCd=45;this.bgCanvas=null;this.invSelectedSk=null;
     this.player=null;this.loc=null;
     this.wave=1;this.wt=0;this.st=0;this.bsSpawned=new Set();this.shake=0;
     this.runTime=0;
@@ -4338,6 +4341,46 @@ class Game {
         const y=150+i*125;
         if(mx>=W/2-360&&mx<=W/2+360&&my>=y&&my<=y+110){this.pick(i);AU.sfx('sel');return;}
       }
+      if((this.rerolls||0)>0&&mx>=W/2-160&&mx<=W/2+160&&my>=H-105&&my<=H-63){
+        this.rerolls--;this.triggerLv();AU.sfx('sel');return;
+      }
+    }
+    else if(this.state==='chest_open'&&this.chestChoices){
+      for(let i=0;i<this.chestChoices.length;i++){
+        const y=160+i*130;
+        if(mx>=W/2-360&&mx<=W/2+360&&my>=y&&my<=y+110){this.pickChest(i);return;}
+      }
+    }
+    else if(this.state==='awakening'){
+      for(let i=0;i<3;i++){
+        const y=160+i*135;
+        if(mx>=W/2-380&&mx<=W/2+380&&my>=y&&my<=y+115){this.pickAwakening(i);return;}
+      }
+    }
+    else if(this.state==='inventory'){
+      const p=this.player;if(!p)return;
+      if(mx>=W/2-220&&mx<=W/2+220&&my>=H-115&&my<=H-75){
+        const syn=this.findReadySynthesis();if(syn){this.applySynthesis(syn);return;}
+      }
+      if(mx>=W/2-120&&mx<=W/2+120&&my>=H-65&&my<=H-20){this.state='playing';AU.setMuffle(false);AU.sfx('sel');return;}
+      if(!this.weaponMaster&&!this.magicMaster&&!this.parryMode){
+        for(let i=0;i<3;i++){
+          const sx=60+i*185,sy=495;
+          if(mx>=sx&&mx<=sx+175&&my>=sy&&my<=sy+55&&this.invSelectedSk){
+            const oldIdx=p.slots.indexOf(this.invSelectedSk);
+            if(oldIdx!==-1)p.slots[oldIdx]=p.slots[i];
+            p.slots[i]=this.invSelectedSk;this.invSelectedSk=null;AU.sfx('lvl');return;
+          }
+        }
+        const allSk=Object.keys(p.skills);
+        for(let i=0;i<allSk.length;i++){
+          const col=i%3,row=~~(i/3);
+          const bx=60+col*185,by=575+row*34;
+          if(mx>=bx&&mx<=bx+175&&my>=by&&my<=by+28){
+            this.invSelectedSk=(this.invSelectedSk===allSk.at(i))?null:allSk.at(i);AU.sfx('sel');return;
+          }
+        }
+      }
     }
     else if(this.state==='playing'){
       if(this.canSkipWave() && mx>=W-345 && mx<=W-5 && my>=250 && my<=295){this.skipWave();return;}
@@ -4417,6 +4460,7 @@ class Game {
   }
         
   kd(e){
+    if(e.key==='Tab')e.preventDefault();
     const k=e.key.toLowerCase();this.keys[k]=true;
     if(e.repeat&&this.state!=='custom_name')return;
     if(this.state==='menu'){
@@ -4462,6 +4506,7 @@ class Game {
     }
     else if(this.state==='playing'){
       if(k==='escape')this.state='paused';
+	  else if(k==='tab'){this.state='inventory';this.invSelectedSk=null;AU.setMuffle(true);AU.sfx('sel');}
       else if(k==='q')this.useSk(0);
       else if(k==='e')this.useSk(1);
       else if(k==='r')this.useSk(2);
@@ -4477,9 +4522,20 @@ class Game {
       else if(k==='2'){this.state='chronicles';this.chrS=0;this.chrScrl=0;this.retTo='paused';}
       else if(k==='3'){this.recordRun();this.state='menu';this.player=null;AU.stop();AU.music('menu');}
     }
+    else if(this.state==='inventory'){
+      if(k==='tab'||k==='escape'){this.state='playing';AU.setMuffle(false);AU.sfx('sel');}
+    }
     else if(this.state==='level_up'){
       const n=parseInt(k);if(!isNaN(n)&&n>=1&&n<=this.lvc.length)this.pick(n-1);
+      else if(k==='r'&&(this.rerolls||0)>0){this.rerolls--;this.triggerLv();AU.sfx('sel');}
     }
+    else if(this.state==='chest_open'&&this.chestChoices){
+      const n=parseInt(k);if(!isNaN(n)&&n>=1&&n<=this.chestChoices.length)this.pickChest(n-1);
+    }
+    else if(this.state==='awakening'){
+      const n=parseInt(k);if(!isNaN(n)&&n>=1&&n<=3)this.pickAwakening(n-1);
+    }
+
     else if(this.state==='evolution'){
       if(k==='enter'||k===' '||k==='escape'){
         this.state='playing';if(this.pendingLv>0)this.pendingLv--;if(this.pendingLv>0)this.triggerLv();
@@ -4611,7 +4667,11 @@ class Game {
   startRun(){
     this.player=new Player(this.srid,this.sch,this.sloc);
     this.player.game = this;
-    this.loc=this.sloc;this.enemies=[];this.bosses=[];this.proj=[];this.particles=[];this.ftxt=[];this.mines=[];this.lasers=[];this.pools=[];this.slashes=[];
+    this.loc=this.sloc;this.buildMapTexture();
+    this.enemies=[];this.bosses=[];this.proj=[];this.particles=[];this.ftxt=[];this.mines=[];this.lasers=[];this.pools=[];this.slashes=[];this.cosmicBeams=[];this.shockwaves=[];this.timers=[];
+    this.props=[];this.propTimer=8;this.orbs=[];this.chests=[];this.bossArena=null;
+    this.rerolls=3;this.chestChoices=null;this.swarmEvent=null;this.swarmCd=45;
+    for(let i=0;i<6;i++)this.spawnArenaProp();
     this.wave=1;this.wt=0;this.st=0;this.bsSpawned=new Set();this.shake=0;this.runTime=0;
     this.waveEnemiesToSpawn=5+this.wave*2;this.waveEnemiesSpawned=0;
     this.chain={iv:false,ve:false,lu:false};this.historyStep=0;
@@ -4756,8 +4816,11 @@ class Game {
   }
   
   triggerLv(){
-    const p=this.player,r=RACES[p.rid];const ne=r.evo[p.es+1];
+    const p=this.player,r=RACES[p.rid];const ne=r.evo.at(p.es+1);
     if(ne&&p.lv>=ne.lv){this.doEvo(ne);return;}
+    if(p.lv>=100&&!p.awakened100){
+      p.awakened100=true;this.state='awakening';AU.setMuffle(true);AU.sfx('sec');return;
+    }
     this.state='level_up';
     const pool=[
       {n:'+25 HP',k:'hp'},{n:'+10 MP',k:'mp'},{n:'+3 ATK',k:'atk'},
@@ -4908,50 +4971,162 @@ class Game {
       p.atk+=e.b.atk||0;p.def+=e.b.def||0;p.spd+=e.b.spd||0;p.mag+=e.b.mag||0;}
     if(e.c)p.c=e.c;p.rn=e.n;
     this.evoShow=e;this.state='evolution';this.flash=1;this.timeSlowTimer=3;
+    AU.setMuffle(true);
     for(let i=0;i<60;i++)this.particles.push(new Part(p.x,p.y,e.c||p.c));AU.sfx('evo');
   }
-  
+
   loop(t){
     const dt=Math.min(.05,(t-this.last)/1000);this.last=t;
     this.upd(dt);this.draw();requestAnimationFrame(tt=>this.loop(tt));
   }
-  
+
+  buildMapTexture(){
+    if(!this.bgCanvas){
+      this.bgCanvas=document.createElement('canvas');
+      this.bgCanvas.width=WW;this.bgCanvas.height=WH;
+    }
+    const bctx=this.bgCanvas.getContext('2d');
+    const loc=this.loc||LOCS.at(0);
+    const baseCol=loc.bg||'#0a0a12';
+    bctx.fillStyle=baseCol;bctx.fillRect(0,0,WW,WH);
+    for(let i=0;i<85;i++){
+      const rx=rnd(0,WW),ry=rnd(0,WH),rr=rnd(120,420);
+      const grad=bctx.createRadialGradient(rx,ry,10,rx,ry,rr);
+      grad.addColorStop(0,hexA(sh(baseCol,18),0.35));
+      grad.addColorStop(1,'rgba(0,0,0,0)');
+      bctx.fillStyle=grad;bctx.beginPath();bctx.arc(rx,ry,rr,0,Math.PI * 2);bctx.fill();
+    }
+    bctx.strokeStyle='rgba(80,200,220,0.06)';bctx.lineWidth=1;
+    for(let gx=0;gx<=WW;gx+=120){bctx.beginPath();bctx.moveTo(gx,0);bctx.lineTo(gx,WH);bctx.stroke();}
+    for(let gy=0;gy<=WH;gy+=120){bctx.beginPath();bctx.moveTo(0,gy);bctx.lineTo(WW,gy);bctx.stroke();}
+    bctx.strokeStyle='rgba(80,200,220,0.4)';bctx.lineWidth=6;bctx.strokeRect(3,3,WW-6,WH-6);
+  }
+
+  spawnArenaProp(){
+    if(!this.props)this.props=[];
+    if(this.props.length>=12)return;
+    const types=['mana_crystal','hipokute','altar','magnet_rune','megiddo_rune','haste_rune'];
+    const weights=[0.32,0.28,0.14,0.10,0.08,0.08];
+    let r=Math.random(),type='mana_crystal';
+    for(let i=0;i<types.length;i++){r-=weights.at(i);if(r<=0){type=types.at(i);break;}}
+    this.props.push({type:type,x:rnd(180,WW-180),y:rnd(180,WH-180),r:type==='altar'?65:18,progress:0,alive:true});
+  }
+
+  triggerPropEffect(pr){
+    const p=this.player;if(!p||!pr.alive)return;
+    pr.alive=false;AU.sfx('pickup');
+    if(pr.type==='mana_crystal'){
+      const mpGain=Math.floor(p.maxMp * 0.35);
+      p.mp=Math.min(p.maxMp,p.mp+mpGain);
+      for(const sp of p.spells)sp.cd=0;
+      const nLv=p.gainXp(p.xpn * 0.18);
+      if(nLv>0){this.pendingLv+=nLv;if(this.state==='playing')this.triggerLv();}
+      this.ftxt.push(new FTxt('💎 +'+mpGain+' MP и сброс КД!',pr.x,pr.y-25,'#60b0ff',2,16));
+    }else if(pr.type==='hipokute'){
+      const hpGain=Math.floor(p.maxHp * 0.30);
+      p.heal(hpGain);p.buffs.regen=Math.max(p.buffs.regen,5);
+      this.ftxt.push(new FTxt('🌿 Хипокуте: +'+hpGain+' HP!',pr.x,pr.y-25,'#60ff80',2,16));
+    }else if(pr.type==='magnet_rune'){
+      if(this.orbs)for(const o of this.orbs)o.magnetized=true;
+      this.ftxt.push(new FTxt('🌀 СФЕРА ПОГЛОЩЕНИЯ: Весь опыт притянут!',pr.x,pr.y-30,'#80ffff',2.4,18));
+      if(this.shockwaves)this.shockwaves.push(new Shockwave(pr.x,pr.y,260,'#80ffff',0.4));
+    }else if(pr.type==='megiddo_rune'){
+      this.flash=0.75;this.shake=18;AU.sfx('sec');
+      let count=0;
+      for(const e of this.enemies)if(e.alive&&d2(e.x,e.y,p.x,p.y)<950 * 950){e.hp=0;e.alive=false;count++;}
+      this.ftxt.push(new FTxt('💥 МЕГИДДО: Испепелено ('+count+')!',pr.x,pr.y-35,'#ff6040',2.6,20));
+      if(this.shockwaves)this.shockwaves.push(new Shockwave(p.x,p.y,600,'#ff6040',0.5));
+    }else if(pr.type==='haste_rune'){
+      p.buffs.haste=Math.max(p.buffs.haste,8);
+      for(const s in p.skills)p.skills[s].cd *= 0.5;
+      for(const sp of p.spells)sp.cd *= 0.5;
+      this.ftxt.push(new FTxt('⏳ УСКОРЕНИЕ МЫСЛИ: КД -50%!',pr.x,pr.y-30,'#c080ff',2.4,18));
+    }else if(pr.type==='altar'){
+      p.frag+=1;
+      const nLv=p.gainXp(Math.max(80,xpForLevels(p,1.5)));
+      if(nLv>0){this.pendingLv+=nLv;if(this.state==='playing')this.triggerLv();}
+      this.ftxt.push(new FTxt('⛩️ АЛТАРЬ ПОГЛОЩЕНИЯ! +1 Осколок и +1.5 Ур.!',pr.x,pr.y-40,'#ffcc44',2.8,20));
+      if(this.shockwaves)this.shockwaves.push(new Shockwave(pr.x,pr.y,300,'#ffcc44',0.45));
+      this.shake=12;AU.sfx('sec');
+      const elites=availableElites(this);
+      for(let i=0;i<3;i++){
+        const ang=(i/3) * Math.PI * 2;
+        const tp=elites.length>0?pick(elites):ET.at(0);
+        const e=new Enemy(pr.x + Math.cos(ang) * 140,pr.y + Math.sin(ang) * 140,tp,this.loc.m);
+        scaleEnemyToWave(e,this.wave);e.elite=true;this.enemies.push(e);
+      }
+    }
+  }
+
+  openRelicChest(cursed){
+    const p=this.player;if(!p)return;
+    const sourcePool=cursed?CURSED_ARTS:ARTS;
+    const av=sourcePool.filter(a=>!p.arts.find(x=>x.n===a.n));
+    if(!av.length){
+      p.gold+=150;p.frag+=1;
+      this.ftxt.push(new FTxt('Сундук: +150 золота и +1 осколок!',p.x,p.y-40,'#ffcc44',2,18));
+      return;
+    }
+    this.chestChoices=[...av].sort(()=>Math.random()-0.5).slice(0,Math.min(3,av.length));
+    this.chestCursed=!!cursed;this.state='chest_open';AU.setMuffle(true);AU.sfx(cursed?'sec':'lvl');
+  }
+
+  pickChest(i){
+    const a=this.chestChoices&&this.chestChoices.at(i);
+    if(!a){this.state='playing';AU.setMuffle(false);return;}
+    const p=this.player;p.arts.push(a);a.e(p);
+    this.ftxt.push(new FTxt((this.chestCursed?'☠ ПРОКЛЯТАЯ РЕЛИКВИЯ: ':'👑 РЕЛИКВИЯ: ')+a.n,p.x,p.y-50,this.chestCursed?'#ff40a0':'#ffcc44',2.5,18));
+    AU.sfx('evo');this.chestChoices=null;this.state='playing';AU.setMuffle(false);
+    if(this.pendingLv>0)this.triggerLv();
+  }
+
+  pickAwakening(i){
+    const p=this.player;
+    if(i===0){p.projBonus=(p.projBonus||0)+2;p.maxCdrCap=0.85;p.cdr=Math.min(0.85,p.cdr+0.20);
+      this.ftxt.push(new FTxt('✦ МАНАС: +2 Снаряда и -20% КД ко всему!',p.x,p.y-60,'#80ffff',3,22));
+    }else if(i===1){p.mult(1.6);p.forceSupreme=true;
+      this.ftxt.push(new FTxt('✦ ВЛАДЫКА ДРАКОНОВ: +60% статы и Supreme-атаки!',p.x,p.y-60,'#ffd700',3,22));
+    }else{p.overlimitDouble=true;
+      this.ftxt.push(new FTxt('✦ БЕСКОНЕЧНАЯ ЭВОЛЮЦИЯ: x2 прирост уровней 101–150!',p.x,p.y-60,'#ff80ff',3,22));}
+    AU.sfx('sec');this.flash=0.8;this.state='playing';AU.setMuffle(false);
+    if(this.pendingLv>0)this.triggerLv();
+  }
   spawnEnemy(){
-    if(this.enemies.length>=120)return;
+    if(this.enemies.length>=135)return;
     let elites=availableElites(this);
-    
-    if(this.parryMode) {
-        elites = elites.filter(e => ['Драконий Слуга', 'Павший Ангел', 'Метатель Яда'].includes(e.n));
+    if(this.parryMode){
+      elites=elites.filter(e=>['Драконий Слуга','Павший Ангел','Метатель Яда'].includes(e.n));
     }
-    
-    const eliteChance=elites.length>0 ? Math.min(0.25,0.05+this.bsSpawned.size*0.025) : 0;
-    const isElite=elites.length>0 && Math.random()<eliteChance;
+    const eliteChance=elites.length>0?Math.min(0.28,0.06+this.wave * 0.005):0;
+    const isElite=elites.length>0&&Math.random()<eliteChance;
     let tp;
-    
     if(isElite){
-        tp=pick(elites);
-    } else {
-        const mx=Math.min(this.wave+1,22);
-        let pool;
-        if(this.parryMode) {
-            pool = ET.filter(e=>e.l<=mx && (e.behavior==='ranged' || e.behavior==='kiter'));
-        } else {
-            pool = ET.filter(e=>e.l<=mx);
-        }
-        if(!pool.length)return;
-        tp=pick(pool);
+      tp=pick(elites);
+    }else{
+      const maxLvl=Math.min(26,Math.floor(1+this.wave * 0.65));
+      const minLvl=Math.max(1,Math.floor((this.wave-6) * 0.45));
+      let pool=ET.filter(e=>e.l>=minLvl&&e.l<=maxLvl);
+      if(this.parryMode){
+        const rPool=pool.filter(e=>e.behavior==='ranged'||e.behavior==='kiter');
+        if(rPool.length)pool=rPool;
+      }
+      if(!pool.length)pool=ET.filter(e=>e.l<=maxLvl);
+      if(!pool.length)return;
+      tp=pick(pool);
     }
-    
-    const cx=this.camX+W/2, cy=this.camY+H/2;
-    const angle=Math.random()*6.283;const dist=Math.max(W,H)*0.7;
-    let x=cx+Math.cos(angle)*dist;let y=cy+Math.sin(angle)*dist;
-    x=cl(x,20,WW-20);y=cl(y,20,WH-20);
+    const cx=this.camX+W/2,cy=this.camY+H/2;
+    const angle=Math.random() * 6.283;const dist=Math.max(W,H) * 0.7;
+    let x=cl(cx + Math.cos(angle) * dist,20,WW-20);
+    let y=cl(cy + Math.sin(angle) * dist,20,WH-20);
     const e=new Enemy(x,y,tp,this.loc.m);scaleEnemyToWave(e,this.wave);
-    if(isElite){e.elite=true;e.maxHp=Math.floor(e.maxHp*1.4);e.hp=e.maxHp;e.atk=Math.floor(e.atk*1.25);e.xp=Math.floor(e.xp*2);e.z*=1.15;}
-    if(this.loc.m.chaos && Math.random()<0.25) makeChaosEnemy(e);
+    if(isElite){
+      e.elite=true;e.maxHp=Math.floor(e.maxHp * 1.45);e.hp=e.maxHp;
+      e.atk=Math.floor(e.atk * 1.25);e.xp=Math.floor(e.xp * 2.2);e.z *= 1.15;
+    }
+    if(this.loc.m.chaos&&Math.random()<0.25)makeChaosEnemy(e);
     this.enemies.push(e);
   }
-  
+
   nextBossInQueue(){
     const keys=Object.keys(BT).sort((a,b)=>BT[a].w-BT[b].w);
     for(const k of keys){
@@ -4964,71 +5139,85 @@ class Game {
     }
     return null;
   }
-  
+
   spawnBoss(){
     if(this.bosses.length>0)return;
-    
-    if(this.infiniteMode && this.wave > 50 && this.wave % 5 === 0){
-      const bx=cl(this.player.x,200,WW-200),by=Math.max(80,this.player.y-350);
-      const pool = Object.keys(BT).filter(k => !BT[k].sec && k !== 'Иварадж' && k !== 'Вельданава' && k !== 'Руверудж');
-      const n1 = pick(pool);
-      let n2 = pick(pool);
-      let safety = 0;
-      while(n2 === n1 && safety < 100) { n2 = pick(pool); safety++; }
-      
-      this.bsSpawned.add(n1); this.bsSpawned.add(n2);
-      
-      const b1 = new Boss(bx-80, by, {...BT[n1], n:n1}, this.loc.m);
-      const b2 = new Boss(bx+80, by, {...BT[n2], n:n2}, this.loc.m);
-      
-      const w = this.wave - 50;
-      const hpMul = Math.pow(1.15, w);
-      const atkMul = Math.pow(1.08, w);
-      const spdMul = Math.pow(1.02, w);
-      
-      [b1, b2].forEach(b => {
-          b.maxHp = Math.floor(b.maxHp * hpMul); b.hp = b.maxHp;
-          b.atk = Math.floor(b.atk * atkMul);
-          b.spd *= spdMul;
-          b.spawnWave = this.runTime;
-          this.bosses.push(b);
-      });
-      this.ftxt.push(new FTxt(n1+' и '+n2+' (Бесконечность)!',this.player.x,this.player.y-250,'#ff40a0',3,24));
-      AU.sfx('boss'); AU.music('dragon');
+    if(this.wave>=6&&this.wave%3===0&&this.wave%5!==0&&!this.bsSpawned.has('rift_'+this.wave)){
+      this.bsSpawned.add('rift_'+this.wave);
+      const bx=cl(this.player.x,250,WW-250),by=Math.max(120,this.player.y-320);
+      const avDef={
+        n:'Аватар Разлома (Ур.'+this.wave+')',
+        h:1800+this.wave * 500,a:24+this.wave * 2,s:1.7,
+        x:450+this.wave * 90,c:'#b440ff',z:28,p2:'#ff40a0',
+        at:['pb','df','tp'],sh:'star',fr:2,sup:this.wave>=35?1:0
+      };
+      const av=new Boss(bx,by,avDef,this.loc.m);
+      av.spawnWave=this.runTime;
+      this.bosses.push(av);
+      this.bossArena={x:cl(this.player.x,720,WW-720),y:cl(this.player.y,720,WH-720),r:680};
+      this.ftxt.push(new FTxt('🌀 ПОЯВИЛСЯ АВАТАР РАЗЛОМА!',this.player.x,this.player.y-240,'#c060ff',3,24));
+      AU.sfx('boss');
       return;
     }
-    
+
+    if(this.infiniteMode&&this.wave>50&&this.wave%5===0&&!this.bsSpawned.has('inf_'+this.wave)){
+      this.bsSpawned.add('inf_'+this.wave);
+      const bx=cl(this.player.x,200,WW-200),by=Math.max(80,this.player.y-350);
+      const pool=Object.keys(BT).filter(k=>!BT[k].sec&&k!=='Иварадж'&&k!=='Вельданава'&&k!=='Руверудж');
+      const n1=pick(pool);let n2=pick(pool);let safety=0;
+      while(n2===n1&&safety<100){n2=pick(pool);safety++;}
+      const b1=new Boss(bx-80,by,{...BT[n1],n:n1+' [Пробуждённый]'},this.loc.m);
+      const b2=new Boss(bx+80,by,{...BT[n2],n:n2+' [Пробуждённый]'},this.loc.m);
+      const w=this.wave-50;
+      const hpMul=Math.pow(1.14,w),atkMul=Math.pow(1.07,w),spdMul=Math.pow(1.02,w);
+      [b1,b2].forEach(b=>{
+        b.awakened=true;b.maxHp=Math.floor(b.maxHp * hpMul);b.hp=b.maxHp;
+        b.atk=Math.floor(b.atk * atkMul);b.spd *= spdMul;b.spawnWave=this.runTime;
+        this.bosses.push(b);
+      });
+      this.bossArena={x:cl(this.player.x,720,WW-720),y:cl(this.player.y,720,WH-720),r:680};
+      this.ftxt.push(new FTxt(n1+' и '+n2+' [Пробуждённые]!',this.player.x,this.player.y-250,'#ff40a0',3,24));
+      AU.sfx('boss');AU.music('dragon');
+      return;
+    }
+
     const name=this.nextBossInQueue();if(!name)return;
     this.bsSpawned.add(name);
     const t=BT[name];
+    const isAwakened=this.wave>=30;
     const bx=cl(this.player.x,200,WW-200),by=Math.max(80,this.player.y-350);
     if(t.pair){
-      const [n1,n2]=t.pair;
-      const t1=BT[n1]||{h:Math.floor(t.h*0.45),a:Math.floor(t.a*0.9),s:t.s,c:t.c,z:t.z,at:t.at,sh:t.sh,sup:t.sup};
-      const t2=BT[n2]||{h:Math.floor(t.h*0.55),a:Math.floor(t.a*1.1),s:t.s,c:'#ff6020',z:t.z,at:t.at,sh:t.sh,sup:t.sup};
-      const b1=new Boss(bx-80,by,{...t1,n:n1},this.loc.m);
-      const b2=new Boss(bx+80,by,{...t2,n:n2},this.loc.m);
+      const n1=t.pair.at(0),n2=t.pair.at(1);
+      const t1=BT[n1]||{h:Math.floor(t.h * 0.45),a:Math.floor(t.a * 0.9),s:t.s,c:t.c,z:t.z,at:t.at,sh:t.sh,sup:t.sup};
+      const t2=BT[n2]||{h:Math.floor(t.h * 0.55),a:Math.floor(t.a * 1.1),s:t.s,c:'#ff6020',z:t.z,at:t.at,sh:t.sh,sup:t.sup};
+      const b1=new Boss(bx-80,by,{...t1,n:isAwakened?n1+' [Пробуждённый]':n1},this.loc.m);
+      const b2=new Boss(bx+80,by,{...t2,n:isAwakened?n2+' [Пробуждённый]':n2},this.loc.m);
+      b1.awakened=isAwakened;b2.awakened=isAwakened;
       b1.spawnWave=this.runTime;b2.spawnWave=this.runTime;
       this.bosses.push(b1);this.bosses.push(b2);
       this.ftxt.push(new FTxt(n1+' и '+n2+'!',this.player.x,this.player.y-250,'#ff4040',3,26));
+    }else{
+      const nb=new Boss(bx,by,{...t,n:isAwakened?name+' [Пробуждённый]':name},this.loc.m);
+      nb.awakened=isAwakened;nb.spawnWave=this.runTime;
+      this.bosses.push(nb);
+      this.ftxt.push(new FTxt(name+(isAwakened?' [Пробуждённый]':'')+' появился!',this.player.x,this.player.y-250,'#ff4040',3,24));
     }
-    else{
-      const nb=new Boss(bx,by,{...t,n:name},this.loc.m);nb.spawnWave=this.runTime;this.bosses.push(nb);
-      this.ftxt.push(new FTxt(name+' появился!',this.player.x,this.player.y-250,'#ff4040',3,24));
-    }
+    this.bossArena={x:cl(this.player.x,720,WW-720),y:cl(this.player.y,720,WH-720),r:680};
     AU.sfx('boss');this.shake=10;AU.music(t.sup?'dragon':'boss');
     if(this.historyMode&&this.historyStep<LOCS.length-1){
-      this.historyStep++;this.loc=LOCS[this.historyStep];
+      this.historyStep++;this.loc=LOCS.at(this.historyStep);
+      this.buildMapTexture();
       this.ftxt.push(new FTxt('Новая локация: '+this.loc.n,this.player.x,this.player.y-200,'#ffcc44',3,22));
     }
   }
-  
+
   checkSecretChain(){
     if(this.wave>=50&&!this.finalWave&&!this.chain.iv&&this.bosses.length===0){
       this.finalWave=true;this.finalChainStep=1;this.finalDelay=0;this.enemies=[];
       this.waveEnemiesToSpawn=0;this.waveEnemiesSpawned=0;this.shake=20;
       const t=BT['Иварадж'];const bx=cl(this.player.x,200,WW-200),by=Math.max(80,this.player.y-350);
       const ib=new Boss(bx,by,{...t,n:'Иварадж'},this.loc.m);ib.spawnWave=this.runTime;this.bosses.push(ib);
+      this.bossArena={x:cl(this.player.x,720,WW-720),y:cl(this.player.y,720,WH-720),r:720};
       this.ftxt.push(new FTxt('⚔ ФИНАЛЬНАЯ ВОЛНА ⚔',this.player.x,this.player.y-300,'#ff4040',4,32));
       this.ftxt.push(new FTxt('ИВАРАДЖ ПРОБУДИЛАСЬ!',this.player.x,this.player.y-250,'#ff40a0',4,26));
       AU.sfx('sec');AU.music('final');
@@ -5041,6 +5230,7 @@ class Game {
       AU.sfx('sec');AU.music('final');this.shake=15;
     }
   }
+
   
   upd(dt){
     if(this.flash>0)this.flash=Math.max(0,this.flash-dt*1.5);
@@ -5060,6 +5250,57 @@ class Game {
     this.camX=cl(p.x-W/2,0,WW-W);this.camY=cl(p.y-H/2,0,WH-H);
     const ts=this.timeSlowTimer>0?0.35:1;const edt=dt*ts;
     p.update(dt,this.keys,this);
+    if(this.bossArena){
+      if(this.bosses.length===0&&!this.finalWave){this.bossArena=null;}
+      else{
+        const ar=this.bossArena,dx=p.x-ar.x,dy=p.y-ar.y,dist=Math.sqrt(dx * dx + dy * dy);
+        if(dist>ar.r-p.z){
+          const ang=Math.atan2(dy,dx);
+          p.x=ar.x + Math.cos(ang) * (ar.r-p.z);p.y=ar.y + Math.sin(ang) * (ar.r-p.z);
+          if(p.inv<=0&&p.dodg<=0&&p.buffs.invuln<=0)p.hurt(p.maxHp * 0.08);
+        }
+        for(const b of this.bosses){
+          const bdx=b.x-ar.x,bdy=b.y-ar.y,bdist=Math.sqrt(bdx * bdx + bdy * bdy);
+          if(bdist>ar.r-b.z){const bang=Math.atan2(bdy,bdx);b.x=ar.x + Math.cos(bang) * (ar.r-b.z);b.y=ar.y + Math.sin(bang) * (ar.r-b.z);}
+        }
+      }
+    }
+
+    this.propTimer-=dt;
+    if(this.propTimer<=0){this.propTimer=14;this.spawnArenaProp();}
+    if(this.props){
+      for(let i=this.props.length-1;i>=0;i--){
+        const pr=this.props.at(i);
+        if(!pr.alive){this.props.splice(i,1);continue;}
+        const distSq=d2(p.x,p.y,pr.x,pr.y);
+        if(pr.type==='altar'){
+          if(distSq<(pr.r+p.z) ** 2){pr.progress+=dt;if(pr.progress>=3.0)this.triggerPropEffect(pr);}
+          else pr.progress=Math.max(0,pr.progress-dt * 0.5);
+        }else{
+          if(distSq<(pr.r+p.z+10) ** 2){this.triggerPropEffect(pr);continue;}
+          for(const pj of this.proj)if(pj.fr&&pj.alive&&d2(pj.x,pj.y,pr.x,pr.y)<(pr.r+pj.r) ** 2){this.triggerPropEffect(pr);break;}
+        }
+      }
+    }
+
+    const magnetR=(115 + p.lck * 3) * (p.magnetMul||1);
+    for(let i=this.orbs.length-1;i>=0;i--){
+      const o=this.orbs.at(i),dx=p.x-o.x,dy=p.y-o.y,distSq=dx * dx + dy * dy;
+      if(o.magnetized||distSq<magnetR * magnetR){
+        o.magnetized=true;const dist=Math.sqrt(distSq)||1,pullSpd=700 + p.spd * 45;
+        o.x+=(dx/dist) * pullSpd * dt;o.y+=(dy/dist) * pullSpd * dt;
+        if(dist<p.z+12){
+          const nLv=p.gainXp(o.xp);
+          if(nLv>0){this.pendingLv+=nLv;if(this.state==='playing')this.triggerLv();}
+          this.orbs.splice(i,1);
+        }
+      }
+    }
+
+    for(let i=this.chests.length-1;i>=0;i--){
+      const ch=this.chests.at(i);
+      if(d2(p.x,p.y,ch.x,ch.y)<(p.z+26) ** 2){this.chests.splice(i,1);this.openRelicChest(ch.cursed);break;}
+    }
     for(const e of this.enemies)e.update(edt,p,this);
     for(const b of this.bosses)b.update(edt,p,this);
     for(let i=this.slashes.length-1;i>=0;i--){this.slashes[i].update(dt);if(this.slashes[i].life<=0)this.slashes.splice(i,1);}
@@ -5181,12 +5422,15 @@ class Game {
         const xpColor=e.elite?'#ffcc44':(e.chaos?'#c060ff':'#ffdd44');
         this.ftxt.push(new FTxt(xpLabel+~~e.xp+' XP',e.x,e.y,xpColor));
         
-        let xpGain = e.xp;
-        if (this.infiniteMode && this.wave > 50) {
-            xpGain = Math.max(xpGain, p.xpn * 0.005);
+        let xpGain=e.xp;
+        if(this.infiniteMode&&this.wave>50)xpGain=Math.max(xpGain,p.xpn * 0.008);
+        if(this.parryMode){
+          const nLv=p.gainXp(xpGain * 1.5);
+          if(nLv>0){this.pendingLv+=nLv;if(this.state==='playing')this.triggerLv();}
+        }else{
+          this.orbs.push({x:e.x+rnd(-12,12),y:e.y+rnd(-12,12),xp:xpGain,color:e.elite?'#50ff80':(e.chaos?'#d060ff':'#50b8ff'),r:e.elite?7:5,magnetized:false});
+          if(this.orbs.length>280){const old=this.orbs.shift();if(old)p.gainXp(old.xp);}
         }
-        const nLv=p.gainXp(xpGain);
-        if(nLv>0){this.pendingLv+=nLv;if(this.state!=='level_up')this.triggerLv();}
         for(let j=0;j<6;j++)this.particles.push(new Part(e.x,e.y,e.c));
       } else ne.push(e);
     }
@@ -5204,6 +5448,7 @@ class Game {
         this.ftxt.push(new FTxt(b.bn+' побеждён! +'+(b.td.fr||2)+' оск.',b.x,b.y,'#ffcc44',2.5,20));
         
         let bossXp = Math.max(1, xpForLevels(p, 2) - 1);
+		this.chests.push({x:b.x,y:b.y,cursed:this.wave>=15&&Math.random()<0.45});
         if (this.infiniteMode && this.wave > 50) {
             bossXp = Math.max(1, xpForLevels(p, 1.5) - 1); 
         }
@@ -5373,7 +5618,10 @@ class Game {
     if(this.state==='victory')return this.rVictory();
     this.rGame();
     if(this.state==='paused')this.rPause();
+    if(this.state==='inventory')this.rInventory();
     if(this.state==='level_up')this.rLv();
+    if(this.state==='chest_open')this.rChest();
+    if(this.state==='awakening')this.rAwakening();
     if(this.state==='evolution')this.rEvo();
     if(this.state==='game_over')this.rGO();
   }
@@ -5601,6 +5849,33 @@ Game.prototype.rGame=function(){
   const shX=this.shake>0?rnd(-this.shake,this.shake):0;
   const shY=this.shake>0?rnd(-this.shake,this.shake):0;
   ctx.translate(-this.camX+shX,-this.camY+shY);
+  if(this.bgCanvas)ctx.drawImage(this.bgCanvas,this.camX,this.camY,W,H,this.camX,this.camY,W,H);
+  if(this.bossArena){
+    const ar=this.bossArena,pulse=0.55+Math.sin(performance.now()/220) * 0.25;
+    ctx.strokeStyle='rgba(255,60,80,'+pulse+')';ctx.lineWidth=5;ctx.beginPath();ctx.arc(ar.x,ar.y,ar.r,0,Math.PI * 2);ctx.stroke();
+  }
+  if(this.props)for(const pr of this.props){
+    if(!pr.alive)continue;
+    if(pr.type==='altar'){
+      ctx.strokeStyle='rgba(255,204,68,0.75)';ctx.lineWidth=3;ctx.beginPath();ctx.arc(pr.x,pr.y,pr.r,0,Math.PI * 2);ctx.stroke();
+      if(pr.progress>0){ctx.fillStyle='rgba(255,204,68,0.25)';ctx.beginPath();ctx.arc(pr.x,pr.y,pr.r * (pr.progress/3.0),0,Math.PI * 2);ctx.fill();}
+      tx('⛩️ АЛТАРЬ'+(pr.progress>0?' '+Math.ceil(3-pr.progress)+'с':''),pr.x,pr.y-pr.r-8,{size:11,weight:'bold',color:'#ffcc44',align:'center'});
+    }else{
+      const pCol=pr.type==='hipokute'?'#50e878':(pr.type==='megiddo_rune'?'#ff5030':(pr.type==='haste_rune'?'#c080ff':'#50b8ff'));
+      shape('diamond',pr.x,pr.y,pr.r,pCol,false);
+    }
+  }
+  if(this.orbs)for(const o of this.orbs){
+    ctx.fillStyle=o.color;ctx.beginPath();ctx.arc(o.x,o.y,o.r,0,Math.PI * 2);ctx.fill();
+    ctx.fillStyle='#ffffff';ctx.beginPath();ctx.arc(o.x,o.y,o.r * 0.4,0,Math.PI * 2);ctx.fill();
+  }
+  if(this.chests)for(const ch of this.chests){
+    const col=ch.cursed?'#ff40a0':'#ffd700';
+    ctx.fillStyle=col;ctx.fillRect(ch.x-14,ch.y-10,28,20);
+    ctx.strokeStyle='#ffffff';ctx.lineWidth=2;ctx.strokeRect(ch.x-14,ch.y-10,28,20);
+    tx(ch.cursed?'☠ СУНДУК БЕЗДНЫ':'👑 СУНДУК',ch.x,ch.y-16,{size:11,weight:'bold',color:col,align:'center'});
+  }
+
   ctx.strokeStyle='rgba(80,200,220,.06)';ctx.lineWidth=1;
   const gx0=Math.floor(this.camX/80)*80;const gy0=Math.floor(this.camY/80)*80;
   for(let gx=gx0;gx<=this.camX+W;gx+=80){ctx.beginPath();ctx.moveTo(gx+.5,this.camY);ctx.lineTo(gx+.5,this.camY+H);ctx.stroke();}
@@ -5901,7 +6176,186 @@ Game.prototype.rLv=function(){
     txFit(oi.desc,W/2-340,y+55,680,{size:12,color:'#c8d0e0'},10);
     txFit(oi.info,W/2-340,y+82,680,{size:12,color:oi.color||'#a0c0ff'},10);
     tx('Нажмите '+(i+1),W/2+340,y+100,{size:11,color:hv?'#ffcc44':'#606878',align:'right'});}
-  tx('Клик или 1-'+this.lvc.length+'   ·   Esc — пауза',W/2,H-40,{size:12,color:'#606878',align:'center'});
+  const rBtnX=W/2-160,rBtnY=H-105,rBtnW=320,rBtnH=42;
+  const canReroll=(this.rerolls||0)>0;
+  const hvR=canReroll&&this.hov(rBtnX,rBtnY,rBtnW,rBtnH);
+  ctx.fillStyle=canReroll?(hvR?'rgba(70,110,160,.95)':'rgba(40,65,100,.85)'):'rgba(30,30,40,.6)';
+  ctx.fillRect(rBtnX,rBtnY,rBtnW,rBtnH);
+  ctx.strokeStyle=canReroll?'#80e0ff':'#444';ctx.lineWidth=2;ctx.strokeRect(rBtnX,rBtnY,rBtnW,rBtnH);
+  tx('🎲 ПЕРЕБРОСИТЬ [R] (Осталось: '+(this.rerolls||0)+')',W/2,rBtnY+26,{size:14,weight:'bold',color:canReroll?'#fff':'#606878',align:'center'});
+  tx('Клик или 1-'+this.lvc.length+'   ·   [R] Переброс   ·   Esc — пауза',W/2,H-35,{size:12,color:'#606878',align:'center'});
+};
+
+Game.prototype.rChest=function(){
+  if(!this.chestChoices)return;
+  ctx.fillStyle='rgba(0,0,0,.88)';ctx.fillRect(0,0,W,H);
+  const title=this.chestCursed?'☠ ЧЁРНЫЙ СУНДУК ПРОКЛЯТИЙ ☠':'👑 СУНДУК РЕЛИКВИЙ ТЕМПЕСТА 👑';
+  const col=this.chestCursed?'#ff40a0':'#ffd700';
+  tx(title,W/2,85,{size:34,weight:'bold',color:col,align:'center',glow:col,glowBlur:20});
+  tx(this.chestCursed?'Огромная сила в обмен на тяжёлое проклятие:':'Выберите одну реликвию:',W/2,120,{size:14,color:'#c8d0e0',align:'center'});
+
+  for(let i=0;i<this.chestChoices.length;i++){
+    const a=this.chestChoices.at(i);
+    const y=160+i * 130;
+    const hv=this.hov(W/2-360,y,720,110);
+    ctx.fillStyle=hv?'rgba(60,40,80,.95)':'rgba(25,20,40,.9)';
+    ctx.fillRect(W/2-360,y,720,110);
+    ctx.strokeStyle=hv?'#ffffff':col;ctx.lineWidth=hv?3:2;
+    ctx.strokeRect(W/2-360,y,720,110);
+    txFit((i+1)+'. '+a.n,W/2-340,y+32,680,{size:18,weight:'bold',color:col},12);
+    txFit(a.d,W/2-340,y+66,680,{size:13,color:'#e6e6f0'},10);
+    tx('Нажмите '+(i+1),W/2+340,y+98,{size:11,color:hv?'#fff':'#808898',align:'right'});
+  }
+};
+
+Game.prototype.rAwakening=function(){
+  ctx.fillStyle='rgba(5,5,15,.92)';ctx.fillRect(0,0,W,H);
+  tx('✦ ПРОБУЖДЕНИЕ ИСТИННОГО БОГА (100 УР.) ✦',W/2,80,{size:34,weight:'bold',color:'#ffd700',align:'center',glow:'#ffd700',glowBlur:25});
+  tx('Открыто Преодоление (101–150 ур.). Выберите закон вашей души:',W/2,118,{size:14,color:'#a0c0ff',align:'center'});
+
+  const opts=[
+    {n:'1. Манас: Абсолютная Оптимизация',d:'+2 к количеству снарядов, лучей, зон и орбит · -20% перезарядки для ВСЕГО (потолок 85%).',c:'#80ffff'},
+    {n:'2. Владыка Истинных Драконов',d:'+60% ко всем базовым характеристикам · Все атаки и магия получают Высший (Supreme) статус.',c:'#ffd700'},
+    {n:'3. Бесконечная Эволюция',d:'Удваивает прирост характеристик на всех 50 уровнях Преодоления (101–150 ур.).',c:'#ff80ff'}
+  ];
+
+  for(let i=0;i<opts.length;i++){
+    const o=opts.at(i);
+    const y=160+i * 135;
+    const hv=this.hov(W/2-380,y,760,115);
+    ctx.fillStyle=hv?'rgba(50,70,110,.95)':'rgba(20,28,48,.9)';
+    ctx.fillRect(W/2-380,y,760,115);
+    ctx.strokeStyle=hv?'#fff':o.c;ctx.lineWidth=hv?3:2;
+    ctx.strokeRect(W/2-380,y,760,115);
+    txFit(o.n,W/2-360,y+34,720,{size:19,weight:'bold',color:o.c},12);
+    txFit(o.d,W/2-360,y+70,720,{size:13,color:'#e6e6f0'},10);
+  }
+};
+
+Game.prototype.rInventory=function(){
+  const p=this.player;if(!p)return;
+  ctx.fillStyle='rgba(5,8,18,0.93)';ctx.fillRect(0,0,W,H);
+  ctx.strokeStyle='#50c8dc';ctx.lineWidth=2;ctx.strokeRect(30,20,W-60,H-40);
+
+  tx('ХАРАКТЕРИСТИКИ И ИНВЕНТАРЬ [TAB]',W/2,55,{size:26,weight:'bold',color:'#50c8dc',align:'center',glow:'#50c8dc',glowBlur:15});
+  const lvLabel=p.lv>100?'100+'+(p.lv-100):p.lv;
+  tx(p.cn+' • '+p.rn+' (Ур. '+lvLabel+') • Локация: '+this.loc.n,W/2,82,{size:14,color:'#a0a8b8',align:'center'});
+
+  ctx.fillStyle='rgba(20,28,45,0.8)';ctx.fillRect(50,105,580,350);
+  ctx.strokeStyle='#4060a0';ctx.lineWidth=1;ctx.strokeRect(50,105,580,350);
+  tx('📊 БОЕВЫЕ ПАРАМЕТРЫ',65,130,{size:16,weight:'bold',color:'#ffcc44'});
+
+  const stats=[
+    {k:'Здоровье (HP):',v:Math.ceil(p.hp)+' / '+p.maxHp,c:'#ff6060'},
+    {k:'Реген HP:',v:(p.hpR + p.maxHp * p.hpRegenPct).toFixed(1)+' / сек',c:'#80ff80'},
+    {k:'Мана (MP):',v:Math.ceil(p.mp)+' / '+p.maxMp,c:'#4080ff'},
+    {k:'Реген MP:',v:(p.mpR + p.lv * 0.25 + p.maxMp * 0.01).toFixed(1)+' / сек',c:'#80c0ff'},
+    {k:'Атака (ATK):',v:p.atk,c:'#fff'},
+    {k:'Магия (MAG):',v:p.mag,c:'#c080ff'},
+    {k:'Защита (DEF):',v:p.def,c:'#60a0ff'},
+    {k:'Сопротивление:',v:p.res+' (-'+Math.min(50,p.res)+'%)',c:'#a0c0ff'},
+    {k:'Скорость (SPD):',v:p.spd.toFixed(2),c:'#80ff80'},
+    {k:'Удача (LCK):',v:p.lck+' (+'+(p.lck * 2).toFixed(0)+'% зол.)',c:'#ffcc44'},
+    {k:'Шанс крита:',v:p.crit.toFixed(1)+'%',c:'#ffaa44'},
+    {k:'Крит. урон:',v:'×'+p.cdmg.toFixed(2),c:'#ffaa44'},
+    {k:'Уклонение:',v:p.dod.toFixed(1)+'%',c:'#80ffff'},
+    {k:'Вампиризм:',v:(p.vamp * 100).toFixed(0)+'%',c:'#ff4060'},
+    {k:'Снижение КД:',v:(p.cdr * 100).toFixed(0)+'%',c:'#a0e0ff'},
+    {k:'Снаряды / AoE:',v:'+'+(p.projBonus||0)+' / ×'+p.aoeMult.toFixed(2),c:'#ffcc44'}
+  ];
+
+  for(let i=0;i<stats.length;i++){
+    const st=stats.at(i);
+    const col=i%2,row=~~(i/2);
+    const sx=65+col * 280,sy=160+row * 35;
+    txClip(st.k,sx,sy,155,{size:12,color:'#a0a8b8'});
+    txClip(String(st.v),sx+265,sy,115,{size:12,weight:'bold',color:st.c,align:'right'});
+  }
+
+  ctx.fillStyle='rgba(20,28,45,0.8)';ctx.fillRect(50,465,580,185);
+  ctx.strokeStyle='#4060a0';ctx.strokeRect(50,465,580,185);
+
+  if(!this.weaponMaster&&!this.magicMaster&&!this.parryMode){
+    const hint=this.invSelectedSk?'Выберите слот Q/E/R для: '+this.invSelectedSk:'Нажмите на навык ниже, чтобы поставить в Q / E / R';
+    txClip('⚡ УПРАВЛЕНИЕ НАВЫКАМИ ('+hint+')',65,485,550,{size:12,weight:'bold',color:this.invSelectedSk?'#80ff80':'#ffcc44'});
+    const slotKeys=['Q','E','R'];
+    for(let i=0;i<3;i++){
+      const sx=60+i * 185,sy=495;
+      const n=p.slots.at(i);
+      const hv=this.hov(sx,sy,175,55);
+      ctx.fillStyle=hv?'rgba(60,90,130,0.9)':'rgba(30,40,65,0.9)';
+      ctx.fillRect(sx,sy,175,55);
+      ctx.strokeStyle=this.invSelectedSk?'#80ff80':(n?'#50c8dc':'#444');
+      ctx.lineWidth=this.invSelectedSk?2:1.5;ctx.strokeRect(sx,sy,175,55);
+      tx('['+slotKeys.at(i)+']',sx+8,sy+18,{size:12,weight:'bold',color:'#ffcc44'});
+      if(n){
+        const tier=p.skills[n].tier;
+        txClip(n,sx+8,sy+36,160,{size:11,color:'#fff'});
+        tx(TI.at(tier),sx+8,sy+50,{size:10,color:TC.at(tier)});
+      }else{
+        tx('Пусто',sx+8,sy+38,{size:11,color:'#606878'});
+      }
+    }
+    const allSk=Object.keys(p.skills);
+    for(let i=0;i<allSk.length;i++){
+      const skName=allSk.at(i);
+      const col=i%3,row=~~(i/3);
+      const bx=60+col * 185,by=575+row * 34;
+      if(by>615)break;
+      const isSel=this.invSelectedSk===skName;
+      const inSlot=p.slots.includes(skName);
+      ctx.fillStyle=isSel?'rgba(80,160,80,0.8)':(inSlot?'rgba(40,60,90,0.7)':'rgba(30,30,45,0.8)');
+      ctx.fillRect(bx,by,175,28);
+      ctx.strokeStyle=isSel?'#80ff80':(inSlot?'#50c8dc':'#555');
+      ctx.strokeRect(bx,by,175,28);
+      txClip((inSlot?'● ':'◈ ')+skName,bx+6,by+18,163,{size:10,color:inSlot?'#fff':'#a0c0ff'});
+    }
+  }else{
+    tx('В данном режиме слоты Q/E/R управляются автоматически',65,550,{size:13,color:'#a0a8b8'});
+  }
+
+  ctx.fillStyle='rgba(20,28,45,0.8)';ctx.fillRect(650,105,580,320);
+  ctx.strokeStyle='#4060a0';ctx.strokeRect(650,105,580,320);
+  tx('💍 СОБРАННЫЕ АРТЕФАКТЫ ('+p.arts.length+')',665,130,{size:16,weight:'bold',color:'#ffcc44'});
+  if(p.arts.length===0){
+    tx('Артефакты пока не найдены (ищите сундуки на карте)',665,160,{size:12,color:'#606878'});
+  }else{
+    for(let i=0;i<p.arts.length;i++){
+      const a=p.arts.at(i);
+      const col=i%2,row=~~(i/2);
+      const ax=665+col * 280,ay=150+row * 32;
+      if(ay>400)break;
+      txClip('• '+a.n,ax,ay,270,{size:11,weight:'bold',color:a.cursed?'#ff60a0':'#fff'});
+      txClip('  '+a.d,ax,ay+13,270,{size:10,color:'#a0a8b8'});
+    }
+  }
+
+  ctx.fillStyle='rgba(20,28,45,0.8)';ctx.fillRect(650,435,580,215);
+  ctx.strokeStyle='#4060a0';ctx.strokeRect(650,435,580,215);
+  tx('🔮 ИЗУЧЕННАЯ МАГИЯ ('+p.spells.length+')',665,460,{size:16,weight:'bold',color:'#c080ff'});
+  for(let i=0;i<p.spells.length;i++){
+    const sp=p.spells.at(i).def;
+    const col=i%2,row=~~(i/2);
+    const sx=665+col * 280,sy=482+row * 26;
+    if(sy>635)break;
+    icon(sp.ic||'skill',sx+6,sy-4,5,sp.c);
+    txClip(sp.n+' ('+sp.d+' ур. / '+sp.mp+' MP)',sx+18,sy,255,{size:11,color:sp.c});
+  }
+
+  const readySyn=this.findReadySynthesis();
+  if(readySyn){
+    const resName=typeof readySyn.result==='string'?readySyn.result:readySyn.result.n;
+    const hvSyn=this.hov(W/2-220,H-115,440,40);
+    ctx.fillStyle=hvSyn?'rgba(220,160,30,0.95)':'rgba(160,110,20,0.85)';
+    ctx.fillRect(W/2-220,H-115,440,40);
+    ctx.strokeStyle='#ffffff';ctx.lineWidth=2;ctx.strokeRect(W/2-220,H-115,440,40);
+    tx('⚗️ ДОСТУПЕН СИНТЕЗ: '+resName+' (Клик)',W/2,H-90,{size:14,weight:'bold',color:'#fff',align:'center'});
+  }
+
+  const hvClose=this.hov(W/2-120,H-65,240,45);
+  ctx.fillStyle=hvClose?'#3a6a8a':'#203050';ctx.fillRect(W/2-120,H-65,240,45);
+  ctx.strokeStyle='#50c8dc';ctx.lineWidth=2;ctx.strokeRect(W/2-120,H-65,240,45);
+  tx('ЗАКРЫТЬ [TAB / ESC]',W/2,H-37,{size:14,weight:'bold',color:'#fff',align:'center'});
 };
 
 Game.prototype.rEvo=function(){
