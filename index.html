@@ -71,6 +71,39 @@ function castVis(g,p,c,n,r){n=n||15;
     if(r){const a=i/n*6.283;g.particles.push(new Part(p.x+Math.cos(a)*r,p.y+Math.sin(a)*r,c));}
     else g.particles.push(new Part(p.x,p.y,c));}}
 
+function skillVFX(g,x,y,type,c,r){
+  if(!g)return;
+  r=r||120;
+  if(type==='vortex'){
+    if(g.shockwaves){g.shockwaves.push(new Shockwave(x,y,r,c,0.45));g.shockwaves.push(new Shockwave(x,y,r * 0.55,'#ffffff',0.3));}
+    for(let i=0;i<36;i++){
+      const ang=(i/36) * Math.PI * 2,dist=r * (0.3+Math.random() * 0.7);
+      const pt=new Part(x + Math.cos(ang) * dist,y + Math.sin(ang) * dist,i%4===0?'#ffffff':c);
+      const inward=ang + Math.PI + 0.65;
+      pt.vx=Math.cos(inward) * dist * 2.4;pt.vy=Math.sin(inward) * dist * 2.4;
+      pt.z=rnd(3,6);pt.l=0.45;pt.ml=0.45;g.particles.push(pt);
+    }
+  }else if(type==='nova'){
+    if(g.shockwaves){g.shockwaves.push(new Shockwave(x,y,r,c,0.4));g.shockwaves.push(new Shockwave(x,y,r * 0.7,'#ffd700',0.32));}
+    for(let ray=0;ray<8;ray++){const a=(ray/8) * Math.PI * 2;g.slashes.push(new Slash(x,y,a,r * 0.95,0.14,ray%2===0?c:'#ffffff'));}
+    for(let i=0;i<28;i++){const a=Math.random() * Math.PI * 2,spd=rnd(140,380);const pt=new Part(x,y,i%3===0?'#ffffff':c);pt.vx=Math.cos(a) * spd;pt.vy=Math.sin(a) * spd;pt.z=rnd(2.5,5.5);g.particles.push(pt);}
+  }else if(type==='ice'){
+    if(g.shockwaves)g.shockwaves.push(new Shockwave(x,y,r,'#a0e8ff',0.4));
+    for(let k=0;k<6;k++){const a=(k/6) * Math.PI * 2;g.slashes.push(new Slash(x,y,a,r * 0.9,0.22,'#c0f4ff'));}
+    for(let i=0;i<30;i++){const a=(i/30) * Math.PI * 2;const pt=new Part(x + Math.cos(a) * r * 0.85,y + Math.sin(a) * r * 0.85,i%2===0?'#ffffff':'#80d8ff');pt.vx=Math.cos(a) * 40;pt.vy=Math.sin(a) * 40;pt.l=0.65;pt.ml=0.65;g.particles.push(pt);}
+  }else if(type==='fire'){
+    if(g.shockwaves){g.shockwaves.push(new Shockwave(x,y,r,'#ff5020',0.36));g.shockwaves.push(new Shockwave(x,y,r * 0.65,'#ffcc44',0.28));}
+    for(let i=0;i<34;i++){const a=Math.random() * Math.PI * 2,spd=rnd(120,420);const pt=new Part(x,y,i%3===0?'#ffee60':(i%2===0?'#ff5020':'#ff2000'));pt.vx=Math.cos(a) * spd;pt.vy=Math.sin(a) * spd;pt.z=rnd(3,6);g.particles.push(pt);}
+  }else if(type==='slash'){
+    const ba=arguments[6]||0;
+    g.slashes.push(new Slash(x,y,ba,r,Math.PI * 0.35,c));g.slashes.push(new Slash(x,y,ba+Math.PI/2,r,Math.PI * 0.35,c));
+    g.slashes.push(new Slash(x,y,ba+Math.PI/4,r * 0.85,Math.PI * 0.25,'#ffffff'));g.slashes.push(new Slash(x,y,ba-Math.PI/4,r * 0.85,Math.PI * 0.25,'#ffffff'));
+    if(g.shockwaves)g.shockwaves.push(new Shockwave(x,y,r * 0.8,c,0.28));
+  }else{
+    if(g.shockwaves)g.shockwaves.push(new Shockwave(x,y,r,c,0.38));
+    for(let i=0;i<24;i++){const a=(i/24) * Math.PI * 2;const pt=new Part(x + Math.cos(a) * r * 0.9,y + Math.sin(a) * r * 0.9,i%4===0?'#ffffff':c);pt.vx=-Math.sin(a) * 90;pt.vy=Math.cos(a) * 90;pt.l=0.5;pt.ml=0.5;g.particles.push(pt);}
+  }
+}
 
 const SK='tensura_save_master';
 const SV={
@@ -284,8 +317,8 @@ evo:[
   {n:'Ультимативный слизень',lv:45,b:{hp:400,mp:350,atk:45,mag:100},c:'#f6c94a'}
 ],
 ch:[
-{n:'Римуру Темпест',b:{mag:10,mp:30},sk:'Пожиратель',sk2:'Великий Мудрец',d:'Великий мудрец, повелитель монстров.'},
-{n:'Шинша',b:{hp:-10,mp:20,mag:15,lck:5},sk:'Разумное Существо',d:'Дочь Римуру.'}
+{n:'Римуру Темпест',b:{mag:10,mp:30},sk:'Пожиратель',sk2:'Мудрец',d:'Мудрец, повелитель монстров.'},
+{n:'Шинша',b:{hp:-10,mp:20,mag:15,lck:5},sk:'Пробуждение Души',d:'Дочь Римуру.'}
 ]},
 goblin:{n:'Гоблин',c:'#8cd66a',sh:'triangle',d:'Быстрые, но хрупкие.',
 b:{hp:80,mp:60,atk:10,def:2,spd:3.6,mag:6,res:3,lck:12,crit:8},p:'+15% скорость',
@@ -293,9 +326,9 @@ evo:[{n:'Гоблин',lv:1},{n:'Хобгоблин',lv:10,b:{hp:60,atk:8,def:6}
 {n:'Гоблин-Лорд',lv:22,b:{hp:150,atk:22,def:15},c:'#c0ff70'},
 {n:'Король гоблинов',lv:35,b:{hp:250,atk:40,def:25},c:'#ffe866'}],
 ch:[
-{n:'Ригурд',b:{hp:30,atk:4},sk:'Аура Повелителя',d:'Лидер гоблинов.'},
-{n:'Ригур',b:{spd:0.5,lck:10},sk:'Наследник',d:'Сын Ригурда.'},
-{n:'Гобта',b:{atk:6,lck:8},sk:'Сверхзвуковой Взрыв',d:'Лучник.'}
+{n:'Ригурд',b:{hp:30,atk:4},sk:'Аура Повелителя',d:'Король гоблинов.'},
+{n:'Ригур',b:{spd:0.5,lck:10},sk:'Воля Стража',d:'Капитан стражи.'},
+{n:'Гобта',b:{atk:6,lck:8},sk:'Сверхзвуковой Взрыв',d:'Гений призыва и тени.'}
 ]},
 ogre:{n:'Огр',c:'#d67a4a',sh:'circle',d:'Великаны, медленные.',
 b:{hp:170,mp:40,atk:14,def:9,spd:2.4,mag:4,res:8,lck:6,crit:4},p:'Берсерк +20%',
@@ -303,11 +336,11 @@ evo:[{n:'Огр',lv:1},{n:'Киджин',lv:10,b:{hp:120,atk:12,def:10},c:'#e088
 {n:'Они',lv:22,b:{hp:180,atk:20,mag:40},c:'#ff9a60'},
 {n:'Они-Лорд',lv:35,b:{hp:400,atk:50,def:30},c:'#ffbb66'}],
 ch:[
-{n:'Бенемару',b:{mag:20,atk:6},sk:'Пламя Ада',d:'Мастер пламени.'},
-{n:'Шион',b:{hp:20,atk:6},sk:'Ярость Огра',d:'Злая Они.'},
-{n:'Соуэй',b:{spd:0.5,atk:4},sk:'Теневая Ниндзя',d:'Ниндзя-они.'},
-{n:'Хакуро',b:{hp:40,def:5},sk:'Стойкость',d:'Старый мастер.'},
-{n:'Шуна',b:{mag:10,res:5},sk:'Аналитик',d:'Принцесса огров.'}
+{n:'Бенемару',b:{mag:20,atk:6},sk:'Пламя Ада',d:'Владыка Огня Аматэрасу.'},
+{n:'Шион',b:{hp:20,atk:6},sk:'Мастер-Шеф',d:'Владыка Тирании Сусаноо.'},
+{n:'Соуэй',b:{spd:0.5,atk:4},sk:'Теневая Ниндзя',d:'Мастер теней Цукиёми.'},
+{n:'Хакуро',b:{hp:40,def:5},sk:'Разрез',d:'Мастер меча.'},
+{n:'Шуна',b:{mag:10,res:5},sk:'Аналитик',d:'Жрица Темпеста.'}
 ]},
 lizardman:{n:'Лизардмен',c:'#4a9f8f',sh:'diamond',d:'Устойчивы к яду.',
 b:{hp:120,mp:70,atk:12,def:6,spd:3.2,mag:10,res:12,lck:8,crit:6},p:'+10% защита',
@@ -315,9 +348,9 @@ evo:[{n:'Лизардмен',lv:1},{n:'Драконид',lv:12,b:{hp:80,atk:10,d
 {n:'Истинный Драконид',lv:24,b:{hp:150,atk:25,mag:30},c:'#6ee0c8'},
 {n:'Божественный Дракон',lv:38,b:{hp:400,atk:60,mag:60},c:'#aaee99'}],
 ch:[
-{n:'Габиру',b:{atk:4},sk:'Водяная Струя',d:'Быстрый воин.'},
-{n:'Аберу',b:{hp:50,def:6},sk:'Стойкость',d:'Страж.'},
-{n:'Соука',b:{spd:0.4,crit:5},sk:'Водяная Струя',d:'Сестра Габиру.'}
+{n:'Габиру',b:{atk:4},sk:'Избранный',d:'Драконий воин удачи.'},
+{n:'Аберу',b:{hp:50,def:6},sk:'Каменная Кожа',d:'Несокрушимый страж.'},
+{n:'Соука',b:{spd:0.4,crit:5},sk:'Водяная Струя',d:'Разведчица.'}
 ]},
 demon:{n:'Демон',c:'#c860c0',sh:'demon',d:'Высокий урон.',
 b:{hp:95,mp:100,atk:16,def:3,spd:3.4,mag:20,res:8,lck:10,crit:12},p:'+25% урон',
@@ -325,13 +358,13 @@ evo:[{n:'Демон',lv:1},{n:'Архидемон',lv:12,b:{hp:100,atk:15,mag:30
 {n:'Демон-Лорд',lv:24,b:{hp:200,atk:30,mag:60},c:'#ea80e0'},
 {n:'Повелитель Демонов',lv:38,b:{hp:350,atk:60,mag:100},c:'#ff90ff'}],
 ch:[
-{n:'Диабло',b:{mag:25,atk:6},sk:'Тёмная Стрела',d:'Первый демон.'},
-{n:'Тестаросса',b:{mag:15,hp:40},sk:'Тёмное Пламя',d:'Белая Примордиаль.'},
-{n:'Каррера',b:{atk:8,mag:10},sk:'Гравитационная Сфера',d:'Жёлтая Примордиаль.'},
-{n:'Ультима',b:{hp:30,res:10},sk:'Тёмная Стрела',d:'Фиолетовая Примордиаль.'},
+{n:'Диабло',b:{mag:25,atk:6},sk:'Искушение',d:'Владыка Искушения Азазель.'},
+{n:'Тестаросса',b:{mag:15,hp:40},sk:'Смертельный Яд',d:'Белая Примордиаль (Бельфегор).'},
+{n:'Каррера',b:{atk:8,mag:10},sk:'Ядерное Пламя',d:'Жёлтая Примордиаль (Абаддон).'},
+{n:'Ультима',b:{hp:30,res:10},sk:'Ядовитое Дыхание',d:'Фиолетовая Примордиаль (Самаэль).'},
 {n:'Мизери',b:{mp:30,res:5},sk:'Тёмное Пламя',d:'Зелёная Примордиаль.'},
-{n:'Рейн',b:{atk:10,def:5},sk:'Тёмная Стрела',d:'Синяя Примордиаль.'},
-{n:'Гай Кримзон',b:{atk:30,hp:100},sk:'Клинок Бури',d:'Красный Повелитель.'},
+{n:'Рейн',b:{atk:10,def:5},sk:'Ледяная Тюрьма',d:'Синяя Примордиаль.'},
+{n:'Гай Кримзон',b:{atk:30,hp:100},sk:'Тёмная Стрела',d:'Красный Повелитель (Люцифер).'},
 {n:'Гелд',b:{hp:80,def:15},sk:'Многослойный Барьер',d:'Король Барьеров.'}
 ]},
 dwarf:{n:'Дварф',c:'#b89060',sh:'circle',d:'Крепкие ремесленники.',
@@ -339,31 +372,31 @@ b:{hp:150,mp:60,atk:12,def:12,spd:2.8,mag:8,res:15,lck:7,crit:5},p:'+15% защ�
 evo:[{n:'Дварф',lv:1},{n:'Высший Дварф',lv:15,b:{hp:100,def:12,atk:6},c:'#c8a070'},
 {n:'Просветлённый Дварф',lv:30,b:{hp:200,def:30,atk:15},c:'#d8b080'}],
 ch:[
-{n:'Кайдзин',b:{def:8,hp:30},sk:'Многослойный Барьер',d:'Мастер-кузнец.'},
+{n:'Кайдзин',b:{def:8,hp:30},sk:'Художник',d:'Легендарный кузнец.'},
 {n:'Газель Дварго',b:{atk:10,def:10},sk:'Героический Король',d:'Король Дваргона.'},
-{n:'Веста',b:{mag:15,res:5},sk:'Стойкость',d:'Учёный.'},
-{n:'Гарм',b:{hp:40,atk:5},sk:'Стойкость',d:'Тяжёлый.'}
+{n:'Веста',b:{mag:15,res:5},sk:'Просчёт Битвы',d:'Главный исследователь.'},
+{n:'Гарм',b:{hp:40,atk:5},sk:'Каменная Кожа',d:'Мастер брони.'}
 ]},
 elf:{n:'Эльф',c:'#7ad0a0',sh:'triangle',d:'Магическая раса.',
 b:{hp:85,mp:130,atk:9,def:4,spd:3.5,mag:22,res:10,lck:15,crit:10},p:'+20% магии',
 evo:[{n:'Эльф',lv:1},{n:'Высший Эльф',lv:15,b:{hp:60,mp:80,mag:25},c:'#90e0b8'},
 {n:'Просветлённый Эльф',lv:30,b:{hp:120,mp:150,mag:60},c:'#a8f0d0'}],
 ch:[
-{n:'Элен',b:{mag:15,mp:40},sk:'Режущий Ветер',d:'Посол леса.'},
-{n:'Фидия',b:{atk:10,crit:5},sk:'Режущий Ветер',d:'Стрелок.'},
-{n:'Эльмезия',b:{mag:30,res:10},sk:'Режущий Ветер',d:'Королева Сариона.'}
+{n:'Элен',b:{mag:15,mp:40},sk:'Режущий Ветер',d:'Маг ветра.'},
+{n:'Фидия',b:{atk:10,crit:5},sk:'Сверхзвуковой Взрыв',d:'Эльфийский стрелок.'},
+{n:'Эльмезия',b:{mag:30,res:10},sk:'Порыв Ветра',d:'Императрица Сариона.'}
 ]},
 beastman:{n:'Зверочеловек',c:'#e0a060',sh:'wolf',d:'Скорость и крит.',
 b:{hp:105,mp:50,atk:14,def:5,spd:3.8,mag:6,res:6,lck:12,crit:15},p:'+20% скорость атаки',
 evo:[{n:'Зверочеловек',lv:1},{n:'Ликантроп',lv:12,b:{hp:80,atk:12},c:'#f0b070'},
 {n:'Королевский Зверь',lv:25,b:{hp:180,atk:30},c:'#ffc080'}],
 ch:[
-{n:'Альбис',b:{atk:8},sk:'Клинок Бури',d:'Мечница.'},
-{n:'Суфия',b:{atk:12,hp:30},sk:'Ярость Зверя',d:'Воин-тигр.'},
-{n:'Груциус',b:{hp:50,def:8},sk:'Стойкость',d:'Тяжёлый боец.'},
-{n:'Карион',b:{atk:15,spd:0.5},sk:'Ярость Зверя',d:'Король зверей.'},
-{n:'Ранга',b:{spd:1.0,crit:10},sk:'Громовой Удар',d:'Звёздный волк.'},
-{n:'Кумара',b:{mag:20,mp:50},sk:'Плодородие',d:'Небесная лисица.'}
+{n:'Альбис',b:{atk:8},sk:'Проклятие',d:'Золотая Змея.'},
+{n:'Суфия',b:{atk:12,hp:30},sk:'Ярость Зверя',d:'Белый Тигр.'},
+{n:'Груциус',b:{hp:50,def:8},sk:'Стойкость',d:'Серебряный Волк.'},
+{n:'Карион',b:{atk:15,spd:0.5},sk:'Ярость Зверя',d:'Король Зверей.'},
+{n:'Ранга',b:{spd:1.0,crit:10},sk:'Громовой Удар',d:'Звёздный Волк Бурных Ветров.'},
+{n:'Кумара',b:{mag:20,mp:50},sk:'Гравитационная Сфера',d:'Девятихвостая Владычица.'}
 ]},
 undead:{n:'Нежить',c:'#7a8aa0',sh:'skull',d:'Восставшие мертвецы.',
 b:{hp:130,mp:80,atk:11,def:8,spd:2.6,mag:15,res:14,lck:4,crit:4},p:'+1 HP/сек',
@@ -371,9 +404,9 @@ evo:[{n:'Скелет',lv:1},{n:'Рыцарь Смерти',lv:12,b:{hp:120,atk:
 {n:'Лич',lv:24,b:{hp:150,mp:150,mag:60},c:'#a8b8d0'},
 {n:'Король Мёртвых',lv:38,b:{hp:300,mp:200,mag:100},c:'#d0e0f0'}],
 ch:[
-{n:'Адальман',b:{mag:20,res:10},sk:'Святой Луч',d:'Лич-священник.'},
-{n:'Адоль',b:{mag:15,mp:40},sk:'Тёмная Стрела',d:'Некромант.'},
-{n:'Альберт',b:{hp:50,def:10},sk:'Стойкость',d:'Бессмертный.'}
+{n:'Адальман',b:{mag:20,res:10},sk:'Святой Луч',d:'Лич святой магии.'},
+{n:'Адоль',b:{mag:15,mp:40},sk:'Проклятие',d:'Тёмный некромант.'},
+{n:'Альберт',b:{hp:50,def:10},sk:'Песчаная Буря',d:'Бессмертный паладин.'}
 ]},
 majin:{n:'Маджин',c:'#ff6baa',sh:'star',d:'Баланс магии и физики.',
 b:{hp:110,mp:110,atk:13,def:6,spd:3.2,mag:16,res:10,lck:10,crit:8},p:'+10% ко всему',
@@ -381,35 +414,35 @@ evo:[{n:'Маджин',lv:1},{n:'Высший Маджин',lv:12,b:{hp:80,mp:80
 {n:'Маджин-Лорд',lv:24,b:{hp:180,mp:150,atk:25},c:'#ff90d0'},
 {n:'Повелитель Маджинов',lv:38,b:{hp:320,mp:250,atk:50},c:'#ffa8e0'}],
 ch:[
-{n:'Вега',b:{atk:10,hp:30},sk:'Разрез',d:'Боевой.'},
-{n:'Кагали',b:{mag:15,mp:20},sk:'Тёмная Стрела',d:'Мастер.'},
-{n:'Тир',b:{atk:12,def:5},sk:'Разрез',d:'Наёмник.'},
-{n:'Футман',b:{mag:10,lck:10},sk:'Тёмная Стрела',d:'Клоун.'},
-{n:'Лаплас',b:{spd:0.5,crit:10},sk:'Тёмная Стрела',d:'Маджин.'}
+{n:'Вега',b:{atk:10,hp:30},sk:'Поглощение',d:'Пожирающий маджин.'},
+{n:'Кагали',b:{mag:15,mp:20},sk:'Проклятие',d:'Бывший Повелитель Демонов.'},
+{n:'Тир',b:{atk:12,def:5},sk:'Ярость Огра',d:'Разъярённый клоун.'},
+{n:'Футман',b:{mag:10,lck:10},sk:'Гравитационная Сфера',d:'Тяжёлый клоун.'},
+{n:'Лаплас',b:{spd:0.5,crit:10},sk:'Пространственное Перемещение',d:'Вице-президент клоунов.'}
 ]},
 angel:{n:'Ангел',c:'#f0e090',sh:'angel',d:'Небесная раса.',
 b:{hp:100,mp:120,atk:10,def:8,spd:3,mag:20,res:15,lck:12,crit:6},p:'+2 MP/сек',
 evo:[{n:'Ангел',lv:1},{n:'Архангел',lv:15,b:{hp:80,mp:80,mag:20},c:'#ffeaa0'},
 {n:'Серафим',lv:30,b:{hp:200,mp:180,mag:60},c:'#fff8c0'}],
 ch:[
-{n:'Михаэль',b:{mag:15,def:5},sk:'Святой Луч',d:'Правосудие.'},
-{n:'Фелдвей',b:{atk:12,mag:8},sk:'Крылья Тьмы',d:'Падший ангел.'},
-{n:'Дино',b:{mp:30,res:5},sk:'Святой Луч',d:'Ленивый ангел.'},
-{n:'Заларио',b:{atk:10,spd:0.2},sk:'Святой Луч',d:'Ангел-воин.'},
-{n:'Пико',b:{hp:20,crit:5},sk:'Святой Луч',d:'Ангел.'},
-{n:'Гараша',b:{def:10,hp:30},sk:'Святой Луч',d:'Ангел.'},
-{n:'Обера',b:{mag:15,res:10},sk:'Святой Луч',d:'Ангел.'},
-{n:'Корню',b:{spd:0.3,lck:5},sk:'Святой Луч',d:'Ангел.'}
+{n:'Михаэль',b:{mag:15,def:5},sk:'Господство',d:'Король Правосудия.'},
+{n:'Фелдвей',b:{atk:12,mag:8},sk:'Бездна',d:'Король Фантомов.'},
+{n:'Дино',b:{mp:30,res:5},sk:'Сон Бездны',d:'Владыка Лени Бельфегор.'},
+{n:'Заларио',b:{atk:10,spd:0.2},sk:'Разрушение',d:'Генерал ангелов.'},
+{n:'Пико',b:{hp:20,crit:5},sk:'Святой Луч',d:'Серафим.'},
+{n:'Гараша',b:{def:10,hp:30},sk:'Священный Барьер',d:'Серафим защиты.'},
+{n:'Обера',b:{mag:15,res:10},sk:'Свет Творения',d:'Серафим света.'},
+{n:'Корню',b:{spd:0.3,lck:5},sk:'Вращающийся Луч',d:'Серафим.'}
 ]},
 human:{n:'Человек',c:'#e0c0a0',sh:'circle',d:'Смертные, но полные потенциала.',
 b:{hp:95,mp:90,atk:11,def:5,spd:3.2,mag:14,res:8,lck:12,crit:10},p:'+10% опыт',
 evo:[{n:'Человек',lv:1},{n:'Герой',lv:15,b:{hp:80,mp:60,atk:15,mag:20},c:'#ffd700'},
 {n:'Истинный Герой',lv:30,b:{hp:200,mp:150,atk:30,mag:40},c:'#ffed80'}],
 ch:[
-{n:'Хината Сакагучи',b:{atk:8,mag:10},sk:'Математик',d:'Капитан Святого Рыцарства.'},
-{n:'Масаюки Хондзё',b:{lck:20,crit:10},sk:'Избранный',d:'Герой по воле случая.'},
-{n:'Хлоя Обер',b:{mag:15,mp:20},sk:'Путешественник во времени',d:'Герой в петле времени.'},
-{n:'Леон Кромвель',b:{mag:20,atk:10},sk:'Лазерный Луч',d:'Золотой Герой.'}
+{n:'Хината Сакагучи',b:{atk:8,mag:10},sk:'Узурпатор',d:'Капитан Святого Рыцарства.'},
+{n:'Масаюки Хондзё',b:{lck:20,crit:10},sk:'Избранный',d:'Император Света.'},
+{n:'Хлоя Обер',b:{mag:15,mp:20},sk:'Путешественник во времени',d:'Герой Времени Йог-Сотот.'},
+{n:'Леон Кромвель',b:{mag:20,atk:10},sk:'Святой Луч',d:'Король Чистоты Метатрон.'}
 ]},
 dragon:{n:'Дракон',c:'#cc4040',sh:'dragon',d:'Истинные драконы — сильнейшие существа.',
 b:{hp:180,mp:120,atk:18,def:12,spd:2.8,mag:18,res:18,lck:6,crit:8},p:'+30% урона огнём',
@@ -417,36 +450,36 @@ evo:[{n:'Дракончик',lv:1},{n:'Молодой Дракон',lv:15,b:{hp:
 {n:'Древний Дракон',lv:30,b:{hp:400,atk:60,mag:80},c:'#ee6060'},
 {n:'Истинный Дракон',lv:45,b:{hp:800,atk:120,mag:150},c:'#ff8080'}],
 ch:[
-{n:'Вельдора',b:{atk:20,hp:80},sk:'Клинок Бури',d:'Штормовой дракон.'},
-{n:'Вельзард',b:{mag:30,def:15},sk:'Ледяная Тюрьма',d:'Белая драконица.'},
-{n:'Вельгринд',b:{atk:30,hp:40},sk:'Пламя Ада',d:'Пламенная драконица.'},
+{n:'Вельдора',b:{atk:20,hp:80},sk:'Порыв Ветра',d:'Штормовой Дракон (Фауст).'},
+{n:'Вельзард',b:{mag:30,def:15},sk:'Водяная Струя',d:'Белая Ледяная Драконица (Гавриил).'},
+{n:'Вельгринд',b:{atk:30,hp:40},sk:'Пламя Ада',d:'Багровая Драконица (Ктугха).'},
 {n:'Сарай',b:{spd:.4,atk:10},sk:'Ускорение Мысли',d:'Быстрый дракон.'},
-{n:'Вельданава',b:{mag:50,atk:50},sk:'Клинок Бури',d:'Звездный Король.'}
+{n:'Вельданава',b:{mag:50,atk:50},sk:'Свет Творения',sk2:'Уриэль',d:'Звёздный Король-Дракон.'}
 ]},
 insectoid:{n:'Инсектоид',c:'#c0a080',sh:'triangle',d:'Раса насекомых.',
 b:{hp:120,mp:60,atk:15,def:8,spd:3.5,mag:10,res:10,lck:8,crit:12},p:'+15% уклонение',
 evo:[{n:'Инсектоид',lv:1},{n:'Высший Инсектоид',lv:15,b:{hp:100,atk:15},c:'#d0b090'},
 {n:'Король Насекомых',lv:30,b:{hp:250,atk:40},c:'#e0c0a0'}],
 ch:[
-{n:'Зегион',b:{def:15,hp:50},sk:'Стойкость',d:'Бог-жук.'},
-{n:'Апито',b:{mag:15,mp:30},sk:'Плодородие',d:'Королева пчел.'}
+{n:'Зегион',b:{def:15,hp:50},sk:'Иллюзия',d:'Владыка Иллюзий Мефисто.'},
+{n:'Апито',b:{mag:15,mp:30},sk:'Регенерация',d:'Королева Пчёл.'}
 ]},
 fairy:{n:'Фея',c:'#a0e0ff',sh:'star',d:'Духи и элементали.',
 b:{hp:80,mp:150,atk:8,def:5,spd:3.8,mag:25,res:12,lck:15,crit:8},p:'+20% магии',
 evo:[{n:'Фея',lv:1},{n:'Высшая Фея',lv:20,b:{hp:60,mp:150,mag:40},c:'#c0f0ff'}],
 ch:[
-{n:'Рамирис',b:{mag:20,mp:50},sk:'Многослойный Барьер',d:'Королева фей.'},
-{n:'Трейни',b:{mag:15,res:5},sk:'Режущий Ветер',d:'Дриада.'},
-{n:'Берретта',b:{def:10,hp:40},sk:'Многослойный Барьер',d:'Кукла.'}
+{n:'Рамирис',b:{mag:20,mp:50},sk:'Лабиринт',d:'Королева Лабиринта.'},
+{n:'Трейни',b:{mag:15,res:5},sk:'Регенерация',d:'Хранительница леса.'},
+{n:'Берретта',b:{def:10,hp:40},sk:'Многослойный Барьер',d:'Демоническая кукла.'}
 ]},
 vampire:{n:'Вампир',c:'#e04060',sh:'winged',d:'Ночные аристократы.',
 b:{hp:110,mp:100,atk:14,def:6,spd:3.6,mag:18,res:10,lck:12,crit:10},p:'+5% вампиризма',
 evo:[{n:'Вампир',lv:1},{n:'Высший Вампир',lv:15,b:{hp:100,atk:15},c:'#e06080'},
 {n:'Повелитель Вампиров',lv:30,b:{hp:250,atk:40},c:'#e080a0'}],
 ch:[
-{n:'Рой',b:{atk:8,hp:30},sk:'Вампиризм',d:'Рыцарь.'},
-{n:'Твайлайт',b:{mag:20,mp:30},sk:'Вампиризм',d:'Прародитель.'},
-{n:'Люминос',b:{mag:25,atk:10},sk:'Вампиризм',d:'Повелительница.'}
+{n:'Рой',b:{atk:8,hp:30},sk:'Вампиризм',d:'Рыцарь ночи.'},
+{n:'Твайлайт',b:{mag:20,mp:30},sk:'Вампиризм',d:'Прародитель вампиров.'},
+{n:'Люминос',b:{mag:25,atk:10},sk:'Вампиризм',d:'Королева Похоти Асмодей.'}
 ]}
 };
 
@@ -488,7 +521,8 @@ function burst(desc,cd,dmg,color,r,el){return{desc,cd,el,cast(g,p){
       const sType=(tier>=TIER_SUP||p.forceSupreme)?'supreme':'normal';
       for(const e of g.enemies)if(e.alive&&d2(e.x,e.y,p.x,p.y)<R * R)e.dmg(d,sType);
       for(const b of g.bosses)if(b.alive&&d2(b.x,b.y,p.x,p.y)<R * R)b.dmg(d,sType);
-      if(g.shockwaves)g.shockwaves.push(new Shockwave(p.x,p.y,R,color,0.32));
+      const vType=el==='ice'?'ice':(el==='fire'?'fire':(el==='void'||el==='dark'?'vortex':(el==='light'?'nova':'rune')));
+      skillVFX(g,p.x,p.y,vType,color,R);
       for(let i=0;i<16;i++){const a=i/16 * 6.283;
         g.particles.push(new Part(p.x + Math.cos(a) * R * 0.85,p.y + Math.sin(a) * R * 0.85,color));}
     });
@@ -579,25 +613,25 @@ function doMeleeHit(g, p, angle, range, arc, dmg, src) {
 }
 
 const SKILL_ELEM={
-'Пожиратель':'void','Гурман':'void','Вельзевул':'void','Азатот':'void','Великий Мудрец':'mind','Рафаэль':'mind','Сиэль':'mind',
+'Пожиратель':'void','Обжорство':'void','Вельзевул':'void','Азатот':'void','Великий Мудрец':'mind','Рафаэль':'mind','Сиэль':'mind',
 'Универсальное Превращение':null,'Поглощение':'void','Аура Повелителя':null,'Сверхзвуковой Взрыв':'wind','Пламя Ада':'fire','Стойкость':null,'Водяная Струя':'ice',
 'Тёмная Стрела':'dark','Многослойный Барьер':null,'Гравитационная Сфера':'earth','Режущий Ветер':'wind','Ускорение Мысли':'mind','Клинок Бури':'wind','Святой Луч':'light','Дыхание Дракона':'fire','Громовой Удар':'wind',
 'Ледяная Тюрьма':'ice','Тектонический Сдвиг':'earth','Проклятие':'dark','Священный Барьер':'light','Пространственное Перемещение':'time','Огненный Шторм':'fire','Вампиризм':'dark','Песчаная Буря':'earth','Абсолютный Ноль':'ice',
 'Длань Бездны':'void','Разлом':'time','Резонанс':'mind','Разрушение':null,'Свет Творения':'light','Бездна':'void','Уриэль':'light','Сатанаэль':'fire','Фауст':'mind','Искажение Времени':'time',
 'Пространственный Сдвиг':'time','Хроно-Разлом':'time','Йог-Сотот':'time','Порыв Ветра':'wind','Штормовое Крыло':'wind','Громовой Шторм':'wind','Каменная Кожа':'earth','Железная Воля':'earth','Несокрушимая Стена':'earth',
 'Кара':'light','Божественная Кара':'light','Небесный Суд':'light','Судный День':'light','Иллюзия':'chaos','Мираж':'chaos','Лабиринт':'chaos','Ньярлатотеп':'chaos','Регенерация':null,'Живучесть':null,'Плодородие':'earth',
-'Шуб-Ниггурат':'chaos','Математик':'mind','Король Фортуны':'light','Узурпатор':'dark','Избранный':'light','Путешественник во времени':'time','Разумное Существо':'mind','Ярость Огра':null,'Гнев Демона':'dark','Аналитик':'mind',
-'Наследник':null,'Теневая Ниндзя':'dark','Героический Король':null,'Щит Стража':'light','Ярость Зверя':null,'Крылья Тьмы':'dark','Тёмное Пламя':'dark','Разрез':null,'Лазерный Луч':'fire','Призматический Луч':'light',
+'Шуб-Ниггурат':'chaos','Просчёт Битвы':'mind','Король Фортуны':'light','Узурпатор':'dark','Избранный':'light','Путешественник во времени':'time','Пробуждение Души':'mind','Ярость Огра':null,'Гнев Демона':'dark','Аналитик':'mind',
+'Воля Стража':null,'Теневая Ниндзя':'dark','Героический Король':null,'Щит Стража':'light','Ярость Зверя':null,'Крылья Тьмы':'dark','Тёмное Пламя':'dark','Разрез':null,'Лазерный Луч':'fire','Призматический Луч':'light',
 'Божественный Лазер':'light','Вращающийся Луч':'light','Спираль Света':'light','Космический Вихрь':'light','Михаэль':'light','Метатрон':'light','Сариэль':'light','Deus Ex Machina':'light','Сефирот':'earth','Вечный':'light','Бессмертный':'earth',
 'Азазель':'dark','Люцифер':'dark','Ноденс':'void','Самаэль':'dark','Бельфегор':'dark','Мамон':'dark','Амон':'dark','Астарот':'dark','Асмодей':'chaos','Абаддон':'void','Некрономикон':'dark',
 'Аматэрасу':'fire','Ктугха':'fire','Гавриил':'ice','Ктулху':'ice','Вельдора':'wind','Индра':'wind','Ваю':'wind','Хастур':'wind','Ажи Дахака':'fire','Бахамут':'fire',
 'Мефисто':'chaos','Фортуна':'light','Истинный Герой':'light','Яоёродзу':'mind','Цукиёми':'dark','Сусаноо':'dark','Терра Матер':'earth','Сурья':'light','Карта Мира':'mind','Агастья':'mind',
-'Просерпина':'earth','Трансформация Клинка':null,'Множественное Оружие':null,'Художник':'mind','Гримуар':'light','Хамель':'light','Создатель Настроения':'mind'
+'Просерпина':'earth','Трансформация Клинка':null,'Множественное Оружие':null,'Художник':'mind','Гримуар':'light','Хамель':'light','Создатель Настроения':'mind','Мудрец':'mind','Господство':'light','Небесный Приказ':'light','Искушение':'dark','Очарование Бездны':'dark','Мастер-Шеф':'chaos','Искажение Сути':'chaos','Ядерное Пламя':'fire','Цепная Детонация':'fire','Ядовитое Дыхание':'dark','Токсичный Туман':'dark','Смертельный Яд':'dark','Некроз Души':'dark','Сон Бездны':'dark','Кошмарная Дрёма':'dark','Алая Жажда':'dark','Печать Судьбы':'light','Сумрачный Шаг':'dark','Крылья Падшего':'dark','Коллапс Пустоты':'void','Сдвиг Пространства':'time','Суд Архангела':'light','Кровавый Закат':'dark','Сеть Порока':'dark','Падение Серафима':'dark','Ядовитый Миазм':'dark','Летаргия':'dark','Кровавый Пир':'dark','Алое Пламя':'fire','Глаз Бури':'wind','Небесный Разряд':'wind','Ярость Виверны':'fire','Лунный Клинок':'dark','Звёздный Проводник':'mind','Солнечный Столп':'light','Сингулярность':'earth','Печать Проклятий':'dark','Аура Эмоций':'mind'
 };
 
 const SKILLS={
 'Пожиратель':{desc:'Поглощает врагов с HP<30%. Шанс 15% выучить навык.',cd:6,cast(g,p){const t=p.skills[this.n].tier;const h=20+t*15;const E=elemMul(p,this.el);p.hp=Math.min(p.maxHp,p.hp+h);p.mp=Math.min(p.maxMp,p.mp+h);const pR=90*(p.aoeMult||1);for(const e of g.enemies){if(!e.alive||d2(e.x,e.y,p.x,p.y)>=pR*pR)continue;if(e.hp<e.maxHp*0.3){e.alive=false;p.hp=Math.min(p.maxHp,p.hp+e.maxHp*0.3);p.mp=Math.min(p.maxMp,p.mp+e.maxHp*0.2);g.ftxt.push(new FTxt('ПОГЛОЩЕНО!',e.x,e.y,'#50c8dc',1.5,16));AU.sfx('absorb');if(Math.random()<0.15){const avail=Object.keys(SKILLS).filter(s=>!p.skills[s]&&!Object.values(SKILL_EVO).some(ev=>ev.next===s)&&!SKILLS[s].ult);if(avail.length){const ns=pick(avail);p.addSk(ns);g.ftxt.push(new FTxt('НАВЫК: '+ns,e.x,e.y-30,'#a0c0ff',2,14));}}}else e.dmg(25*TM[t]*E);}for(const b of g.bosses)if(b.alive&&d2(b.x,b.y,p.x,p.y)<pR*pR)b.dmg(25*TM[t]*E,src(t));g.particles.push(...[...Array(15)].map(()=>new Part(p.x,p.y,'#50c8dc')));g.ftxt.push(new FTxt('+'+h+' HP',p.x,p.y-30,'#50ff8a'));}},
-'Гурман':{desc:'Поглощение HP<50%. Шанс 25%.',cd:5,cast(g,p){const t=p.skills[this.n].tier;const d=40*TM[t]+p.mag;const E=elemMul(p,this.el);const gR=110*(p.aoeMult||1);for(const e of g.enemies){if(!e.alive||d2(e.x,e.y,p.x,p.y)>=gR*gR)continue;if(e.hp<e.maxHp*0.5){e.alive=false;p.hp=Math.min(p.maxHp,p.hp+e.maxHp*0.4);p.mp=Math.min(p.maxMp,p.mp+e.maxHp*0.3);g.ftxt.push(new FTxt('ПОГЛОЩЕНО!',e.x,e.y,'#80e0ff',1.5,16));AU.sfx('absorb');if(Math.random()<0.25){const avail=Object.keys(SKILLS).filter(s=>!p.skills[s]&&!Object.values(SKILL_EVO).some(ev=>ev.next===s)&&!SKILLS[s].ult);if(avail.length){const ns=pick(avail);p.addSk(ns);g.ftxt.push(new FTxt('НАВЫК: '+ns,e.x,e.y-30,'#a0c0ff',2,14));}}}else e.dmg(d*E);}for(const b of g.bosses)if(b.alive&&d2(b.x,b.y,p.x,p.y)<gR*gR)b.dmg(d*E,src(t));p.hp=Math.min(p.maxHp,p.hp+30+t*10);g.particles.push(...[...Array(25)].map(()=>new Part(p.x,p.y,'#80e0ff')));}},
+'Обжорство':{desc:'Поглощение HP<50%. Шанс 25%.',cd:5,cast(g,p){const t=p.skills[this.n].tier;const d=40*TM[t]+p.mag;const E=elemMul(p,this.el);const gR=110*(p.aoeMult||1);for(const e of g.enemies){if(!e.alive||d2(e.x,e.y,p.x,p.y)>=gR*gR)continue;if(e.hp<e.maxHp*0.5){e.alive=false;p.hp=Math.min(p.maxHp,p.hp+e.maxHp*0.4);p.mp=Math.min(p.maxMp,p.mp+e.maxHp*0.3);g.ftxt.push(new FTxt('ПОГЛОЩЕНО!',e.x,e.y,'#80e0ff',1.5,16));AU.sfx('absorb');if(Math.random()<0.25){const avail=Object.keys(SKILLS).filter(s=>!p.skills[s]&&!Object.values(SKILL_EVO).some(ev=>ev.next===s)&&!SKILLS[s].ult);if(avail.length){const ns=pick(avail);p.addSk(ns);g.ftxt.push(new FTxt('НАВЫК: '+ns,e.x,e.y-30,'#a0c0ff',2,14));}}}else e.dmg(d*E);}for(const b of g.bosses)if(b.alive&&d2(b.x,b.y,p.x,p.y)<gR*gR)b.dmg(d*E,src(t));p.hp=Math.min(p.maxHp,p.hp+30+t*10);g.particles.push(...[...Array(25)].map(()=>new Part(p.x,p.y,'#80e0ff')));}},
 'Вельзевул':{desc:'Высший. Поглощение HP<50% (25%), supreme-урон.',cd:4,cast(g,p){const t=p.skills[this.n].tier;const d=80*TM[t]+p.mag*2;const E=elemMul(p,this.el);const oR=130*(p.aoeMult||1);for(const e of g.enemies){if(!e.alive||d2(e.x,e.y,p.x,p.y)>=oR*oR)continue;if(e.hp<e.maxHp*0.5){e.alive=false;p.hp=Math.min(p.maxHp,p.hp+e.maxHp*0.4);p.mp=Math.min(p.maxMp,p.mp+e.maxHp*0.3);g.ftxt.push(new FTxt('ПОГЛОЩЕНО!',e.x,e.y,'#c080ff',1.5,16));AU.sfx('absorb');for(let i=0;i<10;i++)g.particles.push(new Part(e.x,e.y,'#c080ff'));if(Math.random()<0.25){const avail=Object.keys(SKILLS).filter(s=>!p.skills[s]&&!Object.values(SKILL_EVO).some(ev=>ev.next===s)&&!SKILLS[s].ult);if(avail.length){const ns=pick(avail);p.addSk(ns);g.ftxt.push(new FTxt('НАВЫК: '+ns,e.x,e.y-30,'#a0c0ff',2,14));}}}else e.dmg(d*E,'supreme');}for(const b of g.bosses)if(b.alive&&d2(b.x,b.y,p.x,p.y)<oR*oR)b.dmg(d*E,'supreme');p.hp=p.maxHp;p.mp=p.maxMp;g.particles.push(...[...Array(40)].map(()=>new Part(p.x,p.y,'#c080ff')));}},
 'Азатот':{ult:true,desc:'Божественный. Поглощение HP<50% (40%), supreme 400px, полное HP/MP, +100% урона и неуязвимость 5с.',cd:10,cast(g,p){const t=p.skills[this.n].tier;let dB=1+0.03*(p.resonanceCount||0);if(p.buffs.insp>0)dB*=1.2;if(p.buffs.res>0)dB*=1.5;if(p.buffs.luck>0)dB*=1.3;if(p.buffs.satanael>0)dB*=1.5;if(p.buffs.azatot>0)dB*=2;if(p.rid==='ogre'&&p.hp<p.maxHp*0.5)dB*=1.2;const cr=Math.random()*100<p.crit;const cm=cr?p.cdmg:1;const E=elemMul(p,this.el);const d=(150*TM[t]+p.mag*2)*dB*cm*E;const bzR=400*(p.aoeMult||1);castVis(g,p,'#c080ff',48,bzR*0.95);for(const e of g.enemies){if(!e.alive||d2(e.x,e.y,p.x,p.y)>=bzR*bzR)continue;if(e.hp<e.maxHp*0.5){e.alive=false;p.hp=Math.min(p.maxHp,p.hp+e.maxHp*0.4);p.mp=Math.min(p.maxMp,p.mp+e.maxHp*0.3);g.ftxt.push(new FTxt('ПОГЛОЩЕНО!',e.x,e.y,'#c080ff',1.5,16));AU.sfx('absorb');for(let i=0;i<10;i++)g.particles.push(new Part(e.x,e.y,'#c080ff'));if(Math.random()<0.4){const avail=Object.keys(SKILLS).filter(s=>!p.skills[s]&&!Object.values(SKILL_EVO).some(ev=>ev.next===s)&&!SKILLS[s].ult);if(avail.length){const ns=pick(avail);p.addSk(ns);g.ftxt.push(new FTxt('НАВЫК: '+ns,e.x,e.y-30,'#a0c0ff',2,14));}}}else e.dmg(d,'supreme');}for(const b of g.bosses)if(b.alive&&d2(b.x,b.y,p.x,p.y)<bzR*bzR)b.dmg(d,'supreme');p.hp=p.maxHp;p.mp=p.maxMp;p.buffs.invuln=5;p.buffs.azatot=5;castVis(g,p,'#c080ff',80,0);castVis(g,p,'#ffffff',20,60);g.ftxt.push(new FTxt('АЗАТОТ: ПОГЛОЩЕНИЕ ВСЕГО!',p.x,p.y-60,'#c080ff',3,22));g.shake=15;AU.sfx('sec');}},
 'Великий Мудрец':{desc:'Ускорение мысли.',cd:8,cast(g,p){const t=p.skills[this.n].tier;const r=(60+t*20)*(p.aoeMult||1);const E=elemMul(p,this.el);for(const e of g.enemies)if(e.alive&&d2(e.x,e.y,p.x,p.y)<r*r)e.dmg(30*TM[t]*E);for(const b of g.bosses)if(b.alive&&d2(b.x,b.y,p.x,p.y)<r*r)b.dmg(30*TM[t]*E,src(t));g.ftxt.push(new FTxt('Анализ!',p.x,p.y-40,'#a0c0ff'));castVis(g,p,'#a0c0ff',25,r);}},
@@ -616,13 +650,13 @@ const SKILLS={
 'Святой Луч':shot('Луч света.',3.5,40,'#f0e8b0',5,700,'light'),'Дыхание Дракона':fan('Дыхание дракона.',5,9,.1,55,'#ff6030',10,3,'fire'),'Громовой Удар':shot('Молния.',3,50,'#ffff80',3,950),'Ледяная Тюрьма':burst('Оглушение.',6,30,'#80c0ff',120,'ice'),'Тектонический Сдвиг':burst('Мощный удар.',7,70,'#a06040',170),
 'Проклятие':{desc:'-ATK врагов.',cd:8,cast(g,p){const t=p.skills[this.n].tier;const m=Math.max(0,1-t*.1);const crR=160*(p.aoeMult||1);for(const e of g.enemies)if(e.alive&&d2(e.x,e.y,p.x,p.y)<crR*crR)e.atk*=m;for(const b of g.bosses)if(b.alive&&d2(b.x,b.y,p.x,p.y)<crR*crR)b.atk*=m;g.ftxt.push(new FTxt('ПРОКЛЯТИЕ!',p.x,p.y-40,'#a040a0',2,16));}},
 'Священный Барьер':{desc:'Барьер 6 сек.',cd:10,cast(g,p){p.buffs.shield=6;p.addShield(1+Math.floor(p.skills[this.n].tier/2),false);g.ftxt.push(new FTxt('СВЯЩЕННЫЙ БАРЬЕР!',p.x,p.y-40,'#fff8c0',2,18));castVis(g,p,'#fff8c0',24,70);}},
-'Пространственное Перемещение':{desc:'Телепорт к цели.',cd:7,cast(g,p,t){if(!t)return;const tr=p.skills[this.n].tier;t.dmg((40*TM[tr]+p.atk)*elemMul(p,this.el),src(tr));g.ftxt.push(new FTxt('ПЕРЕМЕЩЕНИЕ!',p.x,p.y-40,'#80d0ff',1.8,16));castVis(g,p,'#80d0ff',15,0);for(let i=0;i<10;i++)g.particles.push(new Part(t.x,t.y,'#80d0ff'));}},
+'Пространственное Перемещение':{desc:'Мгновенный перенос за спину цели с режущим ударом.',cd:7,cast(g,p,t){if(!t)return;const tr=p.skills[this.n].tier;skillVFX(g,p.x,p.y,'slash','#80d0ff',70);p.x=cl(t.x-Math.cos(p.aim)*55,40,WW-40);p.y=cl(t.y-Math.sin(p.aim)*55,40,WH-40);p.inv=Math.max(p.inv,0.35);t.dmg((55*TM[tr]+p.atk*1.5)*elemMul(p,this.el),src(tr));g.ftxt.push(new FTxt('ПЕРЕМЕЩЕНИЕ!',p.x,p.y-40,'#80d0ff',1.8,16));skillVFX(g,p.x,p.y,'slash','#80d0ff',95);}},
 'Огненный Шторм':fan('Град огня.',6,10,6.283,35,'#ff6030',6,0,'fire'),
 'Вампиризм':{desc:'Вампиризм 8 сек.',cd:12,cast(g,p){p.buffs.vamp=8;g.ftxt.push(new FTxt('ВАМПИРИЗМ!',p.x,p.y-40,'#c04040',2,18));castVis(g,p,'#c04040',20,0);}},
-'Песчаная Буря':burst('Ослепление.',8,20,'#d0a060',180),'Абсолютный Ноль':burst('Заморозка.',10,100,'#a0e0ff',180,'ice'),'Длань Бездны':burst('Удар тьмой.',9,120,'#6020a0',200),
+'Песчаная Буря':{desc:'Ослепляющий вихрь песка: режет атаку и скорость врагов в радиусе.',cd:8,cast(g,p){const t=p.skills[this.n].tier;const R=210*(p.aoeMult||1);const d=(35*TM[t]+p.mag*0.7)*elemMul(p,this.el);for(const e of g.enemies)if(e.alive&&d2(e.x,e.y,p.x,p.y)<R*R){e.dmg(d,'normal');e.atk*=0.75;e.slowTimer=Math.max(e.slowTimer||0,3);}for(const b of g.bosses)if(b.alive&&d2(b.x,b.y,p.x,p.y)<R*R){b.dmg(d,'normal');b.atk*=0.85;}g.ftxt.push(new FTxt('ПЕСЧАНАЯ БУРЯ!',p.x,p.y-40,'#d0a060',2,18));skillVFX(g,p.x,p.y,'vortex','#d0a060',R);}},
 'Разлом':{desc:'Телепорт с уроном.',cd:8,cast(g,p){const t=p.skills[this.n].tier;const E=elemMul(p,this.el);castVis(g,p,'#c080ff',15,0);p.x=cl(p.x+rnd(-400,400),50,WW-50);p.y=cl(p.y+rnd(-400,400),50,WH-50);const rlR=130*(p.aoeMult||1);for(const e of g.enemies)if(e.alive&&d2(e.x,e.y,p.x,p.y)<rlR*rlR)e.dmg(50*TM[t]*E);for(const b of g.bosses)if(b.alive&&d2(b.x,b.y,p.x,p.y)<rlR*rlR)b.dmg(50*TM[t]*E,src(t));g.ftxt.push(new FTxt('РАЗЛОМ!',p.x,p.y-40,'#c080ff',2,18));castVis(g,p,'#c080ff',20,rlR);}},
 'Резонанс':{desc:'+50% урона на 5 сек.',cd:6,cast(g,p){p.buffs.res=5;g.ftxt.push(new FTxt('РЕЗОНАНС!',p.x,p.y-40,'#a0c0ff',2,18));castVis(g,p,'#a0c0ff',20,90);}},
-'Разрушение':{desc:'Игнор защиты.',cd:10,cast(g,p,t){if(!t)return;const tr=p.skills[this.n].tier;t.dmg((90*TM[tr]+p.atk*3)*elemMul(p,this.el),src(tr));g.ftxt.push(new FTxt('РАЗРУШЕНИЕ!',t.x,t.y-40,'#ff6060',2,18));castVis(g,p,'#ff6060',12,0);for(let i=0;i<15;i++)g.particles.push(new Part(t.x,t.y,'#ff6060'));}},
+'Разрушение':{desc:'Коллапс материи в точке: мощный взрыв с игнорированием защиты.',cd:9,cast(g,p,t){if(!t)return;const tr=p.skills[this.n].tier;const d=(100*TM[tr]+p.atk*3)*elemMul(p,this.el);const R=120*(p.aoeMult||1);for(const e of g.enemies)if(e.alive&&d2(e.x,e.y,t.x,t.y)<R*R)e.dmg(d,src(tr));for(const b of g.bosses)if(b.alive&&d2(b.x,b.y,t.x,t.y)<R*R)b.dmg(d,src(tr));g.ftxt.push(new FTxt('РАЗРУШЕНИЕ!',t.x,t.y-40,'#ff6060',2,18));skillVFX(g,t.x,t.y,'slash','#ff6060',R);}},
 'Свет Творения':{desc:'Лечение и урон.',cd:12,cast(g,p){const t=p.skills[this.n].tier;const E=elemMul(p,this.el);p.hp=Math.min(p.maxHp,p.hp+100+t*50);const stR=160*(p.aoeMult||1);for(const e of g.enemies)if(e.alive&&d2(e.x,e.y,p.x,p.y)<stR*stR)e.dmg(60*TM[t]*E);for(const b of g.bosses)if(b.alive&&d2(b.x,b.y,p.x,p.y)<stR*stR)b.dmg(60*TM[t]*E,src(t));g.ftxt.push(new FTxt('СВЕТ ТВОРЕНИЯ!',p.x,p.y-40,'#fff8c0',2.2,20));castVis(g,p,'#fff8c0',30,stR);}},
 'Бездна':burst('Поглощение.',15,200,'#200040',200),
 'Уриэль':{ult:true,desc:'Ультимативный навык Добродетели.',cd:12,cast(g,p){const t=p.skills[this.n].tier;const E=elemMul(p,this.el);p.hp=Math.min(p.maxHp,p.hp+200*TM[t]);p.buffs.shield=8;p.addShield(3+Math.floor(t/2),true);const urR=200*(p.aoeMult||1);for(const e of g.enemies)if(e.alive&&d2(e.x,e.y,p.x,p.y)<urR*urR)e.dmg(80*TM[t]*E);for(const b of g.bosses)if(b.alive&&d2(b.x,b.y,p.x,p.y)<urR*urR)b.dmg(80*TM[t]*E,src(t));g.ftxt.push(new FTxt('УРИЭЛЬ: БЛАГОСЛОВЕНИЕ!',p.x,p.y-40,'#fff8c0',2.5,22));castVis(g,p,'#fff8c0',40,urR);}},
@@ -700,16 +734,16 @@ const SKILLS={
 'Живучесть':{desc:'Усиленная регенерация.',cd:6,cast(g,p){const heal=60+20*p.skills[this.n].tier;p.hp=Math.min(p.maxHp,p.hp+heal);g.ftxt.push(new FTxt('+'+~~heal+' HP',p.x,p.y-40,'#60ff60',1.8,16));castVis(g,p,'#60ff60',15,0);}},
 'Плодородие':{desc:'Массовое восстановление.',cd:8,cast(g,p){const heal=100+30*p.skills[this.n].tier;p.hp=Math.min(p.maxHp,p.hp+heal);p.buffs.regen=5;g.ftxt.push(new FTxt('+'+~~heal+' HP · Реген!',p.x,p.y-40,'#80ff80',2,18));castVis(g,p,'#80ff80',25,80);}},
 'Шуб-Ниггурат':{ult:true,desc:'Лавкрафтовский навык.',cd:14,cast(g,p){const t=p.skills[this.n].tier;const E=elemMul(p,this.el);p.hp=p.maxHp;p.mp=p.maxMp;p.buffs.shield=12;p.addShield(3+Math.floor(t/2),true);for(const e of g.enemies)if(e.alive)e.dmg(100*TM[t]*E,'supreme');for(const b of g.bosses)if(b.alive)b.dmg(100*TM[t]*E,'supreme');g.ftxt.push(new FTxt('ШУБ-НИГГУРАТ: ИЗОБИЛИЕ!',p.x,p.y-40,'#80ff80',2.5,24));castVis(g,p,'#80ff80',50,120);}},
-'Математик':{desc:'Ускорение мысли.',cd:8,cast(g,p){p.buffs.haste=4;p.crit=Math.min(100,p.crit+3);g.ftxt.push(new FTxt('МАТЕМАТИК: АНАЛИЗ!',p.x,p.y-40,'#a0c0ff',2,18));castVis(g,p,'#a0c0ff',15,60);}},
+'Просчёт Битвы':{desc:'Предсказывает траектории врагов: +крит, уклонение и замедление времени.',cd:8,cast(g,p){p.buffs.haste=4;p.crit=Math.min(100,p.crit+4);p.dod=Math.min(75,p.dod+2);g.timeSlowTimer=Math.max(g.timeSlowTimer,1.5);g.ftxt.push(new FTxt('ПРОСЧЁТ БИТВЫ!',p.x,p.y-40,'#a0c0ff',2,18));skillVFX(g,p.x,p.y,'rune','#a0c0ff',130);}},
 'Король Фортуны':{desc:'Высший навык удачи.',cd:12,cast(g,p){p.buffs.luck=10;p.buffs.haste=5;const E=elemMul(p,this.el);for(const e of g.enemies)if(e.alive)e.dmg(150*TM[p.skills[this.n].tier]*E,'supreme');for(const b of g.bosses)if(b.alive)b.dmg(150*TM[p.skills[this.n].tier]*E,'supreme');g.ftxt.push(new FTxt('КОРОЛЬ ФОРТУНЫ!',p.x,p.y-40,'#ffd700',3,22));castVis(g,p,'#ffd700',50,100);}},
-'Узурпатор':{desc:'Крадёт силы врагов.',cd:7,cast(g,p,t){if(!t)return;const tr=p.skills[this.n].tier;t.dmg((40*TM[tr]+p.atk*2)*elemMul(p,this.el),src(tr));if(t.atk)p.atk=~~(p.atk+Math.min(5,t.atk*0.05));g.ftxt.push(new FTxt('УЗУРПАТОР!',p.x,p.y-40,'#c080ff',2,16));castVis(g,p,'#c080ff',15,0);for(let i=0;i<10;i++)g.particles.push(new Part(t.x,t.y,'#c080ff'));}},
-'Избранный':{desc:'Пассивная удача.',cd:6,cast(g,p){p.buffs.luck=6;g.ftxt.push(new FTxt('ИЗБРАННЫЙ!',p.x,p.y-40,'#ffd700',2,18));castVis(g,p,'#ffd700',15,0);}},
+'Узурпатор':{desc:'Похищает силу цели: наносит урон, крадёт часть атаки и даёт Вдохновение.',cd:7,cast(g,p,t){if(!t)return;const tr=p.skills[this.n].tier;t.dmg((50*TM[tr]+p.atk*2.2)*elemMul(p,this.el),src(tr));if(t.atk){const steal=Math.min(6,t.atk*0.08);t.atk*=0.85;p.atk=~~(p.atk+steal);}p.buffs.insp=Math.max(p.buffs.insp,4);g.ftxt.push(new FTxt('УЗУРПАТОР: СИЛА УКРАДЕНА!',p.x,p.y-40,'#c080ff',2,16));skillVFX(g,t.x,t.y,'vortex','#c080ff',110);}},
+'Избранный':{desc:'Аура героя: повышает удачу, вдохновение и ослепляет врагов рядом.',cd:7,cast(g,p){p.buffs.luck=Math.max(p.buffs.luck,7);p.buffs.insp=Math.max(p.buffs.insp,4);const R=180*(p.aoeMult||1);for(const e of g.enemies)if(e.alive&&d2(e.x,e.y,p.x,p.y)<R*R)e.slowTimer=Math.max(e.slowTimer||0,2);g.ftxt.push(new FTxt('ИЗБРАННЫЙ ГЕРОЙ!',p.x,p.y-40,'#ffd700',2,18));skillVFX(g,p.x,p.y,'nova','#ffd700',R);}},
 'Путешественник во времени':{desc:'Замедляет время.',cd:10,cast(g,p){p.buffs.haste=3;g.timeSlowTimer=Math.max(g.timeSlowTimer,2);g.ftxt.push(new FTxt('ВРЕМЯ ОСТАНОВЛЕНО!',p.x,p.y-40,'#c080ff',2,18));castVis(g,p,'#c080ff',20,80);}},
-'Разумное Существо':{desc:'Лечит и даёт щит.',cd:10,cast(g,p){const heal=80+p.lv*10;p.hp=Math.min(p.maxHp,p.hp+heal);p.mp=Math.min(p.maxMp,p.mp+heal*0.5);p.buffs.shield=6;p.addShield(1+Math.floor(p.skills[this.n].tier/2),false);p.buffs.insp=5;g.ftxt.push(new FTxt('РАЗУМНОЕ СУЩЕСТВО!',p.x,p.y-40,'#ff80c0',2,18));castVis(g,p,'#ff80c0',25,80);}},
+'Пробуждение Души':{desc:'Исцеляет душу и тело, даёт слой барьера и Вдохновение.',cd:10,cast(g,p){const heal=80+p.lv*10;p.hp=Math.min(p.maxHp,p.hp+heal);p.mp=Math.min(p.maxMp,p.mp+heal*0.5);p.buffs.shield=6;p.addShield(1+Math.floor(p.skills[this.n].tier/2),false);p.buffs.insp=5;g.ftxt.push(new FTxt('ПРОБУЖДЕНИЕ ДУШИ!',p.x,p.y-40,'#ff80c0',2,18));skillVFX(g,p.x,p.y,'nova','#ff80c0',120);}},
 'Ярость Огра':{desc:'Прилив силы.',cd:9,cast(g,p){const t=p.skills[this.n].tier;const d=(p.atk*1.5)*TM[t];const R=150*(p.aoeMult||1);for(const e of g.enemies)if(e.alive&&d2(e.x,e.y,p.x,p.y)<R*R)e.dmg(d,'normal');for(const b of g.bosses)if(b.alive&&d2(b.x,b.y,p.x,p.y)<R*R)b.dmg(d,'normal');p.buffs.insp=6;p.buffs.haste=5;p.hp=Math.min(p.maxHp,p.hp+p.maxHp*0.15);g.ftxt.push(new FTxt('ЯРОСТЬ ОГРА!',p.x,p.y-40,'#ff6060',2,20));castVis(g,p,'#ff6060',25,R);}},
 'Гнев Демона':{ult:true,desc:'Прилив разрушительной ярости.',cd:11,cast(g,p){const t=p.skills[this.n].tier;const E=elemMul(p,this.el);const d=((p.atk*2.5)*TM[t]+p.mag*.5)*E;const R=180*(p.aoeMult||1);for(const e of g.enemies)if(e.alive&&d2(e.x,e.y,p.x,p.y)<R*R){e.dmg(d,'normal');p.hp=Math.min(p.maxHp,p.hp+d*0.08);}for(const b of g.bosses)if(b.alive&&d2(b.x,b.y,p.x,p.y)<R*R){b.dmg(d,'normal');p.hp=Math.min(p.maxHp,p.hp+d*0.08);}p.buffs.insp=5;p.buffs.haste=4;g.ftxt.push(new FTxt('ГНЕВ ДЕМОНА!',p.x,p.y-40,'#ff2020',2.2,20));for(let i=0;i<25;i++)g.particles.push(new Part(p.x,p.y,'#ff2020'));}},
 'Аналитик':{desc:'Снижает ATK врагов.',cd:8,cast(g,p){const R=250*(p.aoeMult||1);for(const e of g.enemies)if(e.alive&&d2(e.x,e.y,p.x,p.y)<R*R)e.atk*=0.7;for(const b of g.bosses)if(b.alive&&d2(b.x,b.y,p.x,p.y)<R*R)b.atk*=0.7;p.buffs.insp=4;g.ftxt.push(new FTxt('АНАЛИТИК!',p.x,p.y-40,'#a0c0ff',2,18));castVis(g,p,'#a0c0ff',25,R);}},
-'Наследник':{desc:'Ригур ведёт за собой.',cd:10,cast(g,p){p.buffs.haste=5;p.buffs.insp=3;g.ftxt.push(new FTxt('ВПЕРЁД!',p.x,p.y-40,'#80ff80',2,18));castVis(g,p,'#80ff80',20,70);}},
+'Воля Стража':{desc:'Боевой клич командира: ускорение, вдохновение и удар по площади.',cd:9,cast(g,p){const tr=p.skills[this.n].tier;const d=(35*TM[tr]+p.atk*1.4)*elemMul(p,this.el);const R=150*(p.aoeMult||1);for(const e of g.enemies)if(e.alive&&d2(e.x,e.y,p.x,p.y)<R*R)e.dmg(d,'normal');p.buffs.haste=5;p.buffs.insp=4;g.ftxt.push(new FTxt('ВОЛЯ СТРАЖА!',p.x,p.y-40,'#80ff80',2,18));skillVFX(g,p.x,p.y,'rune','#80ff80',R);}},
 'Теневая Ниндзя':{desc:'Удар из тени.',cd:6,cast(g,p,t){if(!t)return;const tr=p.skills[this.n].tier;p.x=t.x-rnd(50,100);p.y=t.y-rnd(50,100);t.dmg((60*TM[tr]+p.atk*1.5)*elemMul(p,this.el),src(tr));g.particles.push(...[...Array(12)].map(()=>new Part(p.x,p.y,'#404060')));}},
 'Героический Король':{desc:'Сила героя.',cd:9,cast(g,p,t){if(!t)return;const tr=p.skills[this.n].tier;t.dmg((100*TM[tr]+p.atk*3)*elemMul(p,this.el),src(tr));p.buffs.stoic=4;g.ftxt.push(new FTxt('УДАР КОРОЛЯ!',p.x,p.y-40,'#ffd700',2,20));castVis(g,p,'#ffd700',20,0);for(let i=0;i<20;i++)g.particles.push(new Part(t.x,t.y,'#ffd700'));}},
 'Щит Стража':{desc:'Прикрывает союзника.',cd:12,cast(g,p){p.buffs.shield=8;p.addShield(2+Math.floor(p.skills[this.n].tier/2),false);g.ftxt.push(new FTxt('ЗАЩИТА КАБАЛА!',p.x,p.y-40,'#a0c0ff',2,18));castVis(g,p,'#a0c0ff',25,80);}},
@@ -779,16 +813,7 @@ const SKILLS={
   g.ftxt.push(new FTxt('САРИЭЛЬ: НАДЕЖДА!',p.x,p.y-60,'#fff8c0',3,26));
   castVis(g,p,'#fff8c0',60,200);
 }},
-'Deus Ex Machina':{ult:true,desc:'Машинные боги. Призывает турели.',cd:14,cast(g,p){
-  const t=p.skills[this.n].tier;
-  const dmgBase=(80*TM[t]+p.mag)*elemMul(p,this.el);
-  // Имитация турелей - просто наносим урон по всем в радиусе
-  for(const e of g.enemies)if(e.alive&&d2(e.x,e.y,p.x,p.y)<500*500)e.dmg(dmgBase,'supreme');
-  for(const b of g.bosses)if(b.alive&&d2(b.x,b.y,p.x,p.y)<500*500)b.dmg(dmgBase,'supreme');
-  p.buffs.haste=5;
-  g.ftxt.push(new FTxt('DEUS EX MACHINA!',p.x,p.y-50,'#a0c0ff',2.5,22));
-  for(let i=0;i<20;i++)g.particles.push(new Part(p.x+rnd(-150,150),p.y+rnd(-150,150),'#a0c0ff'));
-}},
+'Deus Ex Machina':{ult:true,desc:'Призывает 6 автономных орудий, бьющих лазерами по ближайшим врагам.',cd:14,cast(g,p){const t=p.skills[this.n].tier;const dmgBase=(95*TM[t]+p.mag*1.4)*elemMul(p,this.el);const targets=[...g.enemies.filter(e=>e.alive),...g.bosses.filter(b=>b.alive)];for(let i=0;i<6;i++){const ang=i/6*Math.PI*2;const tx2=p.x+Math.cos(ang)*110,ty2=p.y+Math.sin(ang)*110;const tgt=targets.length>0?targets[i%targets.length]:null;const lAng=tgt?Math.atan2(tgt.y-ty2,tgt.x-tx2):ang;laserBeam(g,tx2,ty2,lAng,{length:1400*(p.aoeMult||1),width:18,telegraph:0.15,duration:0.45,dmg:dmgBase,color:'#a0c0ff',friendly:true,pierce:5,src:'supreme'});}p.buffs.haste=5;g.ftxt.push(new FTxt('DEUS EX MACHINA!',p.x,p.y-50,'#a0c0ff',2.5,22));skillVFX(g,p.x,p.y,'rune','#a0c0ff',150);}},
 'Сефирот':{ult:true,desc:'Король Жизни. Древо Жизни - массовое лечение и бафф.',cd:14,cast(g,p){
   const t=p.skills[this.n].tier;
   p.hp=p.maxHp;p.mp=p.maxMp;
@@ -803,28 +828,9 @@ const SKILLS={
   g.ftxt.push(new FTxt('ВЕЧНЫЙ: БЕСКОНЕЧНОСТЬ!',p.x,p.y-60,'#ffffff',3,26));
   castVis(g,p,'#ffffff',80,0);
 }},
-'Бессмертный':{desc:'Неумирающий. Отказ от смерти на 5 сек.',cd:20,cast(g,p){
-  const t=p.skills[this.n].tier;
-  p.tear=true;p.tearCd=0;
-  p.buffs.invuln=5;p.buffs.stoic=5;
-  p.hp=Math.min(p.maxHp,p.hp+200*TM[t]);
-  g.ftxt.push(new FTxt('БЕССМЕРТНЫЙ!',p.x,p.y-50,'#ff8040',2.5,22));
-  castVis(g,p,'#ff8040',40,80);
-}},
+'Бессмертный':{desc:'Неумирающее тело: 4 сек полного иммунитета, стойкость и исцеление.',cd:18,cast(g,p){const t=p.skills[this.n].tier;p.buffs.invuln=Math.max(p.buffs.invuln,4);p.buffs.stoic=Math.max(p.buffs.stoic,6);p.hp=Math.min(p.maxHp,p.hp+220*TM[t]);g.ftxt.push(new FTxt('БЕССМЕРТНЫЙ!',p.x,p.y-50,'#ff8040',2.5,22));skillVFX(g,p.x,p.y,'nova','#ff8040',140);}},
 // === ПАРТИЯ 2: ТЬМА и ГРЕХИ ===
-'Азазель':{desc:'Король Искушения. Заставляет врагов бить друг друга.',cd:8,cast(g,p){
-  const t=p.skills[this.n].tier;const E=elemMul(p,this.el);
-  const d=(80*TM[t]+p.mag*1.5)*E;
-  for(const e of g.enemies){
-    if(!e.alive||d2(e.x,e.y,p.x,p.y)>250*250)continue;
-    e.dmg(d,'supreme');
-    if(Math.random()<0.4) e.atk*=0.6;
-  }
-  for(const b of g.bosses) if(b.alive&&d2(b.x,b.y,p.x,p.y)<250*250){b.dmg(d,'supreme');b.atk*=0.85;}
-  p.buffs.haste=3;
-  g.ftxt.push(new FTxt('АЗАЗЕЛЬ: ИСКУШЕНИЕ!',p.x,p.y-50,'#a040a0',2.5,20));
-  castVis(g,p,'#a040a0',30,250);
-}},
+'Азазель':{desc:'Король Искушения. Обращает врагов против себя (-40% ATK) и вытягивает MP.',cd:8,cast(g,p){const t=p.skills[this.n].tier;const d=(90*TM[t]+p.mag*1.6)*elemMul(p,this.el);const R=260*(p.aoeMult||1);let hits=0;for(const e of g.enemies)if(e.alive&&d2(e.x,e.y,p.x,p.y)<R*R){e.dmg(d,'supreme');e.atk*=0.6;hits++;}for(const b of g.bosses)if(b.alive&&d2(b.x,b.y,p.x,p.y)<R*R){b.dmg(d,'supreme');b.atk*=0.85;hits++;}p.mp=Math.min(p.maxMp,p.mp+hits*8);p.buffs.haste=3;g.ftxt.push(new FTxt('АЗАЗЕЛЬ: ИСКУШЕНИЕ!',p.x,p.y-50,'#a040a0',2.5,20));skillVFX(g,p.x,p.y,'vortex','#a040a0',R);}},
 'Люцифер':{desc:'Король Гордыни. Взрыв гордыни. Урон растет от числа убийств.',cd:7,cast(g,p){
   const t=p.skills[this.n].tier;const E=elemMul(p,this.el);
   const mult = Math.min(5, 1 + p.kills*0.001);
@@ -872,19 +878,7 @@ const SKILLS={
   g.ftxt.push(new FTxt('БЕЛЬФЕГОР: ЛЕНЬ!',p.x,p.y-60,'#80ff80',3,24));
   castVis(g,p,'#80ff80',50,400);
 }},
-'Мамон':{desc:'Король Жадности. Крадет баффы врагов.',cd:9,cast(g,p){
-  const t=p.skills[this.n].tier;const E=elemMul(p,this.el);
-  const d=(100*TM[t]+p.mag*2)*E;
-  let stolen=0;
-  for(const e of g.enemies)if(e.alive&&d2(e.x,e.y,p.x,p.y)<300*300){
-    e.dmg(d,'supreme');
-    if(e.atk>e.t.a){e.atk=e.t.a;stolen++;}
-  }
-  for(const b of g.bosses)if(b.alive&&d2(b.x,b.y,p.x,p.y)<300*300)b.dmg(d,'supreme');
-  if(stolen>0){p.atk+=stolen*2;p.buffs.insp=5;}
-  g.ftxt.push(new FTxt('МАМОН: ЖАДНОСТЬ!',p.x,p.y-50,'#ffcc44',2.5,22));
-  castVis(g,p,'#ffcc44',30,300);
-}},
+'Мамон':{desc:'Король Жадности. Вытягивает жизненную силу, ману и золото из врагов вокруг.',cd:9,cast(g,p){const t=p.skills[this.n].tier;const d=(105*TM[t]+p.mag*2)*elemMul(p,this.el);const R=300*(p.aoeMult||1);let drained=0;for(const e of g.enemies)if(e.alive&&d2(e.x,e.y,p.x,p.y)<R*R){e.dmg(d,'supreme');drained++;}for(const b of g.bosses)if(b.alive&&d2(b.x,b.y,p.x,p.y)<R*R){b.dmg(d,'supreme');drained+=3;}if(drained>0){p.heal(Math.min(p.maxHp*0.2,drained*8));p.mp=Math.min(p.maxMp,p.mp+drained*5);p.gold+=drained*2;p.buffs.insp=5;}g.ftxt.push(new FTxt('МАМОН: ЖАДНОСТЬ!',p.x,p.y-50,'#ffcc44',2.5,22));skillVFX(g,p.x,p.y,'vortex','#ffcc44',R);}},
 'Амон':{ult:true,desc:'Король Алчности. Крадет жизнь (вампиризм x5).',cd:14,cast(g,p){
   const t=p.skills[this.n].tier;const E=elemMul(p,this.el);
   const d=(250*TM[t]+p.atk*3)*E;
@@ -1044,21 +1038,7 @@ const SKILLS={
   for(let i=0;i<50;i++)g.particles.push(new Part(p.x+rnd(-250,250),p.y+rnd(-250,250),'#ffa040'));
 }},
 // === ПАРТИЯ 4: РАЗУМ, ИЛЛЮЗИИ, ГЕРОИЗМ, КОСМОС ===
-'Мефисто':{desc:'Король Фантазии. Превращает врагов в лягушек (стан).',cd:10,cast(g,p){
-  const t=p.skills[this.n].tier;const E=elemMul(p,this.el);
-  const d=(120*TM[t]+p.mag*1.8)*E;
-  for(const e of g.enemies)if(e.alive&&d2(e.x,e.y,p.x,p.y)<350*350){
-    e.dmg(d,'supreme');
-    e.slowTimer=Math.max(e.slowTimer||0,3);
-    e.atk*=0.7;
-  }
-  for(const b of g.bosses)if(b.alive&&d2(b.x,b.y,p.x,p.y)<350*350){
-    b.dmg(d,'supreme');
-    b.slowTimer=Math.max(b.slowTimer||0,1.5);
-  }
-  g.ftxt.push(new FTxt('МЕФИСТО: ФАНТАЗИЯ!',p.x,p.y-50,'#ff40ff',2.5,22));
-  castVis(g,p,'#ff40ff',35,350);
-}},
+'Мефисто':{desc:'Король Фантазии. Создаёт мир иллюзий: 2 сек иммунитета и дезориентация врагов.',cd:10,cast(g,p){const t=p.skills[this.n].tier;const d=(130*TM[t]+p.mag*1.9)*elemMul(p,this.el);const R=350*(p.aoeMult||1);for(const e of g.enemies)if(e.alive&&d2(e.x,e.y,p.x,p.y)<R*R){e.dmg(d,'supreme');e.slowTimer=Math.max(e.slowTimer||0,3);e.atk*=0.7;}for(const b of g.bosses)if(b.alive&&d2(b.x,b.y,p.x,p.y)<R*R){b.dmg(d,'supreme');b.slowTimer=Math.max(b.slowTimer||0,1.5);}p.buffs.invuln=Math.max(p.buffs.invuln,2);g.ftxt.push(new FTxt('МЕФИСТО: МИР ИЛЛЮЗИЙ!',p.x,p.y-50,'#ff40ff',2.5,22));skillVFX(g,p.x,p.y,'rune','#ff40ff',R);}},
 'Фортуна':{ult:true,desc:'Король Шанса. Следующий удар критует x5, уклонение 100%.',cd:15,cast(g,p){
   p.buffs.luck=8;p.buffs.haste=5;
   p.crit=Math.min(100,p.crit+30);p.cdmg+=2.0;
@@ -1080,22 +1060,7 @@ const SKILLS={
   g.ftxt.push(new FTxt('ИСТИННЫЙ ГЕРОЙ!',p.x,p.y-50,'#ffed80',2.5,22));
   castVis(g,p,'#ffed80',40,300);
 }},
-'Яоёродзу':{ult:true,desc:'Проводник. Телепорт + неуязвимость + массовый урон.',cd:16,cast(g,p){
-  const t=p.skills[this.n].tier;const E=elemMul(p,this.el);
-  const d=(180*TM[t]+p.mag*2.5)*E;
-  const targets = [...g.enemies.filter(e=>e.alive), ...g.bosses.filter(b=>b.alive)];
-  if(targets.length > 0){
-    const tgt = pick(targets);
-    p.x = tgt.x - Math.cos(p.aim)*80;
-    p.y = tgt.y - Math.sin(p.aim)*80;
-    p.x = cl(p.x, 50, WW-50);p.y = cl(p.y, 50, WH-50);
-  }
-  for(const e of g.enemies)if(e.alive)e.dmg(d,'supreme');
-  for(const b of g.bosses)if(b.alive)b.dmg(d,'supreme');
-  p.buffs.invuln=2;p.buffs.haste=4;
-  g.ftxt.push(new FTxt('ЯОЁРОДЗУ: ПРОВОДНИК!',p.x,p.y-60,'#a0c0ff',3,24));
-  castVis(g,p,'#a0c0ff',50,0);
-}},
+'Яоёродзу':{ult:true,desc:'Проводник. Перестраивает магию (сброс КД заклинаний) и бьёт по площади.',cd:16,cast(g,p){const t=p.skills[this.n].tier;const d=(190*TM[t]+p.mag*2.5)*elemMul(p,this.el);for(const sp of p.spells)sp.cd=0;for(const e of g.enemies)if(e.alive)e.dmg(d,'supreme');for(const b of g.bosses)if(b.alive)b.dmg(d,'supreme');p.buffs.invuln=2;p.buffs.haste=4;g.ftxt.push(new FTxt('ЯОЁРОДЗУ: ПЕРЕСТРОЙКА!',p.x,p.y-60,'#a0c0ff',3,24));skillVFX(g,p.x,p.y,'nova','#a0c0ff',260);}},
 'Цукиёми':{desc:'Король Лунной Тени. Клоны наносят серию ударов.',cd:7,cast(g,p){
   const t=p.skills[this.n].tier;const E=elemMul(p,this.el);
   const d=(70*TM[t]+p.atk*1.5)*E;
@@ -1291,8 +1256,45 @@ const SKILLS={
   g.ftxt.push(new FTxt('СОЗДАТЕЛЬ НАСТРОЕНИЯ!',p.x,p.y-50,'#a0c0ff',2.5,22));
   castVis(g,p,'#a0c0ff',40,400);
 }},
-'Стихийный Коллапс':{ult:true,desc:'Высший синтез. Конус пламени + абсолютная заморозка.',cd:6,cast(g,p,t){const tier=p.skills[this.n].tier;const extra=p.projBonus||0;const dFire=(45 * TM[tier] + p.atk + p.mag) * elemMul(p,'fire');const dIce=(55 * TM[tier] + p.mag * 1.5) * elemMul(p,'ice');const pa=predictAim(p.x,p.y,t,680);const a0=pa!==null?pa:p.aim;const cnt=9+extra;for(let i=0;i<cnt;i++){const a=a0+(i-(cnt-1)/2) * 0.11;const pr=new Proj(p.x,p.y,Math.cos(a) * 680,Math.sin(a) * 680,dFire,'#ff5020',9 * (p.aoeMult||1),true,4+(p.pierceBonus||0),'supreme');pr.explR=45 * (p.aoeMult||1);pr.explDmg=dFire * 0.4;g.proj.push(pr);}const R=220 * (p.aoeMult||1);for(const e of g.enemies)if(e.alive&&d2(e.x,e.y,p.x,p.y)<R * R){e.dmg(dIce,'supreme');e.slowTimer=Math.max(e.slowTimer||0,4);}for(const b of g.bosses)if(b.alive&&d2(b.x,b.y,p.x,p.y)<R * R){b.dmg(dIce,'supreme');b.slowTimer=Math.max(b.slowTimer||0,2);}castVis(g,p,'#80d0ff',30,R * 0.85);castVis(g,p,'#ff6020',20,0);g.ftxt.push(new FTxt('СТИХИЙНЫЙ КОЛЛАПС!',p.x,p.y-50,'#a0e0ff',2.2,20));g.shake=10;}}
-
+'Стихийный Коллапс':{ult:true,desc:'Высший синтез. Конус пламени + абсолютная заморозка.',cd:6,cast(g,p,t){const tier=p.skills[this.n].tier;const extra=p.projBonus||0;const dFire=(45 * TM[tier] + p.atk + p.mag) * elemMul(p,'fire');const dIce=(55 * TM[tier] + p.mag * 1.5) * elemMul(p,'ice');const pa=predictAim(p.x,p.y,t,680);const a0=pa!==null?pa:p.aim;const cnt=9+extra;for(let i=0;i<cnt;i++){const a=a0+(i-(cnt-1)/2) * 0.11;const pr=new Proj(p.x,p.y,Math.cos(a) * 680,Math.sin(a) * 680,dFire,'#ff5020',9 * (p.aoeMult||1),true,4+(p.pierceBonus||0),'supreme');pr.explR=45 * (p.aoeMult||1);pr.explDmg=dFire * 0.4;g.proj.push(pr);}const R=220 * (p.aoeMult||1);for(const e of g.enemies)if(e.alive&&d2(e.x,e.y,p.x,p.y)<R * R){e.dmg(dIce,'supreme');e.slowTimer=Math.max(e.slowTimer||0,4);}for(const b of g.bosses)if(b.alive&&d2(b.x,b.y,p.x,p.y)<R * R){b.dmg(dIce,'supreme');b.slowTimer=Math.max(b.slowTimer||0,2);}castVis(g,p,'#80d0ff',30,R * 0.85);castVis(g,p,'#ff6020',20,0);g.ftxt.push(new FTxt('СТИХИЙНЫЙ КОЛЛАПС!',p.x,p.y-50,'#a0e0ff',2.2,20));g.shake=10;}},
+'Мудрец':{desc:'Базовый анализ: ускорение мысли и импульс вокруг.',cd:9,cast(g,p){const t=p.skills[this.n].tier;const r=(55+t * 15) * (p.aoeMult||1);const E=elemMul(p,this.el);for(const e of g.enemies)if(e.alive&&d2(e.x,e.y,p.x,p.y)<r * r)e.dmg(18 * TM[t] * E);for(const b of g.bosses)if(b.alive&&d2(b.x,b.y,p.x,p.y)<r * r)b.dmg(18 * TM[t] * E,src(t));g.ftxt.push(new FTxt('Базовый анализ',p.x,p.y-40,'#80b0ff'));skillVFX(g,p.x,p.y,'rune','#80b0ff',r);}},
+'Господство':{desc:'Подчиняет слабых врагов и бьёт светом вокруг.',cd:8,cast(g,p){const t=p.skills[this.n].tier;const d=(60 * TM[t] + p.mag * 1.4) * elemMul(p,this.el);const R=220 * (p.aoeMult||1);for(const e of g.enemies)if(e.alive&&d2(e.x,e.y,p.x,p.y)<R * R){e.dmg(d,src(t));e.atk*=0.75;}for(const b of g.bosses)if(b.alive&&d2(b.x,b.y,p.x,p.y)<R * R)b.dmg(d,src(t));g.ftxt.push(new FTxt('ГОСПОДСТВО!',p.x,p.y-40,'#f0d060',2,18));skillVFX(g,p.x,p.y,'nova','#f0d060',R);}},
+'Небесный Приказ':{desc:'Подавляет врагов в радиусе и наносит световой урон.',cd:7,cast(g,p){const t=p.skills[this.n].tier;const d=(90 * TM[t] + p.mag * 1.6) * elemMul(p,this.el);const R=240 * (p.aoeMult||1);for(const e of g.enemies)if(e.alive&&d2(e.x,e.y,p.x,p.y)<R * R){e.dmg(d,src(t));e.atk*=0.7;}for(const b of g.bosses)if(b.alive&&d2(b.x,b.y,p.x,p.y)<R * R)b.dmg(d,src(t));skillVFX(g,p.x,p.y,'nova','#f0d060',R);}},
+'Суд Архангела':{desc:'Световой импульс подавляет врагов вокруг.',cd:7,cast(g,p){const tr=p.skills[this.n].tier;const d=(110 * TM[tr] + p.mag * 1.8) * elemMul(p,this.el);const R=250 * (p.aoeMult||1);for(const e of g.enemies)if(e.alive&&d2(e.x,e.y,p.x,p.y)<R * R){e.dmg(d,src(tr));e.atk*=0.7;}for(const b of g.bosses)if(b.alive&&d2(b.x,b.y,p.x,p.y)<R * R)b.dmg(d,src(tr));skillVFX(g,p.x,p.y,'nova','#f0d060',R);}},
+'Искушение':{desc:'Пронзающий удар тьмы и вытягивание энергии.',cd:5,cast(g,p,t){if(!t)return;const tr=p.skills[this.n].tier;const d=(55 * TM[tr] + p.mag * 1.5) * elemMul(p,this.el);t.dmg(d,src(tr));p.mp=Math.min(p.maxMp,p.mp + 20 + tr * 10);skillVFX(g,t.x,t.y,'vortex','#a040a0',90);}},
+'Очарование Бездны':{desc:'Взрыв тёмной энергии + восстановление MP.',cd:5,cast(g,p,t){if(!t)return;const tr=p.skills[this.n].tier;const d=(85 * TM[tr] + p.mag * 1.8) * elemMul(p,this.el);t.dmg(d,src(tr));p.mp=Math.min(p.maxMp,p.mp + 30 + tr * 12);skillVFX(g,t.x,t.y,'vortex','#a040a0',110);}},
+'Сеть Порока':{desc:'Тёмные нити вытягивают MP и ослабляют врагов.',cd:6,cast(g,p,t){if(!t)return;const tr=p.skills[this.n].tier;const d=(100 * TM[tr] + p.mag * 2.0) * elemMul(p,this.el);t.dmg(d,src(tr));p.mp=Math.min(p.maxMp,p.mp+40+tr * 15);skillVFX(g,t.x,t.y,'vortex','#a040a0',130);}},
+'Кровавый Закат':{desc:'Багровая дуга и режущая волна тьмы в сторону врага.',cd:6.5,cast(g,p,t){const tr=p.skills[this.n].tier;const d=(115 * TM[tr] + p.atk * 2.2) * elemMul(p,this.el);const a=t?Math.atan2(t.y-p.y,t.x-p.x):p.aim;const R=240 * (p.aoeMult||1);g.slashes.push(new Slash(p.x,p.y,a,R,Math.PI * 0.9,'#ff3050'));doMeleeHit(g,p,a,R,Math.PI * 0.9,d,src(tr));const pr=new Proj(p.x,p.y,Math.cos(a) * 760,Math.sin(a) * 760,d * 0.75,'#ff3050',12 * (p.aoeMult||1),true,99,src(tr));pr.l=0.9;pr.visType='beam';g.proj.push(pr);skillVFX(g,p.x,p.y,'slash','#ff3050',R * 0.75,a);}},
+'Мастер-Шеф':{desc:'Искажает суть цели: гарантированный критический разрез.',cd:6,cast(g,p,t){if(!t)return;const tr=p.skills[this.n].tier;const d=(75 * TM[tr] + p.atk * 2.4) * p.cdmg * elemMul(p,this.el);t.dmg(d,src(tr));g.ftxt.push(new FTxt('МАСТЕР-ШЕФ!',t.x,t.y-40,'#ff60c0',2,18));skillVFX(g,t.x,t.y,'slash','#ff60c0',100);}},
+'Искажение Сути':{desc:'Двойной критический разрез реальности.',cd:5.5,cast(g,p,t){if(!t)return;const tr=p.skills[this.n].tier;const d=(110 * TM[tr] + p.atk * 2.8) * p.cdmg * elemMul(p,this.el);t.dmg(d,src(tr));skillVFX(g,t.x,t.y,'slash','#ff60c0',130);}},
+'Ядерное Пламя':{desc:'Сверхплотный взрыв огненной плазмы по площади.',cd:7,cast(g,p,t){const tr=p.skills[this.n].tier;const d=(90 * TM[tr] + p.mag * 2.0) * elemMul(p,this.el);const cx=t?t.x:p.x,cy=t?t.y:p.y;const R=190 * (p.aoeMult||1);for(const e of g.enemies)if(e.alive&&d2(e.x,e.y,cx,cy)<R * R)e.dmg(d,src(tr));for(const b of g.bosses)if(b.alive&&d2(b.x,b.y,cx,cy)<R * R)b.dmg(d,src(tr));skillVFX(g,cx,cy,'fire','#ff4020',R);g.shake=8;}},
+'Цепная Детонация':{desc:'Серия ядерных вспышек по площади.',cd:6.5,cast(g,p,t){const tr=p.skills[this.n].tier;const d=(130 * TM[tr] + p.mag * 2.2) * elemMul(p,this.el);const cx=t?t.x:p.x,cy=t?t.y:p.y;const R=230 * (p.aoeMult||1);for(const e of g.enemies)if(e.alive&&d2(e.x,e.y,cx,cy)<R * R)e.dmg(d,src(tr));for(const b of g.bosses)if(b.alive&&d2(b.x,b.y,cx,cy)<R * R)b.dmg(d,src(tr));skillVFX(g,cx,cy,'fire','#ff4020',R);g.shake=10;}},
+'Коллапс Пустоты':{desc:'Сжимает пространство и наносит мощный урон пустотой.',cd:8,cast(g,p){const tr=p.skills[this.n].tier;const d=(115 * TM[tr] + p.mag * 2.0) * elemMul(p,this.el);const R=240 * (p.aoeMult||1);for(const e of g.enemies)if(e.alive&&d2(e.x,e.y,p.x,p.y)<R * R)e.dmg(d,src(tr));for(const b of g.bosses)if(b.alive&&d2(b.x,b.y,p.x,p.y)<R * R)b.dmg(d,src(tr));skillVFX(g,p.x,p.y,'vortex','#6020a0',R);}},
+'Ядовитое Дыхание':{desc:'Облако токсинов: урон и замедление врагов.',cd:5,cast(g,p){const tr=p.skills[this.n].tier;const d=(40 * TM[tr] + p.mag) * elemMul(p,this.el);const R=170 * (p.aoeMult||1);for(const e of g.enemies)if(e.alive&&d2(e.x,e.y,p.x,p.y)<R * R){e.dmg(d,src(tr));e.slowTimer=Math.max(e.slowTimer||0,2.5);}for(const b of g.bosses)if(b.alive&&d2(b.x,b.y,p.x,p.y)<R * R)b.dmg(d,src(tr));skillVFX(g,p.x,p.y,'rune','#80c080',R);}},
+'Токсичный Туман':{desc:'Густое ядовитое облако с сильным замедлением.',cd:5,cast(g,p){const tr=p.skills[this.n].tier;const d=(70 * TM[tr] + p.mag * 1.3) * elemMul(p,this.el);const R=200 * (p.aoeMult||1);for(const e of g.enemies)if(e.alive&&d2(e.x,e.y,p.x,p.y)<R * R){e.dmg(d,src(tr));e.slowTimer=Math.max(e.slowTimer||0,3);}for(const b of g.bosses)if(b.alive&&d2(b.x,b.y,p.x,p.y)<R * R)b.dmg(d,src(tr));skillVFX(g,p.x,p.y,'rune','#80c080',R);}},
+'Ядовитый Миазм':{desc:'Концентрированный яд наносит урон и режет атаку.',cd:5.5,cast(g,p){const tr=p.skills[this.n].tier;const d=(95 * TM[tr] + p.mag * 1.6) * elemMul(p,this.el);const R=220 * (p.aoeMult||1);for(const e of g.enemies)if(e.alive&&d2(e.x,e.y,p.x,p.y)<R * R){e.dmg(d,src(tr));e.slowTimer=Math.max(e.slowTimer||0,3.5);e.atk*=0.8;}for(const b of g.bosses)if(b.alive&&d2(b.x,b.y,p.x,p.y)<R * R)b.dmg(d,src(tr));skillVFX(g,p.x,p.y,'vortex','#80c080',R);}},
+'Смертельный Яд':{desc:'Разъедающая аура: снижает атаку врагов и лечит героя.',cd:7,cast(g,p){const tr=p.skills[this.n].tier;const d=(65 * TM[tr] + p.mag * 1.4) * elemMul(p,this.el);const R=210 * (p.aoeMult||1);let hits=0;for(const e of g.enemies)if(e.alive&&d2(e.x,e.y,p.x,p.y)<R * R){e.dmg(d,src(tr));e.atk*=0.8;hits++;}for(const b of g.bosses)if(b.alive&&d2(b.x,b.y,p.x,p.y)<R * R){b.dmg(d,src(tr));hits++;}if(hits>0)p.heal(Math.min(p.maxHp * 0.15,hits * 12));skillVFX(g,p.x,p.y,'vortex','#a040c0',R);}},
+'Некроз Души':{desc:'Разъедает защиту врагов и лечит героя.',cd:6.5,cast(g,p){const tr=p.skills[this.n].tier;const d=(95 * TM[tr] + p.mag * 1.6) * elemMul(p,this.el);const R=230 * (p.aoeMult||1);let hits=0;for(const e of g.enemies)if(e.alive&&d2(e.x,e.y,p.x,p.y)<R * R){e.dmg(d,src(tr));e.atk*=0.75;hits++;}for(const b of g.bosses)if(b.alive&&d2(b.x,b.y,p.x,p.y)<R * R){b.dmg(d,src(tr));hits++;}if(hits>0)p.heal(Math.min(p.maxHp * 0.2,hits * 15));skillVFX(g,p.x,p.y,'vortex','#a040c0',R);}},
+'Сон Бездны':{desc:'Усыпляет врагов вокруг (глубокое замедление) и лечит.',cd:9,cast(g,p){const tr=p.skills[this.n].tier;const d=(50 * TM[tr] + p.mag * 1.2) * elemMul(p,this.el);const R=240 * (p.aoeMult||1);for(const e of g.enemies)if(e.alive&&d2(e.x,e.y,p.x,p.y)<R * R){e.dmg(d,src(tr));e.slowTimer=Math.max(e.slowTimer||0,4);}for(const b of g.bosses)if(b.alive&&d2(b.x,b.y,p.x,p.y)<R * R)b.dmg(d,src(tr));p.heal(40 + tr * 25);skillVFX(g,p.x,p.y,'rune','#80ff80',R);}},
+'Кошмарная Дрёма':{desc:'Погружает врагов в тяжёлый сон и восстанавливает силы.',cd:8,cast(g,p){const tr=p.skills[this.n].tier;const d=(85 * TM[tr] + p.mag * 1.5) * elemMul(p,this.el);const R=260 * (p.aoeMult||1);for(const e of g.enemies)if(e.alive&&d2(e.x,e.y,p.x,p.y)<R * R){e.dmg(d,src(tr));e.slowTimer=Math.max(e.slowTimer||0,4.5);}for(const b of g.bosses)if(b.alive&&d2(b.x,b.y,p.x,p.y)<R * R)b.dmg(d,src(tr));p.heal(65 + tr * 30);skillVFX(g,p.x,p.y,'rune','#80ff80',R);}},
+'Летаргия':{desc:'Глубокое оцепенение врагов вокруг и восстановление HP.',cd:8,cast(g,p){const tr=p.skills[this.n].tier;const d=(105 * TM[tr] + p.mag * 1.7) * elemMul(p,this.el);const R=270 * (p.aoeMult||1);for(const e of g.enemies)if(e.alive&&d2(e.x,e.y,p.x,p.y)<R * R){e.dmg(d,src(tr));e.slowTimer=Math.max(e.slowTimer||0,5);}for(const b of g.bosses)if(b.alive&&d2(b.x,b.y,p.x,p.y)<R * R)b.dmg(d,src(tr));p.heal(80+tr * 35);skillVFX(g,p.x,p.y,'ice','#80ff80',R);}},
+'Алая Жажда':{desc:'Усиленный вампиризм и кровавый импульс по площади.',cd:9,cast(g,p){const tr=p.skills[this.n].tier;const d=(80 * TM[tr] + p.mag * 1.4) * elemMul(p,this.el);const R=210 * (p.aoeMult||1);for(const e of g.enemies)if(e.alive&&d2(e.x,e.y,p.x,p.y)<R * R)e.dmg(d,src(tr));for(const b of g.bosses)if(b.alive&&d2(b.x,b.y,p.x,p.y)<R * R)b.dmg(d,src(tr));p.buffs.vamp=Math.max(p.buffs.vamp,10);p.heal(45 + tr * 20);skillVFX(g,p.x,p.y,'vortex','#e04060',R);}},
+'Кровавый Пир':{desc:'Мощный вампирский импульс по площади.',cd:8.5,cast(g,p){const tr=p.skills[this.n].tier;const d=(110 * TM[tr] + p.mag * 1.7) * elemMul(p,this.el);const R=230 * (p.aoeMult||1);let h=0;for(const e of g.enemies)if(e.alive&&d2(e.x,e.y,p.x,p.y)<R * R){e.dmg(d,src(tr));h+=d * 0.08;}for(const b of g.bosses)if(b.alive&&d2(b.x,b.y,p.x,p.y)<R * R){b.dmg(d,src(tr));h+=d * 0.05;}p.heal(h);p.buffs.vamp=Math.max(p.buffs.vamp,10);skillVFX(g,p.x,p.y,'vortex','#e04060',R);}},
+'Печать Судьбы':{desc:'Повышает удачу, крит и ускорение героя.',cd:8,cast(g,p){p.buffs.luck=Math.max(p.buffs.luck,8);p.buffs.haste=Math.max(p.buffs.haste,4);skillVFX(g,p.x,p.y,'nova','#ffd700',140);}},
+'Сумрачный Шаг':{desc:'Мгновенный теневой выпад с критическим уроном.',cd:5,cast(g,p,t){if(!t)return;const tr=p.skills[this.n].tier;const d=(85 * TM[tr] + p.atk * 2.2) * elemMul(p,this.el);t.dmg(d,src(tr));p.buffs.haste=Math.max(p.buffs.haste,3);skillVFX(g,t.x,t.y,'slash','#404060',95);}},
+'Лунный Клинок':{desc:'Стремительный разрез лунной тени.',cd:5.5,cast(g,p,t){if(!t)return;const tr=p.skills[this.n].tier;const d=(115 * TM[tr] + p.atk * 2.5) * elemMul(p,this.el);t.dmg(d,src(tr));g.slashes.push(new Slash(p.x,p.y,Math.atan2(t.y-p.y,t.x-p.x),150 * (p.aoeMult||1),Math.PI * 1.2,'#606090'));skillVFX(g,t.x,t.y,'slash','#606090',110);}},
+'Крылья Падшего':{desc:'Волна тёмной энергии падшего серафима.',cd:7,cast(g,p){const tr=p.skills[this.n].tier;const d=(80 * TM[tr] + p.mag * 1.6) * elemMul(p,this.el);const R=220 * (p.aoeMult||1);for(const e of g.enemies)if(e.alive&&d2(e.x,e.y,p.x,p.y)<R * R)e.dmg(d,src(tr));for(const b of g.bosses)if(b.alive&&d2(b.x,b.y,p.x,p.y)<R * R)b.dmg(d,src(tr));skillVFX(g,p.x,p.y,'vortex','#8040a0',R);}},
+'Падение Серафима':{desc:'Тёмный вихрь падшего ангела.',cd:7.5,cast(g,p){const tr=p.skills[this.n].tier;const d=(115 * TM[tr] + p.mag * 1.9) * elemMul(p,this.el);const R=240 * (p.aoeMult||1);for(const e of g.enemies)if(e.alive&&d2(e.x,e.y,p.x,p.y)<R * R)e.dmg(d,src(tr));for(const b of g.bosses)if(b.alive&&d2(b.x,b.y,p.x,p.y)<R * R)b.dmg(d,src(tr));skillVFX(g,p.x,p.y,'vortex','#8040a0',R);}},
+'Сдвиг Пространства':{desc:'Искажает координаты: рывок с уроном и замедлением.',cd:6.5,cast(g,p,t){const tr=p.skills[this.n].tier;const d=(65 * TM[tr] + p.mag * 1.4) * elemMul(p,this.el);if(t){p.x=cl(t.x-Math.cos(p.aim) * 70,40,WW-40);p.y=cl(t.y-Math.sin(p.aim) * 70,40,WH-40);t.dmg(d,src(tr));}g.timeSlowTimer=Math.max(g.timeSlowTimer,1.5);skillVFX(g,p.x,p.y,'slash','#80d0ff',110);}},
+'Алое Пламя':{desc:'Сверхгорячее пламя, прожигающее защиту.',cd:5.5,cast(g,p,t){const tr=p.skills[this.n].tier;const d=(110 * TM[tr] + p.mag * 1.8) * elemMul(p,this.el);const a=t?Math.atan2(t.y-p.y,t.x-p.x):p.aim;for(let i=-3;i<=3;i++){const aa=a+i * 0.14;g.proj.push(new Proj(p.x,p.y,Math.cos(aa) * 680,Math.sin(aa) * 680,d * 0.55,'#ff3010',8 * (p.aoeMult||1),true,3+(p.pierceBonus||0),src(tr)));}skillVFX(g,p.x,p.y,'fire','#ff3010',140);}},
+'Глаз Бури':{desc:'Ураганный вихрь вокруг героя.',cd:5,cast(g,p){const tr=p.skills[this.n].tier;const d=(95 * TM[tr] + p.mag * 1.5) * elemMul(p,this.el);const R=220 * (p.aoeMult||1);for(const e of g.enemies)if(e.alive&&d2(e.x,e.y,p.x,p.y)<R * R)e.dmg(d,src(tr));for(const b of g.bosses)if(b.alive&&d2(b.x,b.y,p.x,p.y)<R * R)b.dmg(d,src(tr));p.buffs.haste=Math.max(p.buffs.haste,4);skillVFX(g,p.x,p.y,'vortex','#80e0ff',R);}},
+'Небесный Разряд':{desc:'Серия молний поражает ближайшие цели.',cd:5.5,cast(g,p){const tr=p.skills[this.n].tier;const d=(105 * TM[tr] + p.mag * 1.6) * elemMul(p,this.el);const R=260 * (p.aoeMult||1);for(const e of g.enemies)if(e.alive&&d2(e.x,e.y,p.x,p.y)<R * R)e.dmg(d,src(tr));for(const b of g.bosses)if(b.alive&&d2(b.x,b.y,p.x,p.y)<R * R)b.dmg(d,src(tr));skillVFX(g,p.x,p.y,'nova','#ffff80',R);}},
+'Ярость Виверны':{desc:'Огненно-ветровой шквал дракона.',cd:6,cast(g,p,t){const tr=p.skills[this.n].tier;const d=(95 * TM[tr] + p.mag * 1.6) * elemMul(p,this.el);const a=t?Math.atan2(t.y-p.y,t.x-p.x):p.aim;for(let i=-4;i<=4;i++){const aa=a+i * 0.12;g.proj.push(new Proj(p.x,p.y,Math.cos(aa) * 650,Math.sin(aa) * 650,d * 0.5,'#ff8040',8 * (p.aoeMult||1),true,3+(p.pierceBonus||0),src(tr)));}skillVFX(g,p.x,p.y,'fire','#ff8040',130);}},
+'Звёздный Проводник':{desc:'Усиливает урон и ускоряет перезарядку.',cd:8,cast(g,p){p.buffs.insp=Math.max(p.buffs.insp,6);p.buffs.haste=Math.max(p.buffs.haste,5);skillVFX(g,p.x,p.y,'rune','#a0c0ff',140);}},
+'Солнечный Столп':{desc:'Столп света обрушивается на врага.',cd:6.5,cast(g,p,t){const tr=p.skills[this.n].tier;const d=(120 * TM[tr] + p.mag * 1.8) * elemMul(p,this.el);const cx=t?t.x:p.x,cy=t?t.y:p.y;const R=180 * (p.aoeMult||1);for(const e of g.enemies)if(e.alive&&d2(e.x,e.y,cx,cy)<R * R)e.dmg(d,src(tr));for(const b of g.bosses)if(b.alive&&d2(b.x,b.y,cx,cy)<R * R)b.dmg(d,src(tr));skillVFX(g,cx,cy,'nova','#fff0c0',R);}},
+'Сингулярность':{desc:'Гравитационное сжатие притягивает и бьёт врагов.',cd:7,cast(g,p){const tr=p.skills[this.n].tier;const d=(110 * TM[tr] + p.mag * 1.8) * elemMul(p,this.el);const R=280 * (p.aoeMult||1);for(const e of g.enemies)if(e.alive&&d2(e.x,e.y,p.x,p.y)<R * R){e.dmg(d,src(tr));const ang=Math.atan2(p.y-e.y,p.x-e.x);e.x+=Math.cos(ang) * 60;e.y+=Math.sin(ang) * 60;}for(const b of g.bosses)if(b.alive&&d2(b.x,b.y,p.x,p.y)<R * R)b.dmg(d,src(tr));skillVFX(g,p.x,p.y,'vortex','#b09060',R);}},
+'Печать Проклятий':{desc:'Накладывает метку уязвимости и снижает атаку.',cd:7.5,cast(g,p){const tr=p.skills[this.n].tier;const d=(95 * TM[tr] + p.mag * 1.6) * elemMul(p,this.el);const R=250 * (p.aoeMult||1);for(const e of g.enemies)if(e.alive&&d2(e.x,e.y,p.x,p.y)<R * R){e.dmg(d,src(tr));e.marked=Math.max(e.marked||0,4);e.atk*=0.75;}for(const b of g.bosses)if(b.alive&&d2(b.x,b.y,p.x,p.y)<R * R){b.dmg(d,src(tr));b.marked=Math.max(b.marked||0,4);}skillVFX(g,p.x,p.y,'rune','#a040a0',R);}},
+'Аура Эмоций':{desc:'Даёт вдохновение, удачу и ускорение.',cd:8.5,cast(g,p){p.buffs.insp=Math.max(p.buffs.insp,6);p.buffs.luck=Math.max(p.buffs.luck,6);p.buffs.haste=Math.max(p.buffs.haste,5);skillVFX(g,p.x,p.y,'rune','#a0c0ff',150);}}
 };
 
 const SPELLS=[
@@ -1372,97 +1374,96 @@ const MATERIALS={
 const FORGE_RANK_BY_NEXT={10:0,15:1,20:2,25:3,30:4,35:5,40:5,45:6,50:6};
 
 const WEAPONS=[
-// === РАНГ 0: ОБЫЧНОЕ ===
+// === РАНГ 0: ОБЫЧНОЕ (база 20, наценка до 28) ===
 {n:'Клинок новичка',a:2,m:0,rank:0,atkType:'sword',cost:20,el:null,mat:'—',d:'Стартовый меч. Базовый взмах.'},
-{n:'Клык жутковолка',a:5,m:0,rank:0,atkType:'dagger',cost:20,el:null,mat:'—',d:'Кинжал. Быстрые удары, +10% скор. атаки.',apply:p=>{p.acdMul=(p.acdMul||0)+0.1;},unapply:p=>{p.acdMul=(p.acdMul||0)-0.1;}},
-{n:'Посох духов',a:4,m:10,rank:0,atkType:'staff',cost:20,el:null,mat:'—',d:'Посох. Магический выстрел, +1 MP-реген.',apply:p=>{p.mpR+=1;},unapply:p=>{p.mpR-=1;}},
-{n:'Охотничий лук',a:6,m:0,rank:0,atkType:'bow',cost:20,el:'wind',mat:'—',d:'Лук. Дальний точный выстрел.',apply:p=>{p.wm+=0.05;},unapply:p=>{p.wm-=0.05;}},
-{n:'Деревянный Чакрам',a:3,m:0,rank:0,atkType:'chakram',cost:20,el:'wind',mat:'—',d:'Бумеранг. Пролетает сквозь врагов и возвращается.'},
-{n:'Боевой Веер',a:4,m:5,rank:0,atkType:'warfan',cost:20,el:null,mat:'—',d:'Веер. Создает расширяющуюся волну ветра.'},
-{n:'Праща',a:5,m:0,rank:0,atkType:'slingshot',cost:20,el:'earth',mat:'—',d:'Праща. Стреляет по дуге с небольшим взрывом.'},
+{n:'Клык жутковолка',a:5,m:0,rank:0,atkType:'dagger',cost:26,el:null,mat:'—',d:'Кинжал. Быстрые удары, +10% скор. атаки.',apply:p=>{p.acdMul=(p.acdMul||0)+0.1;},unapply:p=>{p.acdMul=(p.acdMul||0)-0.1;}},
+{n:'Посох духов',a:4,m:10,rank:0,atkType:'staff',cost:28,el:null,mat:'—',d:'Посох. Магический выстрел, +1 MP-реген.',apply:p=>{p.mpR+=1;},unapply:p=>{p.mpR-=1;}},
+{n:'Охотничий лук',a:6,m:0,rank:0,atkType:'bow',cost:24,el:'wind',mat:'—',d:'Лук. Дальний точный выстрел.',apply:p=>{p.wm+=0.05;},unapply:p=>{p.wm-=0.05;}},
+{n:'Деревянный Чакрам',a:3,m:0,rank:0,atkType:'chakram',cost:25,el:'wind',mat:'—',d:'Бумеранг. Пролетает сквозь врагов и возвращается.'},
+{n:'Боевой Веер',a:4,m:5,rank:0,atkType:'warfan',cost:24,el:null,mat:'—',d:'Веер. Создает расширяющуюся волну ветра.'},
+{n:'Праща',a:5,m:0,rank:0,atkType:'slingshot',cost:25,el:'earth',mat:'—',d:'Праща. Стреляет по дуге с небольшим взрывом.'},
 
-// === РАНГ 1: СПЕЦИАЛЬНОЕ ===
-{n:'Железный меч',a:10,m:0,rank:1,atkType:'sword',cost:40,el:null,mat:'—',d:'Меч. +10 DEF.',apply:p=>{p.def+=10;},unapply:p=>{p.def-=10;}},
-{n:'Каменный молот',a:12,m:0,rank:1,atkType:'hammer',cost:40,el:'earth',mat:'—',d:'Молот. AoE-удар вокруг (100px).',apply:p=>{p.em+=0.1;},unapply:p=>{p.em-=0.1;}},
-{n:'Жезл ветра',a:5,m:15,rank:1,atkType:'wand',cost:40,el:'wind',mat:'—',d:'Жезл. Быстрый магический выстрел, +5% крит.',apply:p=>{p.wm+=0.1;p.crit+=5;},unapply:p=>{p.wm-=0.1;p.crit-=5;}},
-{n:'Когти зверя',a:10,m:0,rank:1,atkType:'claw',cost:40,el:null,mat:'—',d:'Когти. Два разреза, +5% скор. атаки.',apply:p=>{p.acdMul=(p.acdMul||0)+0.05;},unapply:p=>{p.acdMul=(p.acdMul||0)-0.05;}},
-{n:'Стальной Кнут',a:8,m:0,rank:1,atkType:'whip',cost:40,el:null,mat:'—',d:'Кнут. Змеевидная атака, проходит сквозь врагов.'},
-{n:'Тяжёлый Арбалет',a:12,m:0,rank:1,atkType:'crossbow',cost:40,el:null,mat:'—',d:'Арбалет. Ставит метку (следующий удар x3 урона).'},
-{n:'Каплевидный Щит',a:6,m:0,rank:1,atkType:'shield',cost:40,el:'light',mat:'—',d:'Щит. Создает барьер и отражает снаряды.',apply:p=>{p.def+=15;},unapply:p=>{p.def-=15;}},
+// === РАНГ 1: СПЕЦИАЛЬНОЕ (база 45, наценка до 60) ===
+{n:'Железный меч',a:10,m:0,rank:1,atkType:'sword',cost:45,el:null,mat:'—',d:'Меч. +10 DEF.',apply:p=>{p.def+=10;},unapply:p=>{p.def-=10;}},
+{n:'Каменный молот',a:12,m:0,rank:1,atkType:'hammer',cost:52,el:'earth',mat:'—',d:'Молот. AoE-удар вокруг (110px).',apply:p=>{p.em+=0.1;},unapply:p=>{p.em-=0.1;}},
+{n:'Жезл ветра',a:5,m:15,rank:1,atkType:'wand',cost:50,el:'wind',mat:'—',d:'Жезл. Быстрый магический выстрел, +5% крит.',apply:p=>{p.wm+=0.1;p.crit+=5;},unapply:p=>{p.wm-=0.1;p.crit-=5;}},
+{n:'Когти зверя',a:10,m:0,rank:1,atkType:'claw',cost:45,el:null,mat:'—',d:'Когти. Два разреза, +5% скор. атаки.',apply:p=>{p.acdMul=(p.acdMul||0)+0.05;},unapply:p=>{p.acdMul=(p.acdMul||0)-0.05;}},
+{n:'Стальной Кнут',a:8,m:0,rank:1,atkType:'whip',cost:46,el:null,mat:'—',d:'Кнут. Змеевидная атака, проходит сквозь врагов.'},
+{n:'Тяжёлый Арбалет',a:12,m:0,rank:1,atkType:'crossbow',cost:58,el:null,mat:'—',d:'Арбалет. Ставит метку (следующий удар x3 урона).'},
+{n:'Каплевидный Щит',a:6,m:0,rank:1,atkType:'shield',cost:60,el:'light',mat:'—',d:'Щит. Создает барьер и отражает снаряды.',apply:p=>{p.def+=15;},unapply:p=>{p.def-=15;}},
 
-// === РАНГ 2: РЕДКОЕ ===
-{n:'Коса жнеца',a:14,m:4,rank:2,atkType:'scythe',cost:80,el:'dark',mat:'Демоническая Сталь',d:'Коса. Широкая дуга, 10% казни HP<15%.',apply:p=>{p.wepKill=0.10;p.dm+=0.1;},unapply:p=>{p.wepKill=0;p.dm-=0.1;}},
-{n:'Копьё Фелдвея',a:22,m:10,rank:2,atkType:'spear',cost:80,el:'dark',mat:'Демоническая Сталь',d:'Копьё. Пробитие +2, +10% по ★-боссам.',apply:p=>{p.pierceBonus+=2;p.wepBossBonus=0.10;},unapply:p=>{p.pierceBonus-=2;p.wepBossBonus=0;}},
-{n:'Стальной клинок',a:16,m:2,rank:2,atkType:'sword',cost:80,el:null,mat:'Демоническая Сталь',d:'Клинок. +10% крит-урон.',apply:p=>{p.cdmg+=0.1;},unapply:p=>{p.cdmg-=0.1;}},
-{n:'Кулачные латы',a:18,m:0,rank:2,atkType:'gauntlet',cost:80,el:null,mat:'Демоническая Сталь',d:'Латы. AoE 70px, +15 DEF.',apply:p=>{p.def+=15;p.em+=0.1;},unapply:p=>{p.def-=15;p.em-=0.1;}},
-{n:'Длинный лук',a:18,m:5,rank:2,atkType:'bow',cost:80,el:null,mat:'Демоническая Сталь',d:'Лук. Стреляет двумя стрелами.',apply:p=>{p.crit+=5;},unapply:p=>{p.crit-=5;}},
-{n:'Кинжал Ассасина',a:15,m:0,rank:2,atkType:'dagger',cost:80,el:'dark',mat:'Демоническая Сталь',d:'Кинжал. Высокий шанс крита.',apply:p=>{p.crit+=15;},unapply:p=>{p.crit-=15;}},
-{n:'Катана самурая',a:20,m:0,rank:2,atkType:'katana',cost:80,el:'wind',mat:'Демоническая Сталь',d:'Катана. Быстрые режущие удары.',apply:p=>{p.wm+=0.1;},unapply:p=>{p.wm-=0.1;}},
-{n:'Посох друида',a:8,m:30,rank:2,atkType:'staff',cost:80,el:'earth',mat:'Демоническая Сталь',d:'Посох. Стреляет двумя сферами.',apply:p=>{p.em+=0.15;},unapply:p=>{p.em-=0.15;}},
-{n:'Орбы Пустоты',a:10,m:20,rank:2,atkType:'orbs',cost:80,el:'void',mat:'Демоническая Сталь',d:'Орбы. Вращаются вокруг вас, нанося урон.'},
-{n:'Трезубец Бездны',a:25,m:5,rank:2,atkType:'trident',cost:80,el:'ice',mat:'Демоническая Сталь',d:'Трезубец. Выстреливает 3 снарядами.'},
-{n:'Колокол Роя',a:15,m:15,rank:2,atkType:'bell',cost:80,el:'wind',mat:'Демоническая Сталь',d:'Колокол. Выпускает рой мелких снарядов.'},
+// === РАНГ 2: РЕДКОЕ (база 85, наценка до 120) ===
+{n:'Коса жнеца',a:14,m:4,rank:2,atkType:'scythe',cost:105,el:'dark',mat:'Демоническая Сталь',d:'Коса. Широкая дуга, 10% казни HP<15%.',apply:p=>{p.wepKill=0.10;p.dm+=0.1;},unapply:p=>{p.wepKill=0;p.dm-=0.1;}},
+{n:'Копьё Фелдвея',a:22,m:10,rank:2,atkType:'spear',cost:115,el:'dark',mat:'Демоническая Сталь',d:'Копьё. Пробитие +2, +10% по ★-боссам.',apply:p=>{p.pierceBonus+=2;p.wepBossBonus=0.10;},unapply:p=>{p.pierceBonus-=2;p.wepBossBonus=0;}},
+{n:'Стальной клинок',a:16,m:2,rank:2,atkType:'sword',cost:85,el:null,mat:'Демоническая Сталь',d:'Клинок. +10% крит-урон.',apply:p=>{p.cdmg+=0.1;},unapply:p=>{p.cdmg-=0.1;}},
+{n:'Кулачные латы',a:18,m:0,rank:2,atkType:'gauntlet',cost:95,el:null,mat:'Демоническая Сталь',d:'Латы. AoE 110px, +15 DEF.',apply:p=>{p.def+=15;p.em+=0.1;},unapply:p=>{p.def-=15;p.em-=0.1;}},
+{n:'Длинный лук',a:18,m:5,rank:2,atkType:'bow',cost:95,el:null,mat:'Демоническая Сталь',d:'Лук. Стреляет двумя стрелами.',apply:p=>{p.crit+=5;},unapply:p=>{p.crit-=5;}},
+{n:'Кинжал Ассасина',a:15,m:0,rank:2,atkType:'dagger',cost:90,el:'dark',mat:'Демоническая Сталь',d:'Кинжал. Высокий шанс крита.',apply:p=>{p.crit+=15;},unapply:p=>{p.crit-=15;}},
+{n:'Катана самурая',a:20,m:0,rank:2,atkType:'katana',cost:100,el:'wind',mat:'Демоническая Сталь',d:'Катана. Быстрые режущие удары.',apply:p=>{p.wm+=0.1;},unapply:p=>{p.wm-=0.1;}},
+{n:'Посох друида',a:8,m:30,rank:2,atkType:'staff',cost:100,el:'earth',mat:'Демоническая Сталь',d:'Посох. Стреляет двумя сферами.',apply:p=>{p.em+=0.15;},unapply:p=>{p.em-=0.15;}},
+{n:'Орбы Пустоты',a:10,m:20,rank:2,atkType:'orbs',cost:110,el:'void',mat:'Демоническая Сталь',d:'Орбы. Вращаются вокруг вас, нанося урон.'},
+{n:'Трезубец Бездны',a:25,m:5,rank:2,atkType:'trident',cost:115,el:'ice',mat:'Демоническая Сталь',d:'Трезубец. Выстреливает 3 снарядами.'},
+{n:'Колокол Роя',a:15,m:15,rank:2,atkType:'bell',cost:120,el:'wind',mat:'Демоническая Сталь',d:'Колокол. Выпускает рой мелких снарядов.'},
 
-// === РАНГ 3: УНИКАЛЬНОЕ ===
-{n:'Клинок Михаэля',a:30,m:15,rank:3,atkType:'sword',cost:160,el:'light',mat:'Мифрил',d:'Божественный. Широкая дуга. +15% свет, +20% нежить.',apply:p=>{p.lm+=0.15;p.wepSlayUndead=0.20;},unapply:p=>{p.lm-=0.15;p.wepSlayUndead=0;}},
-{n:'Гримуар Призрака',a:6,m:45,rank:3,atkType:'grimoire',cost:160,el:'dark',mat:'Мифрил',d:'Магическая книга. Огромная сфера тьмы.',apply:p=>{p.dm+=0.2;},unapply:p=>{p.dm-=0.2;}},
-{n:'Топор палача',a:38,m:0,rank:3,atkType:'hammer',cost:160,el:'dark',mat:'Мифрил',d:'Топор. Массивный урон по площади.',apply:p=>{p.dm+=0.1;p.def+=10;},unapply:p=>{p.dm-=0.1;p.def-=10;}},
-{n:'Ледяной жезл',a:10,m:40,rank:3,atkType:'wand',cost:160,el:'ice',mat:'Мифрил',d:'Жезл. Стреляет двумя сферами, замедляет.',apply:p=>{p.im+=0.2;},unapply:p=>{p.im-=0.2;}},
-{n:'Коса Смерти',a:32,m:10,rank:3,atkType:'scythe',cost:160,el:'dark',mat:'Мифрил',d:'Коса. Широкий взмах, вампиризм.',apply:p=>{p.vamp+=0.1;},unapply:p=>{p.vamp-=0.1;}},
-{n:'Когти Дракона',a:35,m:5,rank:3,atkType:'claw',cost:160,el:'fire',mat:'Мифрил',d:'Когти. Поджигают врагов.',apply:p=>{p.fm+=0.2;},unapply:p=>{p.fm-=0.2;}},
-{n:'Копьё Дракона',a:42,m:10,rank:3,atkType:'spear',cost:160,el:'wind',mat:'Мифрил',d:'Копьё. Пробивает насквозь.',apply:p=>{p.pierceBonus+=3;},unapply:p=>{p.pierceBonus-=3;}},
-{n:'Латы Голема',a:28,m:0,rank:3,atkType:'gauntlet',cost:160,el:'earth',mat:'Мифрил',d:'Латы. Мощный удар с замедлением.',apply:p=>{p.def+=30;},unapply:p=>{p.def-=30;}},
-{n:'Посох Сингулярности',a:20,m:40,rank:3,atkType:'gravity_staff',cost:160,el:'earth',mat:'Мифрил',d:'Гравитационный колодец. Притягивает врагов.'},
-{n:'Том Льда',a:12,m:50,rank:3,atkType:'ice_tome',cost:160,el:'ice',mat:'Мифрил',d:'Заморозка зоны. Создает лужу замедления.'},
-{n:'Зеркало Иллюзий',a:18,m:30,rank:3,atkType:'mirror',cost:160,el:'chaos',mat:'Мифрил',d:'Отражение. Усиливает парирование.'},
+// === РАНГ 3: УНИКАЛЬНОЕ (база 170, наценка до 240) ===
+{n:'Клинок Михаэля',a:30,m:15,rank:3,atkType:'sword',cost:195,el:'light',mat:'Мифрил',d:'Божественный. Широкая дуга. +15% свет, +20% нежить.',apply:p=>{p.lm+=0.15;p.wepSlayUndead=0.20;},unapply:p=>{p.lm-=0.15;p.wepSlayUndead=0;}},
+{n:'Гримуар Призрака',a:6,m:45,rank:3,atkType:'grimoire',cost:185,el:'dark',mat:'Мифрил',d:'Магическая книга. Огромная сфера тьмы.',apply:p=>{p.dm+=0.2;},unapply:p=>{p.dm-=0.2;}},
+{n:'Топор палача',a:38,m:0,rank:3,atkType:'hammer',cost:175,el:'dark',mat:'Мифрил',d:'Топор. Массивный урон по площади.',apply:p=>{p.dm+=0.1;p.def+=10;},unapply:p=>{p.dm-=0.1;p.def-=10;}},
+{n:'Ледяной жезл',a:10,m:40,rank:3,atkType:'wand',cost:185,el:'ice',mat:'Мифрил',d:'Жезл. Стреляет двумя сферами, замедляет.',apply:p=>{p.im+=0.2;},unapply:p=>{p.im-=0.2;}},
+{n:'Коса Смерти',a:32,m:10,rank:3,atkType:'scythe',cost:220,el:'dark',mat:'Мифрил',d:'Коса. Широкий взмах, вампиризм.',apply:p=>{p.vamp+=0.1;},unapply:p=>{p.vamp-=0.1;}},
+{n:'Когти Дракона',a:35,m:5,rank:3,atkType:'claw',cost:170,el:'fire',mat:'Мифрил',d:'Когти. Поджигают врагов.',apply:p=>{p.fm+=0.2;},unapply:p=>{p.fm-=0.2;}},
+{n:'Копьё Дракона',a:42,m:10,rank:3,atkType:'spear',cost:200,el:'wind',mat:'Мифрил',d:'Копьё. Пробивает насквозь.',apply:p=>{p.pierceBonus+=3;},unapply:p=>{p.pierceBonus-=3;}},
+{n:'Латы Голема',a:28,m:0,rank:3,atkType:'gauntlet',cost:180,el:'earth',mat:'Мифрил',d:'Латы. Мощный удар с замедлением.',apply:p=>{p.def+=30;},unapply:p=>{p.def-=30;}},
+{n:'Посох Сингулярности',a:20,m:40,rank:3,atkType:'gravity_staff',cost:230,el:'earth',mat:'Мифрил',d:'Гравитационный колодец. Притягивает врагов.'},
+{n:'Том Льда',a:12,m:50,rank:3,atkType:'ice_tome',cost:210,el:'ice',mat:'Мифрил',d:'Заморозка зоны. Создает лужу замедления.'},
+{n:'Зеркало Иллюзий',a:18,m:30,rank:3,atkType:'mirror',cost:240,el:'chaos',mat:'Мифрил',d:'Отражение. Усиливает парирование.'},
 
-// === РАНГ 4: ЛЕГЕНДАРНОЕ ===
-{n:'Меч Вечности',a:42,m:25,rank:4,atkType:'sword',cost:320,el:'time',mat:'Орихалк',d:'+10% CDR, +15% время.',apply:p=>{p.cdr=Math.min(0.75,p.cdr+0.1);p.tm+=0.15;},unapply:p=>{p.cdr=Math.max(0,p.cdr-0.1);p.tm-=0.15;}},
-{n:'Драконий клык',a:50,m:20,rank:4,atkType:'sword',cost:320,el:'fire',mat:'Орихалк',d:'+20% огонь, +25% драконам.',apply:p=>{p.fm+=0.2;p.wepSlayDragon=0.25;},unapply:p=>{p.fm-=0.2;p.wepSlayDragon=0;}},
-{n:'Катана Пустоты',a:45,m:15,rank:4,atkType:'katana',cost:320,el:'void',mat:'Орихалк',d:'Тройной удар крестом. +15% пустота.',apply:p=>{p.vm+=0.15;p.vamp+=0.05;},unapply:p=>{p.vm-=0.15;p.vamp-=0.05;}},
-{n:'Погибель',a:58,m:20,rank:4,atkType:'scythe',cost:320,el:'dark',mat:'Орихалк',d:'+20% тьмой, 15% казни.',apply:p=>{p.wepKill=0.15;p.dm+=0.2;},unapply:p=>{p.wepKill=0;p.dm-=0.2;}},
-{n:'Эльфийский лук',a:40,m:30,rank:4,atkType:'bow',cost:320,el:'wind',mat:'Орихалк',d:'Стреляет тремя стрелами.',apply:p=>{p.wm+=0.2;},unapply:p=>{p.wm-=0.2;}},
-{n:'Кинжал Теней',a:35,m:10,rank:4,atkType:'dagger',cost:320,el:'dark',mat:'Орихалк',d:'Очень быстрые тройные удары.',apply:p=>{p.acdMul=(p.acdMul||0)+0.2;},unapply:p=>{p.acdMul=(p.acdMul||0)-0.2;}},
-{n:'Посох Архимага',a:20,m:60,rank:4,atkType:'staff',cost:320,el:'light',mat:'Орихалк',d:'Стреляет тремя сферами.',apply:p=>{p.lm+=0.2;},unapply:p=>{p.lm-=0.2;}},
-{n:'Книга Тьмы',a:10,m:55,rank:4,atkType:'grimoire',cost:320,el:'dark',mat:'Орихалк',d:'Огромная сфера с взрывом.',apply:p=>{p.dm+=0.2;p.mag=~~(p.mag*1.1);},unapply:p=>{p.dm-=0.2;p.mag=~~(p.mag/1.1);}},
-{n:'Молот Тора',a:65,m:0,rank:4,atkType:'hammer',cost:320,el:'wind',mat:'Орихалк',d:'Оглушающий удар (AoE 180px).',apply:p=>{p.wm+=0.2;},unapply:p=>{p.wm-=0.2;}},
-{n:'Латы Дракона',a:40,m:0,rank:4,atkType:'gauntlet',cost:320,el:'fire',mat:'Орихалк',d:'Взрывной удар.',apply:p=>{p.fm+=0.2;},unapply:p=>{p.fm-=0.2;}},
-{n:'Копьё Бездны',a:60,m:20,rank:4,atkType:'spear',cost:320,el:'void',mat:'Орихалк',d:'Огромное пробитие.',apply:p=>{p.vm+=0.2;p.pierceBonus+=3;},unapply:p=>{p.vm-=0.2;p.pierceBonus-=3;}},
-{n:'Клинок Вихря',a:60,m:10,rank:4,atkType:'vortex_blade',cost:320,el:'wind',mat:'Орихалк',d:'Создает движущийся вихрь, затягивающий врагов.'},
-{n:'Снайперский Лук',a:80,m:0,rank:4,atkType:'sniper',cost:320,el:'light',mat:'Орихалк',d:'Снайпер. Огромный урон в одну цель.'},
-{n:'Фантомный Кинжал',a:40,m:20,rank:4,atkType:'phantom',cost:320,el:'dark',mat:'Орихалк',d:'Фантом. Телепорт к врагу с ударом.'},
+// === РАНГ 4: ЛЕГЕНДАРНОЕ (база 340, наценка до 480) ===
+{n:'Меч Вечности',a:42,m:25,rank:4,atkType:'sword',cost:440,el:'time',mat:'Орихалк',d:'+10% CDR, +15% время.',apply:p=>{p.cdr=Math.min(0.75,p.cdr+0.1);p.tm+=0.15;},unapply:p=>{p.cdr=Math.max(0,p.cdr-0.1);p.tm-=0.15;}},
+{n:'Драконий клык',a:50,m:20,rank:4,atkType:'sword',cost:380,el:'fire',mat:'Орихалк',d:'+20% огонь, +25% драконам.',apply:p=>{p.fm+=0.2;p.wepSlayDragon=0.25;},unapply:p=>{p.fm-=0.2;p.wepSlayDragon=0;}},
+{n:'Катана Пустоты',a:45,m:15,rank:4,atkType:'katana',cost:410,el:'void',mat:'Орихалк',d:'Тройной удар крестом. +15% пустота.',apply:p=>{p.vm+=0.15;p.vamp+=0.05;},unapply:p=>{p.vm-=0.15;p.vamp-=0.05;}},
+{n:'Погибель',a:58,m:20,rank:4,atkType:'scythe',cost:430,el:'dark',mat:'Орихалк',d:'+20% тьмой, 15% казни.',apply:p=>{p.wepKill=0.15;p.dm+=0.2;},unapply:p=>{p.wepKill=0;p.dm-=0.2;}},
+{n:'Эльфийский лук',a:40,m:30,rank:4,atkType:'bow',cost:390,el:'wind',mat:'Орихалк',d:'Стреляет тремя стрелами.',apply:p=>{p.wm+=0.2;},unapply:p=>{p.wm-=0.2;}},
+{n:'Кинжал Теней',a:35,m:10,rank:4,atkType:'dagger',cost:380,el:'dark',mat:'Орихалк',d:'Очень быстрые тройные удары.',apply:p=>{p.acdMul=(p.acdMul||0)+0.2;},unapply:p=>{p.acdMul=(p.acdMul||0)-0.2;}},
+{n:'Посох Архимага',a:20,m:60,rank:4,atkType:'staff',cost:390,el:'light',mat:'Орихалк',d:'Стреляет тремя сферами.',apply:p=>{p.lm+=0.2;},unapply:p=>{p.lm-=0.2;}},
+{n:'Книга Тьмы',a:10,m:55,rank:4,atkType:'grimoire',cost:360,el:'dark',mat:'Орихалк',d:'Огромная сфера с взрывом.',apply:p=>{p.dm+=0.2;p.mag=~~(p.mag*1.1);},unapply:p=>{p.dm-=0.2;p.mag=~~(p.mag/1.1);}},
+{n:'Молот Тора',a:65,m:0,rank:4,atkType:'hammer',cost:370,el:'wind',mat:'Орихалк',d:'Оглушающий удар (AoE 180px).',apply:p=>{p.wm+=0.2;},unapply:p=>{p.wm-=0.2;}},
+{n:'Латы Дракона',a:40,m:0,rank:4,atkType:'gauntlet',cost:340,el:'fire',mat:'Орихалк',d:'Взрывной удар.',apply:p=>{p.fm+=0.2;},unapply:p=>{p.fm-=0.2;}},
+{n:'Копьё Бездны',a:60,m:20,rank:4,atkType:'spear',cost:400,el:'void',mat:'Орихалк',d:'Огромное пробитие.',apply:p=>{p.vm+=0.2;p.pierceBonus+=3;},unapply:p=>{p.vm-=0.2;p.pierceBonus-=3;}},
+{n:'Клинок Вихря',a:60,m:10,rank:4,atkType:'vortex_blade',cost:450,el:'wind',mat:'Орихалк',d:'Создает вихрь 360°, затягивающий врагов.'},
+{n:'Снайперский Лук',a:80,m:0,rank:4,atkType:'sniper',cost:440,el:'light',mat:'Орихалк',d:'Снайпер. Огромный урон в одну цель.'},
+{n:'Фантомный Кинжал',a:40,m:20,rank:4,atkType:'phantom',cost:460,el:'dark',mat:'Орихалк',d:'Фантом. Телепорт к врагу с ударом.'},
+{n:'Крест Небес',a:55,m:35,rank:4,atkType:'crossbeam',cost:480,el:'light',mat:'Орихалк',d:'Крест из 4 лучей. 1-й луч на ближайшего врага. +20% свет.',apply:p=>{p.lm+=0.2;},unapply:p=>{p.lm-=0.2;}},
 
-// === РАНГ 5: МИФИЧЕСКОЕ ===
-{n:'Клинок Творца',a:80,m:50,rank:5,atkType:'sword',cost:640,el:'light',mat:'Священная Сталь',d:'+15% ко всем стихиям. 360° удар.',apply:p=>{p.fm+=0.15;p.im+=0.15;p.wm+=0.15;p.em+=0.15;p.lm+=0.15;p.dm+=0.15;p.tm+=0.15;p.mm+=0.15;p.cm+=0.15;p.vm+=0.15;p.cdr=Math.min(0.75,p.cdr+0.05);},unapply:p=>{p.fm-=0.15;p.im-=0.15;p.wm-=0.15;p.em-=0.15;p.lm-=0.15;p.dm-=0.15;p.tm-=0.15;p.mm-=0.15;p.cm-=0.15;p.vm-=0.15;p.cdr=Math.max(0,p.cdr-0.05);}},
-{n:'Коса Ада',a:90,m:30,rank:5,atkType:'scythe',cost:640,el:'dark',mat:'Священная Сталь',d:'Круговой взмах 360°, +25% вампиризм.',apply:p=>{p.vamp+=0.25;p.dm+=0.2;},unapply:p=>{p.vamp-=0.25;p.dm-=0.2;}},
-{n:'Громовой молот',a:110,m:20,rank:5,atkType:'hammer',cost:640,el:'wind',mat:'Священная Сталь',d:'Огромный AoE, шанс оглушить.',apply:p=>{p.wm+=0.3;},unapply:p=>{p.wm-=0.3;}},
-{n:'Гримуар Бездны',a:30,m:90,rank:5,atkType:'grimoire',cost:640,el:'void',mat:'Священная Сталь',d:'Всасывает врагов и взрывается.',apply:p=>{p.vm+=0.3;},unapply:p=>{p.vm-=0.3;}},
-{n:'Священный Меч Звёзд',a:100,m:70,rank:5,atkType:'stellar',cost:640,el:'light',mat:'Священная Сталь',d:'5 лучей. +25% свет, +20% время.',apply:p=>{p.lm+=0.25;p.tm+=0.20;p.crit+=10;p.cdr=Math.min(0.75,p.cdr+0.1);},unapply:p=>{p.lm-=0.25;p.tm-=0.20;p.crit-=10;p.cdr=Math.max(0,p.cdr-0.1);}},
-{n:'Лук Феникса',a:85,m:50,rank:5,atkType:'bow',cost:640,el:'fire',mat:'Священная Сталь',d:'5 огненных стрел.',apply:p=>{p.fm+=0.3;},unapply:p=>{p.fm-=0.3;}},
-{n:'Катана Звёзд',a:85,m:60,rank:5,atkType:'katana',cost:640,el:'light',mat:'Священная Сталь',d:'Режет двойным крестом (4 удара).',apply:p=>{p.lm+=0.3;},unapply:p=>{p.lm-=0.3;}},
-{n:'Кулаки Бога',a:95,m:40,rank:5,atkType:'gauntlet',cost:640,el:'light',mat:'Священная Сталь',d:'Сотрясает экран (AoE 150px).',apply:p=>{p.lm+=0.3;},unapply:p=>{p.lm-=0.3;}},
-{n:'Копьё Звёзд',a:100,m:50,rank:5,atkType:'spear',cost:640,el:'light',mat:'Священная Сталь',d:'Луч, пронзающий всё.',apply:p=>{p.lm+=0.3;p.pierceBonus+=5;},unapply:p=>{p.lm-=0.3;p.pierceBonus-=5;}},
-{n:'Посох Мироздания',a:40,m:100,rank:5,atkType:'staff',cost:640,el:'time',mat:'Священная Сталь',d:'5 сфер, замедляют время.',apply:p=>{p.tm+=0.3;},unapply:p=>{p.tm-=0.3;}},
-{n:'Жезл Молний',a:50,m:80,rank:5,atkType:'wand',cost:640,el:'wind',mat:'Священная Сталь',d:'Быстрая цепная молния (3 выстрела).',apply:p=>{p.wm+=0.3;},unapply:p=>{p.wm-=0.3;}},
-{n:'Когти Бездны',a:80,m:30,rank:5,atkType:'claw',cost:640,el:'void',mat:'Священная Сталь',d:'5 разрезов.',apply:p=>{p.vm+=0.3;},unapply:p=>{p.vm-=0.3;}},
-{n:'Космические Часы',a:50,m:80,rank:5,atkType:'timepiece',cost:640,el:'time',mat:'Священная Сталь',d:'Замедляет время и ставит метки на всех врагов.'},
-{n:'Сфера Абсолюта',a:100,m:100,rank:5,atkType:'ultimate_orb',cost:640,el:'void',mat:'Священная Сталь',d:'Орбитальные снаряды с гравитацией.'},
-
-// === РАНГ 6: СОЗДАНИЕ МИРА ===
-{n:'Меч Вельдоры',a:140,m:110,rank:6,atkType:'stellar',cost:1280,el:'wind',mat:'Звёздное Сердце',d:'7 лучей. +40% ветер, +25% ко всем, +50% статы.',apply:p=>{p.wm+=0.4;p.fm+=0.25;p.im+=0.25;p.em+=0.25;p.lm+=0.25;p.dm+=0.25;p.tm+=0.25;p.mm+=0.25;p.cm+=0.25;p.vm+=0.25;p.cdr=Math.min(0.75,p.cdr+0.2);p.mult(1.5);},unapply:p=>{p.wm-=0.4;p.fm-=0.25;p.im-=0.25;p.em-=0.25;p.lm-=0.25;p.dm-=0.25;p.tm-=0.25;p.mm-=0.25;p.cm-=0.25;p.vm-=0.25;p.cdr=Math.max(0,p.cdr-0.2);p.div(1.5);}},
-{n:'Меч Велгринда',a:140,m:110,rank:6,atkType:'stellar',cost:1280,el:'fire',mat:'Звёздное Сердце',d:'7 лучей. +40% огонь, +25% ко всем, +50% статы.',apply:p=>{p.fm+=0.4;p.im+=0.25;p.wm+=0.25;p.em+=0.25;p.lm+=0.25;p.dm+=0.25;p.tm+=0.25;p.mm+=0.25;p.cm+=0.25;p.vm+=0.25;p.cdr=Math.min(0.75,p.cdr+0.2);p.mult(1.5);},unapply:p=>{p.fm-=0.4;p.im-=0.25;p.wm-=0.25;p.em-=0.25;p.lm-=0.25;p.dm-=0.25;p.tm-=0.25;p.mm-=0.25;p.cm-=0.25;p.vm-=0.25;p.cdr=Math.max(0,p.cdr-0.2);p.div(1.5);}},
-{n:'Клинок Вельданавы',a:150,m:120,rank:6,atkType:'katana',cost:1280,el:'light',mat:'Звёздное Сердце',d:'Крест. +40% свет, +25% ко всем, +50% статы.',apply:p=>{p.lm+=0.4;p.fm+=0.25;p.im+=0.25;p.wm+=0.25;p.em+=0.25;p.dm+=0.25;p.tm+=0.25;p.mm+=0.25;p.cm+=0.25;p.vm+=0.25;p.cdr=Math.min(0.75,p.cdr+0.2);p.mult(1.5);},unapply:p=>{p.lm-=0.4;p.fm-=0.25;p.im-=0.25;p.wm-=0.25;p.em-=0.25;p.dm-=0.25;p.tm-=0.25;p.mm-=0.25;p.cm-=0.25;p.vm-=0.25;p.cdr=Math.max(0,p.cdr-0.2);p.div(1.5);}},
-{n:'Коса Абсолюта',a:160,m:80,rank:6,atkType:'scythe',cost:1280,el:'void',mat:'Звёздное Сердце',d:'360° удар. +40% пустота, +50% статы.',apply:p=>{p.vm+=0.4;p.fm+=0.25;p.im+=0.25;p.wm+=0.25;p.em+=0.25;p.lm+=0.25;p.dm+=0.25;p.tm+=0.25;p.mm+=0.25;p.cm+=0.25;p.cdr=Math.min(0.75,p.cdr+0.2);p.mult(1.5);},unapply:p=>{p.vm-=0.4;p.fm-=0.25;p.im-=0.25;p.wm-=0.25;p.em-=0.25;p.lm-=0.25;p.dm-=0.25;p.tm-=0.25;p.mm-=0.25;p.cm-=0.25;p.cdr=Math.max(0,p.cdr-0.2);p.div(1.5);}},
-{n:'Копьё Вельзарда',a:130,m:100,rank:6,atkType:'spear',cost:1280,el:'ice',mat:'Звёздное Сердце',d:'Ледяное копье. +40% лёд, +50% статы.',apply:p=>{p.im+=0.4;p.fm+=0.25;p.wm+=0.25;p.em+=0.25;p.lm+=0.25;p.dm+=0.25;p.tm+=0.25;p.mm+=0.25;p.cm+=0.25;p.vm+=0.25;p.cdr=Math.min(0.75,p.cdr+0.2);p.mult(1.5);},unapply:p=>{p.im-=0.4;p.fm-=0.25;p.wm-=0.25;p.em-=0.25;p.lm-=0.25;p.dm-=0.25;p.tm-=0.25;p.mm-=0.25;p.cm-=0.25;p.vm-=0.25;p.cdr=Math.max(0,p.cdr-0.2);p.div(1.5);}},
-{n:'Лук Вельзарда',a:125,m:105,rank:6,atkType:'bow',cost:1280,el:'ice',mat:'Звёздное Сердце',d:'5 стрел. +40% лёд, +50% статы.',apply:p=>{p.im+=0.4;p.fm+=0.25;p.wm+=0.25;p.em+=0.25;p.lm+=0.25;p.dm+=0.25;p.tm+=0.25;p.mm+=0.25;p.cm+=0.25;p.vm+=0.25;p.cdr=Math.min(0.75,p.cdr+0.2);p.mult(1.5);},unapply:p=>{p.im-=0.4;p.fm-=0.25;p.wm-=0.25;p.em-=0.25;p.lm-=0.25;p.dm-=0.25;p.tm-=0.25;p.mm-=0.25;p.cm-=0.25;p.vm-=0.25;p.cdr=Math.max(0,p.cdr-0.2);p.div(1.5);}},
-{n:'Книга Апокалипсиса',a:50,m:150,rank:6,atkType:'grimoire',cost:1280,el:'chaos',mat:'Звёздное Сердце',d:'Черная дыра. +40% хаос, +50% статы.',apply:p=>{p.cm+=0.4;p.fm+=0.25;p.im+=0.25;p.wm+=0.25;p.em+=0.25;p.lm+=0.25;p.dm+=0.25;p.tm+=0.25;p.mm+=0.25;p.vm+=0.25;p.cdr=Math.min(0.75,p.cdr+0.2);p.mult(1.5);},unapply:p=>{p.cm-=0.4;p.fm-=0.25;p.im-=0.25;p.wm-=0.25;p.em-=0.25;p.lm-=0.25;p.dm-=0.25;p.tm-=0.25;p.mm-=0.25;p.vm-=0.25;p.cdr=Math.max(0,p.cdr-0.2);p.div(1.5);}},
-{n:'Эльпис (Надежда)',a:180,m:150,rank:6,atkType:'elpis',cost:2560,el:'light',mat:'Звёздное Сердце',d:'Сильнейшее оружие. 360° удар. +60% свет, +60% статы. Пассив: Спасение верой.',apply:p=>{p.lm+=0.6;p.fm+=0.3;p.im+=0.3;p.wm+=0.3;p.em+=0.3;p.dm+=0.3;p.tm+=0.3;p.mm+=0.3;p.cm+=0.3;p.vm+=0.3;p.cdr=Math.min(0.75,p.cdr+0.3);p.crit+=15;p.cdmg+=0.3;p.mult(1.6);p.wepHope=true;},unapply:p=>{p.lm-=0.6;p.fm-=0.3;p.im-=0.3;p.wm-=0.3;p.em-=0.3;p.dm-=0.3;p.tm-=0.3;p.mm-=0.3;p.cm-=0.3;p.vm-=0.3;p.cdr=Math.max(0,p.cdr-0.3);p.crit-=15;p.cdmg-=0.3;p.div(1.6);p.wepHope=false;}},
-{n:'Оружие Богов',a:150,m:150,rank:6,atkType:'god_weapon',cost:1280,el:'light',mat:'Звёздное Сердце',d:'Чередует все паттерны атаки. +50% ко всем статам.',apply:p=>{p.mult(1.5);p.crit+=10;p.cdr=Math.min(0.75,p.cdr+0.1);},unapply:p=>{p.div(1.5);p.crit-=10;p.cdr=Math.max(0,p.cdr-0.1);}},
-
-// === ОРУЖИЕ С КРЕСТОВОЙ АТАКОЙ ===
-{n:'Крест Небес',a:55,m:35,rank:4,atkType:'crossbeam',cost:320,el:'light',mat:'Орихалк',d:'Крест из 4 лучей. 1-й луч на ближайшего врага. +20% свет.',apply:p=>{p.lm+=0.2;},unapply:p=>{p.lm-=0.2;}},
-{n:'Крест Серафима',a:85,m:60,rank:5,atkType:'holycross',cost:640,el:'light',mat:'Священная Сталь',d:'Крест из 8 лучей. Лечит при ударе. +30% свет, +5% CDR.',apply:p=>{p.lm+=0.3;p.cdr=Math.min(0.75,p.cdr+0.05);},unapply:p=>{p.lm-=0.3;p.cdr=Math.max(0,p.cdr-0.05);}},
-{n:'Крест Творца',a:150,m:130,rank:6,atkType:'divinecross',cost:1280,el:'light',mat:'Звёздное Сердце',d:'Крест из 8 лучей + вращение + лечение. +50% ко всем, +60% свет.',apply:p=>{p.lm+=0.6;p.fm+=0.3;p.im+=0.3;p.wm+=0.3;p.em+=0.3;p.dm+=0.3;p.tm+=0.3;p.mm+=0.3;p.cm+=0.3;p.vm+=0.3;p.cdr=Math.min(0.75,p.cdr+0.2);p.mult(1.5);},unapply:p=>{p.lm-=0.6;p.fm-=0.3;p.im-=0.3;p.wm-=0.3;p.em-=0.3;p.dm-=0.3;p.tm-=0.3;p.mm-=0.3;p.cm-=0.3;p.vm-=0.3;p.cdr=Math.max(0,p.cdr-0.2);p.div(1.5);}}
+// === РАНГ 5: МИФИЧЕСКОЕ (база 700, наценка до 960) ===
+{n:'Клинок Творца',a:80,m:50,rank:5,atkType:'sword',cost:920,el:'light',mat:'Священная Сталь',d:'+15% ко всем стихиям. Удар 359°.',apply:p=>{p.fm+=0.15;p.im+=0.15;p.wm+=0.15;p.em+=0.15;p.lm+=0.15;p.dm+=0.15;p.tm+=0.15;p.mm+=0.15;p.cm+=0.15;p.vm+=0.15;p.cdr=Math.min(0.75,p.cdr+0.05);},unapply:p=>{p.fm-=0.15;p.im-=0.15;p.wm-=0.15;p.em-=0.15;p.lm-=0.15;p.dm-=0.15;p.tm-=0.15;p.mm-=0.15;p.cm-=0.15;p.vm-=0.15;p.cdr=Math.max(0,p.cdr-0.05);}},
+{n:'Коса Ада',a:90,m:30,rank:5,atkType:'scythe',cost:860,el:'dark',mat:'Священная Сталь',d:'Круговой взмах 359°, +25% вампиризм.',apply:p=>{p.vamp+=0.25;p.dm+=0.2;},unapply:p=>{p.vamp-=0.25;p.dm-=0.2;}},
+{n:'Громовой молот',a:110,m:20,rank:5,atkType:'hammer',cost:720,el:'wind',mat:'Священная Сталь',d:'Огромный AoE, шанс оглушить.',apply:p=>{p.wm+=0.3;},unapply:p=>{p.wm-=0.3;}},
+{n:'Гримуар Бездны',a:30,m:90,rank:5,atkType:'grimoire',cost:760,el:'void',mat:'Священная Сталь',d:'Всасывает врагов и взрывается.',apply:p=>{p.vm+=0.3;},unapply:p=>{p.vm-=0.3;}},
+{n:'Священный Меч Звёзд',a:100,m:70,rank:5,atkType:'stellar',cost:900,el:'light',mat:'Священная Сталь',d:'5 лучей. +25% свет, +20% время.',apply:p=>{p.lm+=0.25;p.tm+=0.20;p.crit+=10;p.cdr=Math.min(0.75,p.cdr+0.1);},unapply:p=>{p.lm-=0.25;p.tm-=0.20;p.crit-=10;p.cdr=Math.max(0,p.cdr-0.1);}},
+{n:'Лук Феникса',a:85,m:50,rank:5,atkType:'bow',cost:780,el:'fire',mat:'Священная Сталь',d:'5 огненных стрел.',apply:p=>{p.fm+=0.3;},unapply:p=>{p.fm-=0.3;}},
+{n:'Катана Звёзд',a:85,m:60,rank:5,atkType:'katana',cost:800,el:'light',mat:'Священная Сталь',d:'Режет двойным крестом (4 удара).',apply:p=>{p.lm+=0.3;},unapply:p=>{p.lm-=0.3;}},
+{n:'Кулаки Бога',a:95,m:40,rank:5,atkType:'gauntlet',cost:740,el:'light',mat:'Священная Сталь',d:'Сотрясает экран (AoE 180px).',apply:p=>{p.lm+=0.3;},unapply:p=>{p.lm-=0.3;}},
+{n:'Копьё Звёзд',a:100,m:50,rank:5,atkType:'spear',cost:820,el:'light',mat:'Священная Сталь',d:'Луч, пронзающий всё.',apply:p=>{p.lm+=0.3;p.pierceBonus+=5;},unapply:p=>{p.lm-=0.3;p.pierceBonus-=5;}},
+{n:'Посох Мироздания',a:40,m:100,rank:5,atkType:'staff',cost:780,el:'time',mat:'Священная Сталь',d:'5 сфер, замедляют время.',apply:p=>{p.tm+=0.3;},unapply:p=>{p.tm-=0.3;}},
+{n:'Жезл Молний',a:50,m:80,rank:5,atkType:'wand',cost:720,el:'wind',mat:'Священная Сталь',d:'Быстрая цепная молния (3 выстрела).',apply:p=>{p.wm+=0.3;},unapply:p=>{p.wm-=0.3;}},
+{n:'Когти Бездны',a:80,m:30,rank:5,atkType:'claw',cost:700,el:'void',mat:'Священная Сталь',d:'5 разрезов.',apply:p=>{p.vm+=0.3;},unapply:p=>{p.vm-=0.3;}},
+{n:'Космические Часы',a:50,m:80,rank:5,atkType:'timepiece',cost:880,el:'time',mat:'Священная Сталь',d:'Замедляет время и ставит метки на всех врагов.'},
+{n:'Сфера Абсолюта',a:100,m:100,rank:5,atkType:'ultimate_orb',cost:850,el:'void',mat:'Священная Сталь',d:'Орбитальные снаряды с гравитацией.'},
+{n:'Крест Серафима',a:85,m:60,rank:5,atkType:'holycross',cost:960,el:'light',mat:'Священная Сталь',d:'Крест из 8 лучей. Лечит при ударе. +30% свет, +5% CDR.',apply:p=>{p.lm+=0.3;p.cdr=Math.min(0.75,p.cdr+0.05);},unapply:p=>{p.lm-=0.3;p.cdr=Math.max(0,p.cdr-0.05);}},
+{n:'Клинок Буревестника',a:105,m:45,rank:5,atkType:'vortex_blade',cost:920,el:'wind',mat:'Священная Сталь',d:'Вихрь 360° (190px), мощно притягивает врагов. +30% ветер, +15% скорость.',apply:p=>{p.wm+=0.3;p.spd*=1.15;},unapply:p=>{p.wm-=0.3;p.spd/=1.15;}},
+// === РАНГ 6: СОЗДАНИЕ МИРА (база 1450, наценка до 1920; Эльпис 3200) ===
+{n:'Меч Вельдоры',a:140,m:110,rank:6,atkType:'stellar',cost:1550,el:'wind',mat:'Звёздное Сердце',d:'7 лучей. +40% ветер, +25% ко всем, +50% статы.',apply:p=>{p.wm+=0.4;p.fm+=0.25;p.im+=0.25;p.em+=0.25;p.lm+=0.25;p.dm+=0.25;p.tm+=0.25;p.mm+=0.25;p.cm+=0.25;p.vm+=0.25;p.cdr=Math.min(0.75,p.cdr+0.2);p.mult(1.5);},unapply:p=>{p.wm-=0.4;p.fm-=0.25;p.im-=0.25;p.em-=0.25;p.lm-=0.25;p.dm-=0.25;p.tm-=0.25;p.mm-=0.25;p.cm-=0.25;p.vm-=0.25;p.cdr=Math.max(0,p.cdr-0.2);p.div(1.5);}},
+{n:'Меч Велгринда',a:140,m:110,rank:6,atkType:'stellar',cost:1550,el:'fire',mat:'Звёздное Сердце',d:'7 лучей. +40% огонь, +25% ко всем, +50% статы.',apply:p=>{p.fm+=0.4;p.im+=0.25;p.wm+=0.25;p.em+=0.25;p.lm+=0.25;p.dm+=0.25;p.tm+=0.25;p.mm+=0.25;p.cm+=0.25;p.vm+=0.25;p.cdr=Math.min(0.75,p.cdr+0.2);p.mult(1.5);},unapply:p=>{p.fm-=0.4;p.im-=0.25;p.wm-=0.25;p.em-=0.25;p.lm-=0.25;p.dm-=0.25;p.tm-=0.25;p.mm-=0.25;p.cm-=0.25;p.vm-=0.25;p.cdr=Math.max(0,p.cdr-0.2);p.div(1.5);}},
+{n:'Клинок Вельданавы',a:150,m:120,rank:6,atkType:'katana',cost:1650,el:'light',mat:'Звёздное Сердце',d:'Крест. +40% свет, +25% ко всем, +50% статы.',apply:p=>{p.lm+=0.4;p.fm+=0.25;p.im+=0.25;p.wm+=0.25;p.em+=0.25;p.dm+=0.25;p.tm+=0.25;p.mm+=0.25;p.cm+=0.25;p.vm+=0.25;p.cdr=Math.min(0.75,p.cdr+0.2);p.mult(1.5);},unapply:p=>{p.lm-=0.4;p.fm-=0.25;p.im-=0.25;p.wm-=0.25;p.em-=0.25;p.dm-=0.25;p.tm-=0.25;p.mm-=0.25;p.cm-=0.25;p.vm-=0.25;p.cdr=Math.max(0,p.cdr-0.2);p.div(1.5);}},
+{n:'Коса Абсолюта',a:160,m:80,rank:6,atkType:'scythe',cost:1600,el:'void',mat:'Звёздное Сердце',d:'359° удар. +40% пустота, +50% статы.',apply:p=>{p.vm+=0.4;p.fm+=0.25;p.im+=0.25;p.wm+=0.25;p.em+=0.25;p.lm+=0.25;p.dm+=0.25;p.tm+=0.25;p.mm+=0.25;p.cm+=0.25;p.cdr=Math.min(0.75,p.cdr+0.2);p.mult(1.5);},unapply:p=>{p.vm-=0.4;p.fm-=0.25;p.im-=0.25;p.wm-=0.25;p.em-=0.25;p.lm-=0.25;p.dm-=0.25;p.tm-=0.25;p.mm-=0.25;p.cm-=0.25;p.cdr=Math.max(0,p.cdr-0.2);p.div(1.5);}},
+{n:'Копьё Вельзарда',a:130,m:100,rank:6,atkType:'spear',cost:1450,el:'ice',mat:'Звёздное Сердце',d:'Ледяное копье. +40% лёд, +50% статы.',apply:p=>{p.im+=0.4;p.fm+=0.25;p.wm+=0.25;p.em+=0.25;p.lm+=0.25;p.dm+=0.25;p.tm+=0.25;p.mm+=0.25;p.cm+=0.25;p.vm+=0.25;p.cdr=Math.min(0.75,p.cdr+0.2);p.mult(1.5);},unapply:p=>{p.im-=0.4;p.fm-=0.25;p.wm-=0.25;p.em-=0.25;p.lm-=0.25;p.dm-=0.25;p.tm-=0.25;p.mm-=0.25;p.cm-=0.25;p.vm-=0.25;p.cdr=Math.max(0,p.cdr-0.2);p.div(1.5);}},
+{n:'Лук Вельзарда',a:125,m:105,rank:6,atkType:'bow',cost:1450,el:'ice',mat:'Звёздное Сердце',d:'5 стрел. +40% лёд, +50% статы.',apply:p=>{p.im+=0.4;p.fm+=0.25;p.wm+=0.25;p.em+=0.25;p.lm+=0.25;p.dm+=0.25;p.tm+=0.25;p.mm+=0.25;p.cm+=0.25;p.vm+=0.25;p.cdr=Math.min(0.75,p.cdr+0.2);p.mult(1.5);},unapply:p=>{p.im-=0.4;p.fm-=0.25;p.wm-=0.25;p.em-=0.25;p.lm-=0.25;p.dm-=0.25;p.tm-=0.25;p.mm-=0.25;p.cm-=0.25;p.vm-=0.25;p.cdr=Math.max(0,p.cdr-0.2);p.div(1.5);}},
+{n:'Книга Апокалипсиса',a:50,m:150,rank:6,atkType:'grimoire',cost:1500,el:'chaos',mat:'Звёздное Сердце',d:'Черная дыра. +40% хаос, +50% статы.',apply:p=>{p.cm+=0.4;p.fm+=0.25;p.im+=0.25;p.wm+=0.25;p.em+=0.25;p.lm+=0.25;p.dm+=0.25;p.tm+=0.25;p.mm+=0.25;p.vm+=0.25;p.cdr=Math.min(0.75,p.cdr+0.2);p.mult(1.5);},unapply:p=>{p.cm-=0.4;p.fm-=0.25;p.im-=0.25;p.wm-=0.25;p.em-=0.25;p.lm-=0.25;p.dm-=0.25;p.tm-=0.25;p.mm-=0.25;p.vm-=0.25;p.cdr=Math.max(0,p.cdr-0.2);p.div(1.5);}},
+{n:'Оружие Богов',a:150,m:150,rank:6,atkType:'god_weapon',cost:1800,el:'light',mat:'Звёздное Сердце',d:'Чередует все паттерны атаки. +50% ко всем статам.',apply:p=>{p.mult(1.5);p.crit+=10;p.cdr=Math.min(0.75,p.cdr+0.1);},unapply:p=>{p.div(1.5);p.crit-=10;p.cdr=Math.max(0,p.cdr-0.1);}},
+{n:'Крест Творца',a:150,m:130,rank:6,atkType:'divinecross',cost:1920,el:'light',mat:'Звёздное Сердце',d:'Крест из 8 лучей + вращение + лечение. +50% ко всем, +60% свет.',apply:p=>{p.lm+=0.6;p.fm+=0.3;p.im+=0.3;p.wm+=0.3;p.em+=0.3;p.dm+=0.3;p.tm+=0.3;p.mm+=0.3;p.cm+=0.3;p.vm+=0.3;p.cdr=Math.min(0.75,p.cdr+0.2);p.mult(1.5);},unapply:p=>{p.lm-=0.6;p.fm-=0.3;p.im-=0.3;p.wm-=0.3;p.em-=0.3;p.dm-=0.3;p.tm-=0.3;p.mm-=0.3;p.cm-=0.3;p.vm-=0.3;p.cdr=Math.max(0,p.cdr-0.2);p.div(1.5);}},
+{n:'Клинок Вечного Шторма',a:165,m:115,rank:6,atkType:'vortex_blade',cost:1850,el:'wind',mat:'Звёздное Сердце',d:'Сверхвихрь 360° (230px), затягивает и замедляет. +50% ко всем статам, +40% ветер.',apply:p=>{p.wm+=0.4;p.fm+=0.25;p.im+=0.25;p.em+=0.25;p.lm+=0.25;p.dm+=0.25;p.tm+=0.25;p.mm+=0.25;p.cm+=0.25;p.vm+=0.25;p.cdr=Math.min(0.75,p.cdr+0.2);p.mult(1.5);},unapply:p=>{p.wm-=0.4;p.fm-=0.25;p.im-=0.25;p.em-=0.25;p.lm-=0.25;p.dm-=0.25;p.tm-=0.25;p.mm-=0.25;p.cm-=0.25;p.vm-=0.25;p.cdr=Math.max(0,p.cdr-0.2);p.div(1.5);}},
+{n:'Эльпис (Надежда)',a:180,m:150,rank:6,atkType:'elpis',cost:3200,el:'light',mat:'Звёздное Сердце',d:'Сильнейшее оружие. Космический луч. +60% свет, +60% статы. Пассив: Спасение верой.',apply:p=>{p.lm+=0.6;p.fm+=0.3;p.im+=0.3;p.wm+=0.3;p.em+=0.3;p.dm+=0.3;p.tm+=0.3;p.mm+=0.3;p.cm+=0.3;p.vm+=0.3;p.cdr=Math.min(0.75,p.cdr+0.3);p.crit+=15;p.cdmg+=0.3;p.mult(1.6);p.wepHope=true;},unapply:p=>{p.lm-=0.6;p.fm-=0.3;p.im-=0.3;p.wm-=0.3;p.em-=0.3;p.dm-=0.3;p.tm-=0.3;p.mm-=0.3;p.cm-=0.3;p.vm-=0.3;p.cdr=Math.max(0,p.cdr-0.3);p.crit-=15;p.cdmg-=0.3;p.div(1.6);p.wepHope=false;}}
 ];
 
 const ARTS=[
@@ -1516,7 +1517,7 @@ const SYNTHESIS=[
   {type:'skill',req:['Истинный Герой','Король Фортуны'],result:'Фортуна',tier:4,cost:6,color:'#ffd700',desc:'БОЖЕСТВЕННЫЙ СИНТЕЗ: Колесо Судьбы.'},
   {type:'skill',req:['Фортуна','Цукиёми'],result:'Яоёродзу',tier:4,cost:6,color:'#a0c0ff',desc:'БОЖЕСТВЕННЫЙ СИНТЕЗ: Проводник.'},
   {type:'skill',req:['Гравитационная Сфера','Спираль Света'],result:'Терра Матер',tier:4,cost:6,color:'#b09060',desc:'БОЖЕСТВЕННЫЙ СИНТЕЗ: Король Космоса.'},
-  {type:'skill',req:['Шуб-Ниггурат','Гурман'],result:'Просерпина',tier:4,cost:6,color:'#ff80c0',desc:'БОЖЕСТВЕННЫЙ СИНТЕЗ: Королева Поклонения.'},
+  {type:'skill',req:['Шуб-Ниггурат','Обжорство'],result:'Просерпина',tier:4,cost:6,color:'#ff80c0',desc:'БОЖЕСТВЕННЫЙ СИНТЕЗ: Королева Поклонения.'},
   {type:'skill',req:['Божественный Лазер','Сурья'],result:'Космический Вихрь',tier:4,cost:6,color:'#ffffff',desc:'БОЖЕСТВЕННЫЙ СИНТЕЗ: Сверхновая.'},
   {type:'skill',req:['Самаэль','Ледяная Тюрьма'],result:'Бельфегор',tier:4,cost:5,color:'#80ff80',desc:'БОЖЕСТВЕННЫЙ СИНТЕЗ: Король Лени.'},
   {type:'skill',req:['Мамон','Вампиризм'],result:'Амон',tier:4,cost:5,color:'#ffd700',desc:'БОЖЕСТВЕННЫЙ СИНТЕЗ: Король Алчности.'},
@@ -1592,7 +1593,7 @@ const ELITE=[
   {n:'Огненный Элементаль',h:200,a:24,s:2,x:45,c:'#ff6020',z:18,sh:'star',sp:'explode',unlock:{type:'boss',key:'Милим Нава'}},
   {n:'Стальной Голем',h:400,a:22,s:1,x:60,c:'#a0a0b0',z:22,sh:'circle',sp:'shield',unlock:{type:'boss',key:'Леон Кромвель'}},
   {n:'Драконий Слуга',h:350,a:30,s:1.8,x:70,c:'#cc4040',z:20,sh:'dragon',sp:'breath',unlock:{type:'boss',key:'Вельдора_и_Вельгринд'}},
-  {n:'Ледяной Призрак',h:300,a:28,s:2.4,x:65,c:'#80d0ff',z:18,sh:'winged',sp:'freeze',unlock:{type:'boss',key:'Вельзард'}},
+  {n:'Ледяной Призрак',h:300,a:28,s:2.4,x:65,c:'#80d0ff',z:18,sh:'winged',sp:'freeze',unlock:{type:'boss',key:'Вельзард_и_Гай'}},
   {n:'Павший Ангел',h:500,a:40,s:1.6,x:100,c:'#f0d060',z:22,sh:'angel',sp:'holyray',unlock:{type:'boss',key:'Михаэль_и_Фелдвей'}},
   {n:'Метатель Яда',h:140,a:16,s:1.9,x:32,c:'#80c040',z:16,sh:'circle',sp:'poisoner',unlock:{type:'wave',val:7}},
   {n:'Разделяющийся',h:280,a:20,s:1.6,x:55,c:'#a080ff',z:20,sh:'circle',sp:'splitter',unlock:{type:'boss',key:'Клейман'}},
@@ -1616,21 +1617,24 @@ function availableElites(g){
 
 const BT={
 'Гельд, Орк-лорд':{h:2200,a:28,s:1.6,x:250,c:'#906030',z:30,p2:'#ffa040',w:10,at:['sl','r'],sh:'circle',fr:3,sup:0},
-'Хината Сакагучи':{h:2800,a:30,s:1.6,x:280,c:'#e0e0ff',z:30,p2:'#ffffff',w:15,at:['r','sl'],sh:'diamond',fr:3,sup:0},
-'Клейман':{h:3200,a:34,s:1.7,x:320,c:'#a040c0',z:28,p2:'#ff40ff',w:20,at:['pb','tp'],sh:'demon',fr:3,sup:0},
-'Милим Нава':{h:5600,a:50,s:1.9,x:650,c:'#ff80c0',z:34,p2:'#ffffff',w:25,at:['df','mt'],sh:'star',fr:4,sup:0},
-'Леон Кромвель':{h:8000,a:64,s:1.8,x:1000,c:'#ffcc44',z:36,p2:'#ffffff',w:30,at:['df','fs','pb'],sh:'diamond',fr:5,sup:0},
-'Вельдора':{h:5200,a:52,s:1.7,x:800,c:'#50c8dc',z:36,p2:'#80e0ff',w:35,at:['fb','sl'],sh:'dragon',fr:4,sup:1,sec:true},
-'Вельгринд':{h:6000,a:58,s:1.8,x:950,c:'#ff6020',z:36,p2:'#ffa040',at:['fb','fs'],sh:'dragon',fr:4,sup:1,sec:true},
-'Михаэль':{h:8000,a:50,s:1.5,x:1200,c:'#f0d060',z:34,p2:'#ffa040',at:['fs','hn','ts'],sh:'angel',fr:3,sup:1,sec:true},
-'Фелдвей':{h:11000,a:60,s:1.8,x:1600,c:'#a040e0',z:36,p2:'#ff40ff',at:['tp','pb','vw'],sh:'demon',fr:3,sup:1,sec:true},
-'Вельдора_и_Вельгринд':{h:14000,a:65,s:1.7,x:1200,c:'#ff6020',z:38,p2:'#ffa040',w:35,at:['fb','fs','sl'],sh:'dragon',fr:5,sup:1,pair:['Вельдора','Вельгринд']},
-'Вельзард':{h:8500,a:68,s:1.7,x:1100,c:'#80c0ff',z:36,p2:'#ffffff',w:40,at:['ts','hn'],sh:'dragon',fr:4,sup:1},
-'Михаэль_и_Фелдвей':{h:24000,a:60,s:1.7,x:1800,c:'#f0d060',z:38,p2:'#ff40ff',w:45,at:['fs','hn','ts','tp','pb','vw'],sh:'angel',fr:4,sup:1,pair:['Михаэль','Фелдвей']},
-'Иварадж':{h:16000,a:65,s:1.7,x:2000,c:'#ff40a0',z:34,p2:'#ff80c0',w:50,at:['fs','pb','mt'],sh:'star',fr:5,sup:1,sec:'ivarage'},
-'Вельданава':{h:32000,a:75,s:1.6,x:2500,c:'#f0e090',z:38,p2:'#ffffff',w:50,at:['hn','fs','tp'],sh:'dragon',fr:5,sup:1,sec:'velanava'},
-'Руверудж':{h:55000,a:100,s:2,x:8000,c:'#c0c0ff',z:42,p2:'#ffffff',w:50,at:['df','mt','pb','hn'],sh:'winged',fr:10,sup:1,sec:'luvellger'}
+'Хината Сакагучи':{h:3360,a:30,s:1.6,x:280,c:'#e0e0ff',z:30,p2:'#ffffff',w:15,at:['r','sl'],sh:'diamond',fr:3,sup:0},
+'Клейман':{h:4480,a:34,s:1.7,x:320,c:'#a040c0',z:28,p2:'#ff40ff',w:20,at:['pb','tp'],sh:'demon',fr:3,sup:0},
+'Милим Нава':{h:8960,a:50,s:1.9,x:650,c:'#ff80c0',z:34,p2:'#ffffff',w:25,at:['df','mt'],sh:'star',fr:4,sup:0},
+'Леон Кромвель':{h:14400,a:64,s:1.8,x:1000,c:'#ffcc44',z:36,p2:'#ffffff',w:30,at:['df','fs','pb'],sh:'diamond',fr:5,sup:0},
+'Вельдора':{h:10400,a:52,s:1.7,x:800,c:'#50c8dc',z:36,p2:'#80e0ff',w:35,at:['fb','sl'],sh:'dragon',fr:4,sup:1,sec:true},
+'Вельгринд':{h:12000,a:58,s:1.8,x:950,c:'#ff6020',z:36,p2:'#ffa040',at:['fb','fs'],sh:'dragon',fr:4,sup:1,sec:true},
+'Вельзард':{h:14300,a:64,s:1.7,x:1100,c:'#80c0ff',z:36,p2:'#ffffff',at:['ts','hn'],sh:'dragon',fr:3,sup:1,sec:true},
+'Гай Кримзон':{h:17600,a:72,s:1.85,x:1350,c:'#d02030',z:36,p2:'#ff3030',at:['df','vw','tp'],sh:'demon',fr:3,sup:1,sec:true},
+'Михаэль':{h:19200,a:50,s:1.5,x:1200,c:'#f0d060',z:34,p2:'#ffa040',at:['fs','hn','ts'],sh:'angel',fr:3,sup:1,sec:true},
+'Фелдвей':{h:26400,a:60,s:1.8,x:1600,c:'#a040e0',z:36,p2:'#ff40ff',at:['tp','pb','vw'],sh:'demon',fr:3,sup:1,sec:true},
+'Вельдора_и_Вельгринд':{h:22400,a:65,s:1.7,x:1200,c:'#ff6020',z:38,p2:'#ffa040',w:35,at:['fb','fs','sl'],sh:'dragon',fr:5,sup:1,pair:['Вельдора','Вельгринд']},
+'Вельзард_и_Гай':{h:31900,a:70,s:1.8,x:1500,c:'#80c0ff',z:38,p2:'#ff3030',w:40,at:['ts','hn','df','vw'],sh:'dragon',fr:5,sup:1,pair:['Вельзард','Гай Кримзон']},
+'Михаэль_и_Фелдвей':{h:45600,a:60,s:1.7,x:1800,c:'#f0d060',z:38,p2:'#ff40ff',w:45,at:['fs','hn','ts','tp','pb','vw'],sh:'angel',fr:4,sup:1,pair:['Михаэль','Фелдвей']},
+'Иварадж':{h:41600,a:65,s:1.7,x:2000,c:'#ff40a0',z:34,p2:'#ff80c0',w:50,at:['fs','pb','mt'],sh:'star',fr:5,sup:1,sec:'ivarage'},
+'Вельданава':{h:89600,a:75,s:1.6,x:2500,c:'#f0e090',z:38,p2:'#ffffff',w:50,at:['hn','fs','tp'],sh:'dragon',fr:5,sup:1,sec:'velanava'},
+'Руверудж':{h:165000,a:100,s:2,x:8000,c:'#c0c0ff',z:42,p2:'#ffffff',w:50,at:['df','mt','pb','hn'],sh:'winged',fr:10,sup:1,sec:'luvellger'}
 };
+
 
 const LOCS=[
 {n:'Пещера запечатывания',d:'Здесь спал Вельдор.',m:{eh:1,ea:1,es:1},bg:'#0a0a1a'},
@@ -1648,9 +1652,9 @@ const LOCS=[
 
 const CHR={
 '📜 Пролог':`Мир Тенсуры создан Вельданавой, Звездным Королем-Драконом.
-Римуру Темпест, переродившись слизнем, обретает «Пожиратель» и «Великого Мудреца».
-Пожиратель → Гурман → Вельзевул (Высший) → Азатот (Божественный).
-Великий Мудрец → Рафаэль (Высший) → Сиэль (Божественный).
+Римуру Темпест, переродившись слизнем, обретает «Пожиратель» и «Мудреца».
+Пожиратель → Обжорство (Уникальный) → Вельзевул (Высший) → Азатот (Божественный).
+Мудрец → Великий Мудрец (Уникальный) → Рафаэль (Высший) → Сиэль (Божественный).
 Йог-Сотот — ветвь времени. Ньярлатотеп и Шуб-Ниггурат — порождения Хаоса.
 Только Высшие и Божественные силы способны бросить вызов Истинным Драконам.`,
 
@@ -1677,9 +1681,11 @@ ${r.d}
 '🦋 Эволюции':Object.values(RACES).map(r=>`${r.n}:
   • ${r.evo.map(e=>e.n+' (Ур.'+e.lv+')').join('\n  • ')}`).join('\n\n'),
 
-'✨ Навыки':Object.entries(SKILLS).map(([n,s])=>`${n}: ${s.desc} (КД: ${s.cd}с)`).join('\n\n')+
+get '✨ Навыки'(){return Object.entries(SKILLS).map(([n,s])=>`${n}: ${s.desc} (КД: ${s.cd}с)`).join('\n\n')+
 '\n\n==============================\n[!] ТИРЫ НАВЫКОВ: '+TI.join(' → ')+
 '\nУсиление до Высшего — 4 осколка. До Божественного — 7 осколков.\n\n'+
+'🌿 ВЕТКИ ЭВОЛЮЦИИ НАВЫКОВ:\n'+
+Object.entries(SKILL_EVO).map(([from,ev])=>`  • ${from} → ${ev.next} (${TI[ev.startTier||0]})`).join('\n')+'\n\n'+
 '⚗️ РЕЦЕПТЫ СИНТЕЗА (FUSION):\n'+
 'Собрав два нужных компонента, вы получите золотую карточку Синтеза при повышении уровня:\n\n'+
 SYNTHESIS.map(syn=>{
@@ -1688,7 +1694,7 @@ SYNTHESIS.map(syn=>{
   const tag=syn.type==='skill'?'[Навык]':(syn.type==='spell'?'[Магия]':'[Артефакт]');
   const cost=syn.cost?' ('+syn.cost+' оск.)':'';
   return `✦ ${tag} ${r1} + ${r2} → ${resName}${cost}\n   ${syn.desc}`;
-}).join('\n\n'),
+}).join('\n\n')},
 
 '🔮 Магия':SPELLS.map(s=>`${s.n} — ${s.d} урона (MP: ${s.mp}, КД: ${s.cd}с)${s.laser?' [Лазер]':''}${s.pattern?' ['+s.pattern+']':''}`).join('\n')+'\n\n[!] Реген маны: 3 + (0.25 × Уровень) + 1% от макс. MP в секунду.',
 
@@ -1699,7 +1705,11 @@ SYNTHESIS.map(syn=>{
 
 '👹 Враги':ET.map(e=>`${e.n} — HP: ${e.h}, ATK: ${e.a}, Ур: ${e.l}${e.behavior?' ('+e.behavior+')':''}`).join('\n')+'\n\n[★] ЭЛИТА:\n'+ELITE.map(e=>`  ★ ${e.n}`).join('\n'),
 
-'👑 Боссы':Object.entries(BT).filter(([n,b])=>!b.sec && !['Вельдора_и_Вельгринд','Михаэль_и_Фелдвей'].includes(n)).map(([n,b])=>`${n} (Волна ${b.w}): HP ${b.h}, ATK ${b.a}`).join('\n\n')+'\n\n[!] МЕХАНИКА ГНЕВА: Если убить босса быстрее чем за 20 секунд, он войдет в ГНЕВ (HP=1, ATK и скорость атаки умножаются на 2→4, кулдауны растут). Переживите 20 секунд — босс падет.\n[!] В Бесконечном режиме после 50-й волны боссы появляются парами.',
+'👑 Боссы':Object.entries(BT).filter(([n,b])=>!b.sec && !['Вельдора_и_Вельгринд','Вельзард_и_Гай','Михаэль_и_Фелдвей'].includes(n)).map(([n,b])=>`${n} (Волна ${b.w}): HP ${b.h}, ATK ${b.a}`).join('\n\n')+
+'\n\nВельдора и Вельгринд (Волна 35): HP 10400 + 12000, ATK 52 / 58 — Истинные Драконы Шторма и Пламени (★ Высший).\n\n'+
+'Вельзард и Гай Кримзон (Волна 40): HP 14300 + 17600, ATK 64 / 72 — Белая Драконица Льда и Красный Повелитель Гордыни (★ Высший).\n\n'+
+'Михаэль и Фелдвей (Волна 45): HP 19200 + 26400, ATK 50 / 60 — Король Правосудия и Король Фантомов (★ Высший).'+
+'\n\n[!] МЕХАНИКА ГНЕВА: Если убить босса быстрее чем за 20 секунд, он войдет в ГНЕВ (HP=1, ATK и скорость атаки умножаются на 2→4, кулдауны растут). Переживите 20 секунд — босс падет.\n[!] В Бесконечном режиме после 50-й волны боссы появляются парами.',
 
 '🗺️ Локации':LOCS.map(l=>`${l.n} — ${l.d}`).join('\n\n'),
 
@@ -1708,7 +1718,7 @@ SYNTHESIS.map(syn=>{
 Артефакты усиливают конкретную стихию на 25%. «Призма стихий» дает +10% ко всем стихиям сразу.`,
 
 '🗡️ Оружие':`Всего в игре более 60 видов оружия в 7 классах:
-Обычное (20) → Специальное (40) → Редкое (80) → Уникальное (160) → Легендарное (320) → Мифическое (640) → Создание Мира (1280). Эльпис (2560).
+Обычное (20–28) → Специальное (45–60) → Редкое (85–120) → Уникальное (170–240) → Легендарное (340–480) → Мифическое (700–960) → Создание Мира (1450–1920). Эльпис (3200).
 [!] Легендарное оружие (ранг 4) и выше наносит ВЫСШИЙ (Supreme) урон, пробивающий защиту Истинных Драконов.
 [!] Золото: убийство (1 + 0.02×LCK), босс (+120), зачистка волны (+2×N).`,
 
@@ -1721,7 +1731,7 @@ SYNTHESIS.map(syn=>{
 Сопротивление (RES):
   • -1% урона от снарядов, лазеров и яда за 1 RES (максимальный кап — 50%).`,
 
-'⏳ Хронология':`Пещера → Лес Джура → Деревня гоблинов → Озеро Шинсу → Дваргон → Гельд → Хината → Клейман → Милим → Леон → Близнецы Драконы → Вельзард → Михаэль и Фелдвей → Иварадж → Вельданава → Руверудж`,
+'⏳ Хронология':`Пещера → Лес Джура → Деревня гоблинов → Озеро Шинсу → Дваргон → Гельд → Хината → Клейман → Милим → Леон → Вельдора и Вельгринд → Вельзард и Гай Кримзон → Михаэль и Фелдвей → Иварадж → Вельданава → Руверудж`,
 
 '📚 Тома и сюжет':`Том 1: Римуру перерождается в пещере в виде слизня и встречает Вельдору, с которым заключает союз. Покинув пещеру, он объединяет гоблинов и волков, помогая им выжить в суровом лесу. Вместе с дварфами он закладывает фундамент для будущего государства Темпест. Армия орков под предводительством Гельда угрожает лесу Джура. Римуру впервые применяет свою силу Пожирателя в крупном сражении, защищая новых друзей.
 
@@ -2292,11 +2302,6 @@ this.at=1.5;this.st=2;this.td=t;this.isBoss=true;this.sup=t.sup||false;this.hsf=
 this.spCd=0;this.spCd2=0;this.spTimer=0;this.spPhase=0;this.spData=null;this.spCharge=0;
 this.baseColor=t.c;this.spawnAt=performance.now();this.spawnWave=0;
 this.enraged=false;this.enrageUsed=false;this.enrageTimer=0;this._enrageShown=false;this.game=null;
-if(t.w && t.w >= 25){
-  const bossScale = 1 + (t.w - 20) * 0.045;
-  this.maxHp = Math.floor(this.maxHp * bossScale);
-  this.hp = this.maxHp;
-}
 this.baseAtk=this.atk;this.baseSpd=this.spd;this.baseSt=this.st;this.baseAt=this.at;
 this._enrageSpeedMul=1;}
 update(dt,p,g){this.game=g;
@@ -2459,6 +2464,8 @@ specialUpdate(dt,p,g){
   if(isVeldoraPair){const otherAlive=g.bosses.some(b=>b.alive && b!==this && (b.bn==='Вельдора'||b.bn==='Вельгринд'));
     if(!otherAlive&&!this.enraged){this.atk=this.td.a*g.loc.m.ea*1.5;if(this.hsf<=0)this.hsf=0.3;}}
   if(bn==='Вельзард'){
+    const guy=g.bosses.find(b=>b.alive&&b!==this&&(b.bn||'').includes('Гай Кримзон'));
+    if(!guy&&!this.enraged){this.atk=this.td.a * g.loc.m.ea * 1.45;if(this.hsf<=0)this.hsf=0.3;}
     if(this.spCd<=0){this.spCd=14;
       g.ftxt.push(new FTxt('ЛЕДЯНАЯ СТЕНА!',this.x,this.y-60,'#80c0ff',2,18));
       const wall={x:cl(this.x+Math.cos(a)*180,140,WW-140),y:cl(this.y+Math.sin(a)*180,140,WH-140),r:130,timer:4.5};
@@ -2501,6 +2508,41 @@ specialUpdate(dt,p,g){
         const na=Math.atan2(p.y-this.y,p.x-this.x);
         laserFan(g,this.x,this.y,na,3,0.12,{length:1800,width:20,telegraph:0.45,duration:0.9,dps:this.atk*0.5,color:'#c0e8ff',hostile:true});
         if(d2(this.x,this.y,p.x,p.y)<900*900){p.slowTimer=Math.max(p.slowTimer||0,1.5);}}}}
+  if(bn==='Гай Кримзон'){
+    const vz=g.bosses.find(b=>b.alive&&b!==this&&(b.bn||'').includes('Вельзард'));
+    if(!vz&&!this.enraged){this.atk=this.td.a * g.loc.m.ea * 1.45;if(this.hsf<=0)this.hsf=0.3;}
+    if(this.spCd<=0){this.spCd=8;this.attackRot=(this.attackRot||0)+1;
+      const gpick=this.attackRot%3;
+      if(gpick===0){
+        g.ftxt.push(new FTxt('ГОРДЫНЯ: ЯДЕРНОЕ ПЛАМЯ!',this.x,this.y-65,'#ff3030',2.2,20));
+        laserCross(g,this.x,this.y,4,{length:2100,width:28,telegraph:0.55,duration:1.4,dps:this.atk * 0.55,color:'#ff3030',hostile:true,offset:a,rotate:0.75});
+      }else if(gpick===1){
+        g.ftxt.push(new FTxt('АЛЫЙ ВИХРЬ ЛОРДА!',this.x,this.y-65,'#ff5030',2.2,20));
+        bhSpiralFint(g,this.x,this.y,a,360,2.2,-2.2,this.atk * 0.55,'#ff3030',6,{arms:5,flipAt:1.4,lifetime:5});
+      }else{
+        g.ftxt.push(new FTxt('КРОВАВЫЙ НАТИСК!',this.x,this.y-65,'#ff2040',2.0,20));
+        const ta=Math.random() * Math.PI * 2;
+        this.x=cl(p.x + Math.cos(ta) * 210,160,WW-160);
+        this.y=cl(p.y + Math.sin(ta) * 210,160,WH-160);
+        bhRing(g,this.x,this.y,18,330,'#ff3030',6,{dmg:this.atk * 0.5,lifetime:4});
+      }
+      g.shake=10;
+    }
+    if(vz&&this.spCd2<=0){this.spCd2=11;this.coopRot=(this.coopRot||0)+1;
+      if(this.coopRot%2===1){
+        g.ftxt.push(new FTxt('❄️🔥 КОНВЕРГЕНЦИЯ ЛЬДА И ПЛАМЕНИ!',this.x,this.y-85,'#ffd700',2.5,22));
+        bhCrossfire(g,vz,this,430,this.atk * 0.5,'#80d8ff','#ff3030',7,{lifetime:4.2,count:9,spacing:24});
+      }else{
+        g.ftxt.push(new FTxt('❄️🔥 АБСОЛЮТНЫЙ КАТАКЛИЗМ ДУЭТА!',this.x,this.y-85,'#ff80ff',2.5,22));
+        const aVz=Math.atan2(p.y-vz.y,p.x-vz.x);
+        const aGuy=Math.atan2(p.y-this.y,p.x-this.x);
+        laserFan(g,vz.x,vz.y,aVz,3,0.16,{length:2000,width:20,telegraph:0.55,duration:1.1,dps:vz.atk * 0.45,color:'#80d8ff',hostile:true});
+        laserFan(g,this.x,this.y,aGuy,3,0.16,{length:2000,width:20,telegraph:0.55,duration:1.1,dps:this.atk * 0.45,color:'#ff3030',hostile:true});
+        p.slowTimer=Math.max(p.slowTimer||0,1.5);
+      }
+      g.shake=14;
+    }
+  }
   const isMichaelPair=(this.bn==='Михаэль'||this.bn==='Фелдвей');
   if(isMichaelPair){const other=g.bosses.find(b=>b!==this && (b.bn==='Михаэль'||b.bn==='Фелдвей'));
     if(other&&other.alive&&!this.enraged){
@@ -2664,6 +2706,11 @@ cast(p,g){const a=Math.atan2(p.y-this.y,p.x-this.x);const bn=(this.bn||'').repla
       g.proj.push(new Proj(this.x,this.y,Math.cos(aa)*400,Math.sin(aa)*400,this.atk*.6,'#80c0ff',9,false));}
     if(d2(this.x,this.y,p.x,p.y)<450*450){p.slowTimer=Math.max(p.slowTimer||0,3);
       g.ftxt.push(new FTxt('ЗАМОРОЖЕН!',p.x,p.y-30,'#80c0ff',1.5,16));}return;}
+  if(bn==='Гай Кримзон'){
+    for(let i=-4;i<=4;i++){const aa=a+i * 0.13;
+      g.proj.push(new Proj(this.x,this.y,Math.cos(aa) * 560,Math.sin(aa) * 560,this.atk * 0.7,'#ff3030',8,false,2));}
+    return;
+  }
   if(bn==='Вельгринд'){for(let i=0;i<20;i++){const aa=i/20*6.283;
       g.proj.push(new Proj(this.x,this.y,Math.cos(aa)*420,Math.sin(aa)*420,this.atk*.8,'#ff6020',11,false,3));}return;}
   if(bn==='Вельданава'){for(let i=0;i<3;i++){const aa=Math.random()*6.283;
@@ -2776,174 +2823,168 @@ if(this.enraged){const prog=1-Math.max(0,this.enrageTimer)/20;
   tx('ГНЕВ: '+this.enrageTimer.toFixed(1)+'с  |  ×'+this._enrageSpeedMul.toFixed(2),this.x,this.y-this.z-50,{color:'#ff3030',size:14,weight:'bold',align:'center',glow:'#ff0000',glowBlur:20});}}}
 
 const SKILL_EVO={
-// Ветка 1: Поглощение (Римуру)
-'Пожиратель':{next:'Гурман',startTier:2,color:'#80e0ff',desc:'Эволюция.'},
-'Гурман':{next:'Вельзевул',startTier:3,color:'#c080ff',desc:'Высший.'},
-'Вельзевул':{next:'Азатот',startTier:4,color:'#ff4040',desc:'Божественный.'},
-// Ветка 2: Мудрость (Римуру)
+'Поглощение':{next:'Пожиратель',startTier:1,color:'#50c8dc',desc:'Эволюция поглощения.'},
+'Пожиратель':{next:'Обжорство',startTier:2,color:'#80e0ff',desc:'Уникальное поглощение.'},
+'Обжорство':{next:'Вельзевул',startTier:3,color:'#c080ff',desc:'Король Чревоугодия.'},
+'Вельзевул':{next:'Азатот',startTier:4,color:'#ff4040',desc:'Бог Пустоты.'},
+
+'Пробуждение Души':{next:'Мудрец',startTier:1,color:'#ff80c0',desc:'Пробуждение разума.'},
+'Мудрец':{next:'Великий Мудрец',startTier:2,color:'#80b0ff',desc:'Уникальный разум.'},
 'Великий Мудрец':{next:'Рафаэль',startTier:3,color:'#a0c0ff',desc:'Король Мудрости.'},
 'Рафаэль':{next:'Сиэль',startTier:4,color:'#ffffff',desc:'Божественный Разум.'},
-// Ветка 3: Время (Хлоя/Римуру)
-'Искажение Времени':{next:'Пространственный Сдвиг',startTier:1,color:'#a0e0ff',desc:'Эволюция времени.'},
-'Пространственный Сдвиг':{next:'Хроно-Разлом',startTier:2,color:'#80d0ff',desc:'Эволюция пространства.'},
-'Хроно-Разлом':{next:'Йог-Сотот',startTier:4,color:'#c080ff',desc:'Эволюция в Йог-Сотота.'},
-'Путешественник во времени':{next:'Йог-Сотот',startTier:4,color:'#c080ff',desc:'Бог Пространства-Времени.'},
-// Ветка 4: Свет (Михаэль/Леон)
-'Святой Луч':{next:'Кара',startTier:1,color:'#fff8c0',desc:'Святой луч.'},
-'Кара':{next:'Небесный Суд',startTier:2,color:'#ffe040',desc:'Божественный суд.'},
-'Небесный Суд':{next:'Михаэль',startTier:3,color:'#f0d060',desc:'Король Правосудия.'},
+
+'Ускорение Мысли':{next:'Искажение Времени',startTier:1,color:'#80d0ff',desc:'Контроль восприятия.'},
+'Пространственное Перемещение':{next:'Искажение Времени',startTier:1,color:'#80d0ff',desc:'Освоение координат.'},
+'Путешественник во времени':{next:'Искажение Времени',startTier:1,color:'#c080ff',desc:'Повелитель петель.'},
+'Искажение Времени':{next:'Сдвиг Пространства',startTier:2,color:'#a0e0ff',desc:'Искривление пространства.'},
+'Пространственный Сдвиг':{next:'Сдвиг Пространства',startTier:2,color:'#80d0ff',desc:'Сжатие координат.'},
+'Разлом':{next:'Сдвиг Пространства',startTier:2,color:'#c080ff',desc:'Разрыв пространства.'},
+'Сдвиг Пространства':{next:'Хроно-Разлом',startTier:3,color:'#c080ff',desc:'Высший разлом времени.'},
+'Хроно-Разлом':{next:'Йог-Сотот',startTier:4,color:'#c080ff',desc:'Бог Пространства-Времени.'},
+
+'Господство':{next:'Небесный Приказ',startTier:1,color:'#f0d060',desc:'Власть над душами.'},
+'Небесный Приказ':{next:'Суд Архангела',startTier:2,color:'#f0d060',desc:'Уникальный приговор.'},
+'Суд Архангела':{next:'Михаэль',startTier:3,color:'#f0d060',desc:'Король Правосудия.'},
 'Михаэль':{next:'Метатрон',startTier:4,color:'#ffffff',desc:'Король Чистоты.'},
-// Ветка 5: Защита (Уриэль)
+
+'Святой Луч':{next:'Кара',startTier:1,color:'#fff8c0',desc:'Святой луч.'},
+'Божественная Кара':{next:'Небесный Суд',startTier:2,color:'#ffe040',desc:'Концентрация света.'},
+'Кара':{next:'Небесный Суд',startTier:2,color:'#ffe040',desc:'Божественный суд.'},
+'Небесный Суд':{next:'Судный День',startTier:3,color:'#ffffff',desc:'Высший крест света.'},
+'Судный День':{next:'Метатрон',startTier:4,color:'#ffffff',desc:'Король Чистоты.'},
+
 'Каменная Кожа':{next:'Железная Воля',startTier:1,color:'#b0b0b0',desc:'Эволюция защиты.'},
+'Многослойный Барьер':{next:'Железная Воля',startTier:1,color:'#a0c0ff',desc:'Уплотнение барьера.'},
+'Священный Барьер':{next:'Несокрушимая Стена',startTier:2,color:'#fff8c0',desc:'Священная защита.'},
 'Железная Воля':{next:'Несокрушимая Стена',startTier:2,color:'#a0c0ff',desc:'Эволюция стойкости.'},
 'Несокрушимая Стена':{next:'Уриэль',startTier:3,color:'#a0c0ff',desc:'Король Обетов.'},
 'Уриэль':{next:'Сариэль',startTier:4,color:'#fff8c0',desc:'Король Надежды.'},
-// Ветка 6: Тьма (Диабло/Гай)
+
 'Тёмная Стрела':{next:'Крылья Тьмы',startTier:1,color:'#c060c0',desc:'Эволюция тьмы.'},
-'Крылья Тьмы':{next:'Азазель',startTier:2,color:'#a040a0',desc:'Эволюция искушения.'},
-'Азазель':{next:'Люцифер',startTier:3,color:'#ff4040',desc:'Король Гордыни.'},
+'Крылья Тьмы':{next:'Кровавый Закат',startTier:2,color:'#ff4060',desc:'Багровая аура.'},
+'Кровавый Закат':{next:'Люцифер',startTier:3,color:'#ff4040',desc:'Король Гордыни.'},
 'Люцифер':{next:'Ноденс',startTier:4,color:'#c0c0ff',desc:'Бог Бездны.'},
-'Вампиризм':{next:'Самаэль',startTier:3,color:'#c04040',desc:'Король Яда.'},
-'Самаэль':{next:'Бельфегор',startTier:4,color:'#80c080',desc:'Король Лени.'},
-'Узурпатор':{next:'Мамон',startTier:3,color:'#ffcc44',desc:'Король Жадности.'},
-'Мамон':{next:'Амон',startTier:4,color:'#ffd700',desc:'Король Алчности.'},
-// Ветка 7: Ярость (Милим/Шион)
-'Ярость Зверя':{next:'Ярость Огра',startTier:2,color:'#ff8040',desc:'Эволюция ярости.'},
-'Ярость Огра':{next:'Гнев Демона',startTier:3,color:'#ff4040',desc:'Эволюция гнева.'},
-'Гнев Демона':{next:'Сатанаэль',startTier:4,color:'#ff2020',desc:'Король Гнева.'},
+
+'Искушение':{next:'Очарование Бездны',startTier:1,color:'#a040a0',desc:'Сети искушения.'},
+'Очарование Бездны':{next:'Сеть Порока',startTier:2,color:'#a040a0',desc:'Порабощение воли.'},
+'Сеть Порока':{next:'Азазель',startTier:3,color:'#a040a0',desc:'Король Искушения.'},
+'Азазель':{next:'Ноденс',startTier:4,color:'#c0c0ff',desc:'Бог Бездны.'},
+
+'Бездна':{next:'Крылья Падшего',startTier:1,color:'#402080',desc:'Сила падших.'},
+'Крылья Падшего':{next:'Падение Серафима',startTier:2,color:'#8040a0',desc:'Крылья тьмы.'},
+'Падение Серафима':{next:'Астарот',startTier:3,color:'#8040a0',desc:'Король Падших.'},
+'Астарот':{next:'Ноденс',startTier:4,color:'#c0c0ff',desc:'Бог Бездны.'},
+
+'Ядерное Пламя':{next:'Цепная Детонация',startTier:1,color:'#ff4020',desc:'Сверхновая плазма.'},
+'Разрушение':{next:'Цепная Детонация',startTier:1,color:'#ff6060',desc:'Коллапс материи.'},
+'Цепная Детонация':{next:'Коллапс Пустоты',startTier:2,color:'#a040c0',desc:'Сжатие плазмы.'},
+'Коллапс Пустоты':{next:'Абаддон',startTier:3,color:'#ff2020',desc:'Король Истребления.'},
+'Абаддон':{next:'Ноденс',startTier:4,color:'#c0c0ff',desc:'Бог Бездны.'},
+
+'Ядовитое Дыхание':{next:'Токсичный Туман',startTier:1,color:'#80c080',desc:'Концентрация яда.'},
+'Токсичный Туман':{next:'Ядовитый Миазм',startTier:2,color:'#80c080',desc:'Смертоносные испарения.'},
+'Ядовитый Миазм':{next:'Самаэль',startTier:3,color:'#80c080',desc:'Король Смертельного Яда.'},
+'Самаэль':{next:'Бельфегор',startTier:4,color:'#80ff80',desc:'Король Лени.'},
+
+'Смертельный Яд':{next:'Некроз Души',startTier:1,color:'#a040c0',desc:'Распад души.'},
+'Сон Бездны':{next:'Кошмарная Дрёма',startTier:1,color:'#80ff80',desc:'Глубокий сон.'},
+'Некроз Души':{next:'Летаргия',startTier:2,color:'#80ff80',desc:'Угасание сил.'},
+'Кошмарная Дрёма':{next:'Летаргия',startTier:2,color:'#80ff80',desc:'Непробудный сон.'},
+'Летаргия':{next:'Самаэль',startTier:3,color:'#80c080',desc:'Король Смертельного Яда.'},
+
+'Вампиризм':{next:'Алая Жажда',startTier:1,color:'#c04040',desc:'Эволюция вампиризма.'},
+'Алая Жажда':{next:'Кровавый Пир',startTier:2,color:'#e04060',desc:'Жатва крови.'},
+'Кровавый Пир':{next:'Асмодей',startTier:3,color:'#ff80ff',desc:'Король Похоти.'},
+'Асмодей':{next:'Ньярлатотеп',startTier:4,color:'#ff40ff',desc:'Король Хаоса.'},
+
+'Мастер-Шеф':{next:'Искажение Сути',startTier:1,color:'#ff60c0',desc:'Переписывание реальности.'},
+'Искажение Сути':{next:'Гнев Демона',startTier:2,color:'#ff4040',desc:'Неудержимая ярость.'},
+'Ярость Зверя':{next:'Ярость Огра',startTier:1,color:'#ff8040',desc:'Эволюция ярости.'},
+'Ярость Огра':{next:'Гнев Демона',startTier:2,color:'#ff4040',desc:'Эволюция гнева.'},
+'Гнев Демона':{next:'Сатанаэль',startTier:3,color:'#ff2020',desc:'Король Гнева.'},
 'Сатанаэль':{next:'Сусаноо',startTier:4,color:'#ff2020',desc:'Король Тирании.'},
-// Ветка 8: Огонь (Вельгринд/Аматэрасу)
+
 'Пламя Ада':{next:'Тёмное Пламя',startTier:1,color:'#ff6030',desc:'Эволюция огня.'},
-'Тёмное Пламя':{next:'Аматэрасу',startTier:3,color:'#8040c0',desc:'Король Пламени.'},
+'Огненный Шторм':{next:'Тёмное Пламя',startTier:1,color:'#ff6030',desc:'Сгущение пламени.'},
+'Тёмное Пламя':{next:'Алое Пламя',startTier:2,color:'#ff3010',desc:'Негасимый жар.'},
+'Алое Пламя':{next:'Аматэрасу',startTier:3,color:'#8040c0',desc:'Король Пламени.'},
 'Аматэрасу':{next:'Ктугха',startTier:4,color:'#ff6020',desc:'Бог Божественного Пламени.'},
-// Ветка 9: Лёд (Вельзард)
+
 'Водяная Струя':{next:'Ледяная Тюрьма',startTier:1,color:'#60a8ff',desc:'Эволюция льда.'},
 'Ледяная Тюрьма':{next:'Абсолютный Ноль',startTier:2,color:'#80c0ff',desc:'Абсолютный холод.'},
 'Абсолютный Ноль':{next:'Гавриил',startTier:3,color:'#c0e8ff',desc:'Король Терпения.'},
 'Гавриил':{next:'Ктулху',startTier:4,color:'#a0e0ff',desc:'Бог Божественного Льда.'},
-// Ветка 10: Ветер (Вельдора)
+
 'Порыв Ветра':{next:'Штормовое Крыло',startTier:1,color:'#a0e0ff',desc:'Эволюция ветра.'},
-'Штормовое Крыло':{next:'Фауст',startTier:2,color:'#80d0ff',desc:'Король Расследования.'},
-'Фауст':{next:'Вельдора',startTier:3,color:'#f0d060',desc:'Король Штормов.'},
+'Режущий Ветер':{next:'Штормовое Крыло',startTier:1,color:'#7ad0a0',desc:'Острый поток.'},
+'Штормовое Крыло':{next:'Глаз Бури',startTier:2,color:'#80e0ff',desc:'Сердце урагана.'},
+'Глаз Бури':{next:'Фауст',startTier:3,color:'#80d0ff',desc:'Король Расследования.'},
+'Фауст':{next:'Вельдора',startTier:4,color:'#f0d060',desc:'Король Штормов.'},
+
 'Громовой Удар':{next:'Громовой Шторм',startTier:1,color:'#ffff80',desc:'Эволюция молнии.'},
-'Громовой Шторм':{next:'Индра',startTier:3,color:'#ffff80',desc:'Король Грозы.'},
+'Громовой Шторм':{next:'Небесный Разряд',startTier:2,color:'#ffff80',desc:'Грозовой каскад.'},
+'Небесный Разряд':{next:'Индра',startTier:3,color:'#ffff80',desc:'Король Грозы.'},
 'Индра':{next:'Ваю',startTier:4,color:'#80ffff',desc:'Король Небесного Ветра.'},
-'Сверхзвуковой Взрыв':{next:'Хастур',startTier:3,color:'#ffdc78',desc:'Король Звездного Ветра.'},
+
+'Сверхзвуковой Взрыв':{next:'Дыхание Дракона',startTier:1,color:'#ffdc78',desc:'Ударная волна.'},
+'Дыхание Дракона':{next:'Ярость Виверны',startTier:2,color:'#ff8040',desc:'Пламя виверны.'},
+'Ярость Виверны':{next:'Хастур',startTier:3,color:'#ff6030',desc:'Король Звездного Ветра.'},
 'Хастур':{next:'Ажи Дахака',startTier:4,color:'#ff8040',desc:'Король Злых Драконов.'},
-// Ветка 11: Жизнь (Шуна)
+'Ажи Дахака':{next:'Бахамут',startTier:4,color:'#ff8040',desc:'Король Мифических Зверей.'},
+
 'Регенерация':{next:'Живучесть',startTier:1,color:'#80ff80',desc:'Эволюция регенерации.'},
 'Живучесть':{next:'Плодородие',startTier:2,color:'#60ff60',desc:'Эволюция живучести.'},
 'Плодородие':{next:'Шуб-Ниггурат',startTier:3,color:'#80ff80',desc:'Король Урожая.'},
 'Шуб-Ниггурат':{next:'Просерпина',startTier:4,color:'#ff80c0',desc:'Королева Поклонения.'},
-// Ветка 12: Иллюзии (Мефисто)
-'Иллюзия':{next:'Мираж',startTier:1,color:'#c080ff',desc:'Эволюция иллюзий.'},
-'Мираж':{next:'Лабиринт',startTier:2,color:'#a040ff',desc:'Эволюция миража.'},
-'Лабиринт':{next:'Мефисто',startTier:3,color:'#ff40ff',desc:'Король Фантазии.'},
-'Мефисто':{next:'Ньярлатотеп',startTier:4,color:'#ff40ff',desc:'Король Хаоса.'},
-// Ветка 13: Оружие (Агера/Орлия)
-'Разрез':{next:'Клинок Бури',startTier:1,color:'#f4f4ff',desc:'Эволюция клинка.'},
-'Клинок Бури':{next:'Трансформация Клинка',startTier:2,color:'#80d0ff',desc:'Оружие становится телом.'},
-'Трансформация Клинка':{next:'Множественное Оружие',startTier:3,color:'#ffffff',desc:'Король Марциального Создания.'},
-'Множественное Оружие':{next:'Агастья',startTier:4,color:'#ffcc44',desc:'Книга Пророчеств.'},
-// Ветка 14: Героизм (Масаюки)
-'Избранный':{next:'Героический Король',startTier:1,color:'#ffd700',desc:'Эволюция героя.'},
-'Героический Король':{next:'Истинный Герой',startTier:2,color:'#ffed80',desc:'Король Героев.'},
-'Истинный Герой':{next:'Фортуна',startTier:3,color:'#ffffff',desc:'Король Шанса.'},
-'Фортуна':{next:'Яоёродзу',startTier:4,color:'#ff40a0',desc:'Проводник.'},
-// Ветка 15: Лазеры (Леон)
-'Лазерный Луч':{next:'Призматический Луч',startTier:1,color:'#ff80c0',desc:'Веер из трёх лазеров.'},
-'Призматический Луч':{next:'Божественный Лазер',startTier:2,color:'#ffffff',desc:'Божественный.'},
-'Божественный Лазер':{next:'Сурья',startTier:3,color:'#fff0c0',desc:'Король Сияния.'},
-'Сурья':{next:'Космический Вихрь',startTier:4,color:'#ffffff',desc:'Сверхновая.'},
-'Вращающийся Луч':{next:'Спираль Света',startTier:1,color:'#ffcc44',desc:'Четыре лазера по кругу.'},
-'Спираль Света':{next:'Терра Матер',startTier:3,color:'#ffffff',desc:'Король Космоса.'},
-'Терра Матер':{next:'Ноденс',startTier:4,color:'#ffffff',desc:'Бог Бездны.'},
-// Ветка 16: Хаос (Альберт)
+
+'Стойкость':{next:'Длань Бездны',startTier:1,color:'#60a0ff',desc:'Несгибаемая воля.'},
 'Песчаная Буря':{next:'Длань Бездны',startTier:1,color:'#d0a060',desc:'Эволюция бездны.'},
 'Длань Бездны':{next:'Бессмертный',startTier:2,color:'#6020a0',desc:'Неумирающий.'},
 'Бессмертный':{next:'Сефирот',startTier:3,color:'#ffffff',desc:'Король Жизни.'},
 'Сефирот':{next:'Вечный',startTier:4,color:'#ffffff',desc:'Бесконечный.'},
-// Ветка 17: Универсальное превращение (Вейрон)
-'Универсальное Превращение':{next:'Художник',startTier:2,color:'#f4f4ff',desc:'Истинный Писатель.'},
-'Художник':{next:'Множественное Оружие',startTier:4,color:'#ffffff',desc:'Марциальное Создание.'},
-// Ветка 18: Гравитация (Гай)
-'Гравитационная Сфера':{next:'Терра Матер',startTier:3,color:'#ffcc44',desc:'Король Космоса.'},
-// Ветка 19: Проклятие (Адальман)
-'Проклятие':{next:'Некрономикон',startTier:2,color:'#a040a0',desc:'Книга Мертвых.'},
-'Некрономикон':{next:'Асмодей',startTier:4,color:'#ff80ff',desc:'Король Похоти.'},
-// Ветка 20: Разрушение (Каррера)
-'Разрушение':{next:'Абаддон',startTier:3,color:'#ff6060',desc:'Король Истребления.'},
-// Ветка 21: Бездна (Гай/Дино)
-'Бездна':{next:'Астарот',startTier:3,color:'#200040',desc:'Король Падших.'},
-'Астарот':{next:'Ноденс',startTier:4,color:'#c0c0ff',desc:'Бог Бездны.'},
-// Ветка 22: Разум (Шинша)
-'Разумное Существо':{next:'Рафаэль',startTier:3,color:'#ff80c0',desc:'Король Мудрости.'},
-// Ветка 23: Наследник (Ригур)
-'Наследник':{next:'Карта Мира',startTier:3,color:'#80ff80',desc:'Король Топографии.'},
-'Карта Мира':{next:'Агастья',startTier:4,color:'#ffffff',desc:'Книга Пророчеств.'},
-// Ветка 24: Щит Стража (Кабал)
-'Щит Стража':{next:'Гримуар',startTier:3,color:'#a0c0ff',desc:'Книга Магии.'},
-'Гримуар':{next:'Хамель',startTier:4,color:'#ffffff',desc:'Король Великолепия.'},
-// Ветка 25: Резонанс (Габиру)
-'Резонанс':{next:'Создатель Настроения',startTier:3,color:'#a0c0ff',desc:'Король Психологии.'},
-'Создатель Настроения':{next:'Хамель',startTier:4,color:'#ffffff',desc:'Король Великолепия.'},
-// Ветка 26: Дыхание Дракона (Вега)
-'Дыхание Дракона':{next:'Ажи Дахака',startTier:3,color:'#ff6030',desc:'Король Злых Драконов.'},
-'Ажи Дахака':{next:'Бахамут',startTier:4,color:'#ff8040',desc:'Король Мифических Зверей.'},
-// Ветка 27: Аура Повелителя (Бенимару)
-'Аура Повелителя':{next:'Аматэрасу',startTier:3,color:'#ffcc44',desc:'Король Пламени.'},
-// Ветка 28: Стойкость (Хакуро)
-'Стойкость':{next:'Deus Ex Machina',startTier:3,color:'#60a0ff',desc:'Король Машинных Богов.'},
-'Deus Ex Machina':{next:'Вечный',startTier:4,color:'#ffffff',desc:'Бесконечный.'},
-// Ветка 29: Тектонический сдвиг (Терра Матер)
-'Тектонический Сдвиг':{next:'Терра Матер',startTier:3,color:'#a06040',desc:'Король Космоса.'},
-// Ветка 30: Громовой Удар (Индра)
-// (Уже обработан в ветке 10)
-// Ветка 31: Кара (Михаэль)
-// (Уже обработан в ветке 4)
-// Ветка 32: Тёмное Пламя (Ктугха)
-// (Уже обработан в ветке 8)
-// Ветка 33: Порыв Ветра (Вельдора)
-// (Уже обработан в ветке 10)
-// Ветка 34: Каменная Кожа (Уриэль)
-// (Уже обработан в ветке 5)
-// Ветка 35: Искажение Времени (Йог-Сотот)
-// (Уже обработан в ветке 3)
-// Ветка 36: Ледяная Тюрьма (Вельзард)
-// (Уже обработан в ветке 9)
-// Ветка 37: Режущий Ветер (Вельдора)
-// (Уже обработан в ветке 10)
-// Ветка 38: Огненный Шторм (Вельгринд)
-// (Уже обработан в ветке 8)
-// Ветка 39: Абсолютный Ноль (Ктулху)
-// (Уже обработан в ветке 9)
-// Ветка 40: Длань Бездны (Ноденс)
-// (Уже обработан в ветке 16)
-// Ветка 41: Многослойный Барьер (Уриэль)
-// (Уже обработан в ветке 5)
-// Ветка 42: Священный Барьер (Сариэль)
-// (Уже обработан в ветке 5)
-// Ветка 43: Пространственное Перемещение (Йог-Сотот)
-// (Уже обработан в ветке 3)
-// Ветка 44: Разлом (Йог-Сотот)
-// (Уже обработан в ветке 3)
-// Ветка 45: Пожирание (Азатот)
-// (Уже обработан в ветке 1)
-// Ветка 46: Водяная Струя (Ктулху)
-// (Уже обработан в ветке 9)
-// Ветка 47: Божественная Кара (Метатрон)
-// (Уже обработан в ветке 4)
-// Ветка 48: Судный День (Метатрон)
-// (Уже обработан в ветке 4)
-// Ветка 49: Мираж (Ньярлатотеп)
-// (Уже обработан в ветке 12)
-// Ветка 50: Лабиринт (Ньярлатотеп)
-// (Уже обработан в ветке 12)
-// Ветка 51: Теневая Ниндзя (Цукиёми)
-'Теневая Ниндзя':{next:'Цукиёми',startTier:3,color:'#404060',desc:'Король Лунной Тени.'},
+
+'Иллюзия':{next:'Мираж',startTier:1,color:'#c080ff',desc:'Эволюция иллюзий.'},
+'Мираж':{next:'Лабиринт',startTier:2,color:'#a040ff',desc:'Эволюция миража.'},
+'Лабиринт':{next:'Мефисто',startTier:3,color:'#ff40ff',desc:'Король Фантазии.'},
+'Мефисто':{next:'Ньярлатотеп',startTier:4,color:'#ff40ff',desc:'Король Хаоса.'},
+
+'Разрез':{next:'Клинок Бури',startTier:1,color:'#f4f4ff',desc:'Эволюция клинка.'},
+'Клинок Бури':{next:'Трансформация Клинка',startTier:2,color:'#80d0ff',desc:'Оружие становится телом.'},
+'Универсальное Превращение':{next:'Художник',startTier:1,color:'#f4f4ff',desc:'Мастерство формы.'},
+'Художник':{next:'Трансформация Клинка',startTier:2,color:'#f4f4ff',desc:'Истинный Писатель.'},
+'Трансформация Клинка':{next:'Множественное Оружие',startTier:3,color:'#ffffff',desc:'Король Марциального Создания.'},
+'Множественное Оружие':{next:'Агастья',startTier:4,color:'#ffcc44',desc:'Книга Пророчеств.'},
+'Избранный':{next:'Печать Судьбы',startTier:1,color:'#ffd700',desc:'Благословение судьбы.'},
+'Аура Повелителя':{next:'Печать Судьбы',startTier:1,color:'#ffcc44',desc:'Воля лидера.'},
+'Печать Судьбы':{next:'Героический Король',startTier:2,color:'#ffd700',desc:'Эволюция героя.'},
+'Героический Король':{next:'Истинный Герой',startTier:2,color:'#ffed80',desc:'Король Героев.'},
+'Истинный Герой':{next:'Фортуна',startTier:3,color:'#ffffff',desc:'Король Шанса.'},
+'Фортуна':{next:'Яоёродзу',startTier:4,color:'#ff40a0',desc:'Проводник.'},
+'Теневая Ниндзя':{next:'Сумрачный Шаг',startTier:1,color:'#404060',desc:'Слияние с тенью.'},
+'Сумрачный Шаг':{next:'Лунный Клинок',startTier:2,color:'#606090',desc:'Танец теней.'},
+'Лунный Клинок':{next:'Цукиёми',startTier:3,color:'#606090',desc:'Король Лунной Тени.'},
 'Цукиёми':{next:'Яоёродзу',startTier:4,color:'#a0c0ff',desc:'Проводник.'},
-// Ветка 52: Аналитик (Яоёродзу)
-'Аналитик':{next:'Яоёродзу',startTier:3,color:'#a0c0ff',desc:'Проводник.'}
+'Воля Стража':{next:'Аналитик',startTier:1,color:'#80ff80',desc:'Тактический разум.'},
+'Просчёт Битвы':{next:'Аналитик',startTier:1,color:'#a0c0ff',desc:'Вычисление вероятностей.'},
+'Аналитик':{next:'Карта Мира',startTier:2,color:'#80ff80',desc:'Король Топографии.'},
+'Карта Мира':{next:'Звёздный Проводник',startTier:3,color:'#a0c0ff',desc:'Навигация судеб.'},
+'Звёздный Проводник':{next:'Агастья',startTier:4,color:'#ffffff',desc:'Книга Пророчеств.'},
+'Вращающийся Луч':{next:'Спираль Света',startTier:1,color:'#ffcc44',desc:'Четыре лазера по кругу.'},
+'Спираль Света':{next:'Солнечный Столп',startTier:2,color:'#fff0c0',desc:'Концентрация солнца.'},
+'Солнечный Столп':{next:'Сурья',startTier:3,color:'#fff0c0',desc:'Король Сияния.'},
+'Сурья':{next:'Космический Вихрь',startTier:4,color:'#ffffff',desc:'Сверхновая.'},
+'Тектонический Сдвиг':{next:'Гравитационная Сфера',startTier:1,color:'#a06040',desc:'Сжатие гравитации.'},
+'Гравитационная Сфера':{next:'Сингулярность',startTier:2,color:'#b09060',desc:'Центр масс.'},
+'Сингулярность':{next:'Терра Матер',startTier:3,color:'#ffcc44',desc:'Король Космоса.'},
+'Терра Матер':{next:'Ноденс',startTier:4,color:'#ffffff',desc:'Бог Бездны.'},
+'Проклятие':{next:'Печать Проклятий',startTier:1,color:'#a040a0',desc:'Сгущение проклятий.'},
+'Печать Проклятий':{next:'Некрономикон',startTier:2,color:'#a040a0',desc:'Книга Мертвых.'},
+'Некрономикон':{next:'Асмодей',startTier:3,color:'#ff80ff',desc:'Король Похоти.'},
+'Щит Стража':{next:'Гримуар',startTier:1,color:'#a0c0ff',desc:'Защитные руны.'},
+'Резонанс':{next:'Гримуар',startTier:1,color:'#a0c0ff',desc:'Гармония магикул.'},
+'Гримуар':{next:'Аура Эмоций',startTier:2,color:'#a0c0ff',desc:'Резонанс души.'},
+'Аура Эмоций':{next:'Создатель Настроения',startTier:3,color:'#a0c0ff',desc:'Король Психологии.'},
+'Создатель Настроения':{next:'Хамель',startTier:4,color:'#ffffff',desc:'Король Великолепия.'}
 };
 
 function evoFragCost(sk){
@@ -3197,6 +3238,16 @@ function drawBossAvatar(b){
       ctx.beginPath();ctx.moveTo(0.4 * r,-0.2 * r);ctx.lineTo(2.3 * r,-1.3 * r);ctx.lineTo(1.8 * r,-0.3 * r);
       ctx.lineTo(2.1 * r,0.3 * r);ctx.lineTo(1.3 * r,0.1 * r);ctx.lineTo(0.6 * r,0.6 * r);ctx.closePath();ctx.fill();ctx.stroke();ctx.restore();
     }
+  }else if(name.includes('Гай')){
+    for(const dir of [-1,1]){
+      ctx.save();ctx.scale(dir,1);ctx.rotate(flap);
+      ctx.fillStyle='rgba(160,10,30,0.85)';ctx.strokeStyle='#ffd700';ctx.lineWidth=1.5;
+      ctx.beginPath();ctx.moveTo(0.35 * r,-0.15 * r);ctx.lineTo(2.2 * r,-1.1 * r);ctx.lineTo(1.7 * r,-0.1 * r);
+      ctx.lineTo(2.0 * r,0.45 * r);ctx.lineTo(1.2 * r,0.2 * r);ctx.lineTo(0.4 * r,0.4 * r);ctx.closePath();ctx.fill();ctx.stroke();ctx.restore();
+    }
+    ctx.fillStyle='#ffd700';
+    ctx.beginPath();ctx.moveTo(-0.55 * r,-0.7 * r);ctx.lineTo(-0.85 * r,-1.45 * r);ctx.lineTo(-0.25 * r,-0.85 * r);ctx.fill();
+    ctx.beginPath();ctx.moveTo(0.55 * r,-0.7 * r);ctx.lineTo(0.85 * r,-1.45 * r);ctx.lineTo(0.25 * r,-0.85 * r);ctx.fill();
   }else if(name.includes('Михаэль')||name.includes('Фелдвей')){
     for(let w=0;w<3;w++){
       for(const dir of [-1,1]){
@@ -3358,7 +3409,7 @@ hasSup(){
   }
   return false;
 }
-hasSage(){return !!(this.skills['Великий Мудрец']||this.skills['Рафаэль']||this.skills['Сиэль']);}
+hasSage(){return !!(this.skills['Мудрец']||this.skills['Великий Мудрец']||this.skills['Рафаэль']||this.skills['Сиэль']);}
 
 hurt(v,isLaser=false,attacker=null){
   if(!isLaser&&(this.inv>0||this.dodg>0||this.buffs.invuln>0))return;
@@ -3602,6 +3653,7 @@ g.proj.push(pr);
 }
 }
 _performWeaponAttack(wep,g,t,dmgBonus){
+  const ARC359 = 359 * Math.PI / 180;
   const pa=predictAim(this.x,this.y,t,600);
   const a=pa!==null?pa:Math.atan2(t.y-this.y,t.x-this.x);
   const cr=Math.random()*100<this.crit;
@@ -3620,9 +3672,9 @@ _performWeaponAttack(wep,g,t,dmgBonus){
 
   switch(type){
     case 'sword':
-      if(wep.rank>=6){g.slashes.push(new Slash(this.x,this.y,a,125 * ao,Math.PI * 2,this.c));doMeleeHit(g,this,a,125 * ao,Math.PI * 2,baseDm,src);}
-      else if(wep.rank>=3){g.slashes.push(new Slash(this.x,this.y,a,105 * ao,Math.PI * 1.2,this.c));doMeleeHit(g,this,a,105 * ao,Math.PI * 1.2,baseDm,src);}
-      else{g.slashes.push(new Slash(this.x,this.y,a,95 * ao,Math.PI * 0.8,this.c));doMeleeHit(g,this,a,95 * ao,Math.PI * 0.8,baseDm,src);}
+      if(wep.rank>=5){g.slashes.push(new Slash(this.x,this.y,a,125 * ao,ARC359,this.c));doMeleeHit(g,this,a,125 * ao,ARC359,baseDm,src);}
+	  else if(wep.rank>=3){g.slashes.push(new Slash(this.x,this.y,a,105 * ao,Math.PI * 1.2,this.c));doMeleeHit(g,this,a,105 * ao,Math.PI * 1.2,baseDm,src);}
+	  else{g.slashes.push(new Slash(this.x,this.y,a,95 * ao,Math.PI * 0.8,this.c));doMeleeHit(g,this,a,95 * ao,Math.PI * 0.8,baseDm,src);}
       break;
     case 'katana':
       g.slashes.push(new Slash(this.x,this.y,a,115 * ao,Math.PI * 0.45,this.c));
@@ -3635,7 +3687,7 @@ _performWeaponAttack(wep,g,t,dmgBonus){
       }
       break;
     case 'scythe':{
-      const scyArc=wep.rank>=5?Math.PI * 2:Math.PI * 1.5;
+      const scyArc=wep.rank>=5?ARC359:Math.PI * 1.5;
       g.slashes.push(new Slash(this.x,this.y,a,135 * ao,scyArc,this.c));
       doMeleeHit(g,this,a,135 * ao,scyArc,baseDm * 1.1,src);
       break;}
@@ -3784,14 +3836,22 @@ _performWeaponAttack(wep,g,t,dmgBonus){
         pr.l=1.4;g.proj.push(pr);
       }
       break;}
-    case 'vortex_blade':{
-      const rad=150 * ao;
-      g.slashes.push(new Slash(this.x,this.y,a,rad,Math.PI * 2,'#80ffd0'));
+	case 'vortex_blade':{
+	  const baseR=wep.rank>=6?230:(wep.rank>=5?190:150);
+	  const rad=baseR * ao;
+	  const pullR=(baseR + 100) * ao;
+	  const pullForce=wep.rank>=6?95:(wep.rank>=5?80:65);
+	  const vCol=wep.rank>=6?'#80ffff':(wep.rank>=5?'#a0ffd0':'#80ffd0');
+	  g.slashes.push(new Slash(this.x,this.y,a,rad,Math.PI * 2,vCol));
       doMeleeHit(g,this,a,rad,Math.PI * 2,baseDm,src);
-      for(const e of g.enemies)if(e.alive&&d2(e.x,e.y,this.x,this.y)<240 * 240){
-        const pull=Math.atan2(this.y-e.y,this.x-e.x);e.x+=Math.cos(pull) * 65;e.y+=Math.sin(pull) * 65;
-      }
-      break;}
+	  for(const e of g.enemies)if(e.alive&&d2(e.x,e.y,this.x,this.y)<pullR * pullR){
+		const pull=Math.atan2(this.y-e.y,this.x-e.x);
+		e.x=cl(e.x + Math.cos(pull) * pullForce,20,WW-20);
+		e.y=cl(e.y + Math.sin(pull) * pullForce,20,WH-20);
+		if(wep.rank>=6)e.slowTimer=Math.max(e.slowTimer||0,0.8);
+	  }
+	  break;}
+
     case 'timepiece':{
       g.timeSlowTimer=Math.max(g.timeSlowTimer,0.6);
       for(const e of g.enemies)if(e.alive&&d2(e.x,e.y,this.x,this.y)<360 * 360){e.marked=Math.max(e.marked||0,4);e.slowTimer=Math.max(e.slowTimer||0,1.5);}
@@ -3845,6 +3905,7 @@ if(cr)g.ftxt.push(new FTxt('КРИТ!',this.x,this.y-25,'#ffdd44',0.7,12));
 }
 	  
 triggerWeaponAbility(slotIdx,g){
+  const ARC359 = 359 * Math.PI / 180;
   const baseCd=8 * (1 - this.cdr);
   if(Array.isArray(this.weaponAbilityCd)){
     if(this.weaponAbilityCd[slotIdx]>0)return;
@@ -3930,14 +3991,35 @@ triggerWeaponAbility(slotIdx,g){
     case 'katana':
       // Багровый вихрь: 2 круговых разреза + 8 летящих серпов
       g.slashes.push(new Slash(this.x,this.y,a,260 * ao,Math.PI * 2,col));
-      doMeleeHit(g,this,a,260 * ao,Math.PI * 2,baseDmg * 1.3,src);
+      doMeleeHit(g,this,a,260 * ao,ARC359,baseDmg * 1.3,src);
       for(let i=0;i<8;i++){
-        const aa=i/8 * Math.PI * 2;
+        const aa=i/8 * ARC359;
         const pr=new Proj(this.x,this.y,Math.cos(aa) * 850,Math.sin(aa) * 850,baseDmg * 0.7,col,11 * ao,true,99,src);
         pr.l=1.4;pr.visType='beam';g.proj.push(pr);
       }
       g.ftxt.push(new FTxt('ВИХРЬ КЛИНКОВ!',this.x,this.y-45,col,1.8,18));
       break;
+	case 'vortex_blade':{
+      const pullR=420 * ao;
+      for(const e of g.enemies){
+        if(e.alive&&d2(e.x,e.y,this.x,this.y)<pullR * pullR){
+          const pull=Math.atan2(this.y-e.y,this.x-e.x);
+          e.x=cl(e.x + Math.cos(pull) * 160,20,WW-20);
+          e.y=cl(e.y + Math.sin(pull) * 160,20,WH-20);
+          e.slowTimer=Math.max(e.slowTimer||0,2.5);
+        }
+      }
+      for(let step=0;step<3;step++){
+        addTimer(g,step * 0.14,()=>{
+          if(g.state!=='playing')return;
+          const vRad=(210 + step * 35) * ao;
+          g.slashes.push(new Slash(this.x,this.y,a + step * 0.7,vRad,Math.PI * 2,'#80ffff'));
+          doMeleeHit(g,this,a + step * 0.7,vRad,Math.PI * 2,baseDmg * 0.65,src);
+        });
+      }
+      g.ftxt.push(new FTxt('ГЛАЗ УРАГАНА!',this.x,this.y-45,'#80ffff',1.8,18));
+      break;}
+
 
     case 'crossbeam':
     case 'holycross':
@@ -6198,7 +6280,8 @@ Game.prototype.rHUD=function(){
   
   if(p.hasSage() && !this.parryMode){ctx.fillStyle='rgba(0,20,60,.7)';ctx.fillRect(15,280,330,110);
     ctx.strokeStyle='#a0c0ff';ctx.lineWidth=1;ctx.strokeRect(15,280,330,110);
-    tx('◈ ВЕЛИКИЙ МУДРЕЦ ◈',20,297,{size:12,weight:'bold',color:'#a0c0ff'});
+    const sageTitle=p.skills['Сиэль']?'СИЭЛЬ':(p.skills['Рафаэль']?'РАФАЭЛЬ':(p.skills['Великий Мудрец']?'ВЕЛИКИЙ МУДРЕЦ':'МУДРЕЦ'));
+    tx('◈ '+sageTitle+' ◈',20,297,{size:12,weight:'bold',color:'#a0c0ff'});
     let near=null,nd=350*350;
     for(const e of this.enemies){if(!e.alive)continue;const dd=d2(e.x,e.y,p.x,p.y);if(dd<nd){nd=dd;near=e;}}
     if(near){tx('Анализ: '+near.t.n,20,317,{size:11,color:'#ffcc44'});
